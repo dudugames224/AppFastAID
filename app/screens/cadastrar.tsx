@@ -39,7 +39,7 @@ export default function CadastrarScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.containerLogin}>
       
         <Image style={styles.imagem} source={require("../../assets/images/band_no_celular.png")}/>
 

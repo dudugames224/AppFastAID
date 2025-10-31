@@ -31,7 +31,7 @@ export default function LoginScreen() {
 
   return(
     
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.containerLogin}>
      
         <Image source={require("../../assets/images/band_no_celular.png")} style={styles.imagem}/>
       
