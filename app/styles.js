@@ -1,21 +1,24 @@
-import { StyleSheet } from "react-native";
+import { Dimensions, StyleSheet } from "react-native";
+const { width, height } = Dimensions.get('window');
 
 
 const styles = StyleSheet.create({
   container:{
     flex:1,
     alignItems:"center",
-    justifyContent:"center",
+    //justifyContent:"center",
     backgroundColor: "#121212",
-    gap:20
+    //gap:15
     
   },
   imagem:{
+
     height:250,
     width:320,
     resizeMode:"contain",
-    position:"absolute",
-    top: 100,
+    marginTop: height * 0.03,
+    //position:"absolute",
+    //top: 100,
     
   },
   titulo:{
@@ -34,7 +37,7 @@ const styles = StyleSheet.create({
     borderRadius:20,
     paddingBottom:30,
     width:330,
-    top:50
+    //top:50
   },
   caixaBand:{
     backgroundColor:"#1f1e1eff",
