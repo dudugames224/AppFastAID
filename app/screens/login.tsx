@@ -77,10 +77,10 @@ const styles = StyleSheet.create({
   },
   caixa:{
     backgroundColor:"#1f1e1eff",
-    padding:20,
+    padding:15,
     gap:15,
     borderRadius:20,
-    paddingBottom:30
+    paddingBottom:30,
    
 
   },

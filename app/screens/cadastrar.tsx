@@ -33,7 +33,7 @@ export default function CadastrarScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.caixa}>
-        <Text style={styles.titulo}>Cadastro</Text>
+        <Text style={styles.titulo}>CADASTRO</Text>
         <TextInput
           style={styles.caixaInsercao}
           placeholder="Usuário"
@@ -59,7 +59,7 @@ export default function CadastrarScreen() {
           placeholderTextColor="#aaa"
         />
         <TouchableOpacity style={styles.botao} onPress={cadastrar}>
-          <Text style={styles.textoBotao}>Cadastrar</Text>
+          <Text style={styles.textoBotao}>CADASTRAR</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.push('/screens/login')} style={styles.link}><Text style={styles.textoLink}>Já tem login? Entre aqui</Text></TouchableOpacity>
       </View>
@@ -89,10 +89,10 @@ const styles = StyleSheet.create({
   },
   caixa:{
     backgroundColor:"#1f1e1eff",
-    padding:20,
+    padding:15,
     gap:15,
     borderRadius:20,
-    paddingBottom:30
+    paddingBottom:30,
    
 
   },
