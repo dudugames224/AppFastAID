@@ -1,9 +1,12 @@
 import { router } from "expo-router";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebaseConfig";
+import styles from "../styles";
+
+
 
 
 
@@ -29,6 +32,10 @@ export default function LoginScreen() {
   return(
     
     <SafeAreaView style={styles.container}>
+     
+        <Image source={require("../../assets/images/band_no_celular.png")} style={styles.imagem}/>
+      
+      
     <View style={styles.caixa}>
       <Text style={styles.titulo}>LOGIN</Text>
       <TextInput
@@ -55,66 +62,4 @@ export default function LoginScreen() {
   
 }
 
-const styles = StyleSheet.create({
-  container:{
-    flex:1,
-    alignItems:"center",
-    justifyContent:"center",
-    backgroundColor: "#121212",
-    
-    
 
-
-  },
-  titulo:{
-   //color: "#0eb6f8ff",
-   color: "#238bccff",
-    fontSize:40,
-    textAlign:"center",
-    fontWeight:"700",
-    
-
-  },
-  caixa:{
-    backgroundColor:"#1f1e1eff",
-    padding:15,
-    gap:15,
-    borderRadius:20,
-    paddingBottom:30,
-   
-
-  },
-  caixaInsercao:{
-    backgroundColor: "#272626ff",
-    borderRadius:10,
-    padding:10,
-    paddingLeft:12,
-    width:300,
-    height:45,
-    color: "#fff"
-
-  },
-  botao:{
-    backgroundColor:"#238bccff",
-    padding:10,
-    borderRadius:7,
-
-
-  },
-  textoBotao:{
-    color: "#fff",
-    fontWeight:"700",
-    textAlign:"center"
-
-  },
-  link:{
-
-  },
-  textoLink:{
-    color: "#238bccff",
-    textAlign:"center",
-
-  }
-
-    
-  })

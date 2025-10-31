@@ -1,7 +1,9 @@
+import { Link } from "expo-router";
 import React from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { coursesData } from "../data/courseData";
+
 
 type Module = {
   id: string;
@@ -62,6 +64,7 @@ const CourseScreen: React.FC = () => {
             </React.Fragment>
           );
         })}
+        <Link style={styles.sosText} href="./login"><Text>SAIR</Text></Link>
       </View>
     </ScrollView>
     </SafeAreaView>

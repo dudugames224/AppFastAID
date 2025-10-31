@@ -1,10 +1,11 @@
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Checkbox from "../components/Checkbox";
 import { auth, db, doc, setDoc } from "../firebaseConfig";
+import styles from "../styles";
 
 export default function CadastrarScreen() {
   const [user,setUser] = useState<User | null>(null);
@@ -39,6 +40,9 @@ export default function CadastrarScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
+      
+        <Image style={styles.imagem} source={require("../../assets/images/band_no_celular.png")}/>
+
       <View style={styles.caixa}>
         <Text style={styles.titulo}>CADASTRO</Text>
         <TextInput
@@ -79,66 +83,3 @@ export default function CadastrarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container:{
-    flex:1,
-    alignItems:"center",
-    justifyContent:"center",
-    backgroundColor: "#121212",
-    
-    
-
-
-  },
-  titulo:{
-   //color: "#0eb6f8ff",
-   color: "#238bccff",
-    fontSize:40,
-    textAlign:"center",
-    fontWeight:"700",
-    
-
-  },
-  caixa:{
-    backgroundColor:"#1f1e1eff",
-    padding:15,
-    gap:15,
-    borderRadius:20,
-    paddingBottom:30,
-   
-
-  },
-  caixaInsercao:{
-    backgroundColor: "#272626ff",
-    borderRadius:10,
-    padding:10,
-    paddingLeft:12,
-    width:300,
-    height:45,
-    color: "#fff"
-
-  },
-  botao:{
-    backgroundColor:"#238bccff",
-    padding:10,
-    borderRadius:7,
-
-
-  },
-  textoBotao:{
-    color: "#fff",
-    fontWeight:"700",
-    textAlign:"center"
-
-  },
-  link:{
-
-  },
-  textoLink:{
-    color: "#238bccff",
-    textAlign:"center",
-    
-  }
-
-    
-  })
