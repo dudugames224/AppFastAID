@@ -16,7 +16,7 @@ const styles = StyleSheet.create({
     height:250,
     width:320,
     resizeMode:"contain",
-    marginTop: height * 0.03,
+    marginTop: height * 0.02,
     //position:"absolute",
     //top: 100,
     
