@@ -3,6 +3,7 @@ import { createUserWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Checkbox from "../components/Checkbox";
 import { auth, db, doc, setDoc } from "../firebaseConfig";
 
 export default function CadastrarScreen() {
@@ -10,9 +11,14 @@ export default function CadastrarScreen() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
+  const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
 
   const cadastrar = async () => {
     try {
+      if (!aceiteDeTermos){
+        alert("É necessário aceitar os termos e condições para continuar.")
+      }
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       setUser(userCredential.user);
       const userDocRef = doc(db, "users", userCredential.user.uid);
@@ -20,6 +26,7 @@ export default function CadastrarScreen() {
         uid: userCredential.user.uid,
         nome: nome,
         email: email,
+        aceiteDeTermos: aceiteDeTermos
       })
       console.log("Usuário cadastrado:", userCredential.user.email);
       router.replace('/screens/CourseScreen');
@@ -57,6 +64,11 @@ export default function CadastrarScreen() {
           onChangeText={setSenha}
           secureTextEntry
           placeholderTextColor="#aaa"
+        />
+        <Checkbox
+          label="Eu aceito os termos e condições."
+          value={aceiteDeTermos}
+          onValueChange={setAceiteDeTermos}
         />
         <TouchableOpacity style={styles.botao} onPress={cadastrar}>
           <Text style={styles.textoBotao}>CADASTRAR</Text>
