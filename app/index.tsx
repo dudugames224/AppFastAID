@@ -1,7 +1,3 @@
-import React from "react";
-import CourseScreen from "../src/screens/CourseScreen";
+import LoginScreen from "./screens/login";
 
-export default function Index() {
-  return <CourseScreen />;
-}
-
+export default LoginScreen;

@@ -1,5 +1,6 @@
 import React from "react";
-import { SafeAreaView, ScrollView, View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { coursesData } from "../data/courseData";
 
 type Module = {
