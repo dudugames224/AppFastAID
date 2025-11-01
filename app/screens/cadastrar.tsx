@@ -8,7 +8,7 @@ import { auth, db, doc, setDoc } from "../firebaseConfig";
 import styles from "../styles";
 
 export default function CadastrarScreen() {
-  const [user,setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
@@ -16,22 +16,30 @@ export default function CadastrarScreen() {
 
   const cadastrar = async () => {
     try {
-      if (!aceiteDeTermos){
-        alert("É necessário aceitar os termos e condições para continuar.")
+      if (!aceiteDeTermos) {
+        alert("É necessário aceitar os termos e condições para continuar.");
+      }
+      const temCaractereEspecial = /[^A-Za-z0-9]/.test(senha);
+      if (!temCaractereEspecial) {
+        alert("Insira um caracter especial!");
+        return;
       }
 
-      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        senha
+      );
       setUser(userCredential.user);
       const userDocRef = doc(db, "users", userCredential.user.uid);
       await setDoc(userDocRef, {
         uid: userCredential.user.uid,
         nome: nome,
         email: email,
-        aceiteDeTermos: aceiteDeTermos
-      })
+        aceiteDeTermos: aceiteDeTermos,
+      });
       console.log("Usuário cadastrado:", userCredential.user.email);
-      router.replace('/screens/CourseScreen');
-
+      router.replace("/screens/CourseScreen");
     } catch (error: any) {
       console.log("Erro ao cadastrar:", error.message);
       alert(`Erro: ${error.message}`);
@@ -40,8 +48,10 @@ export default function CadastrarScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      
-        <Image style={styles.imagem} source={require("../../assets/images/band_no_celular.png")}/>
+      <Image
+        style={styles.imagem}
+        source={require("../../assets/images/band_no_celular.png")}
+      />
 
       <View style={styles.caixa}>
         <Text style={styles.titulo}>CADASTRO</Text>
@@ -77,9 +87,13 @@ export default function CadastrarScreen() {
         <TouchableOpacity style={styles.botao} onPress={cadastrar}>
           <Text style={styles.textoBotao}>CADASTRAR</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => router.push('/screens/login')} style={styles.link}><Text style={styles.textoLink}>Já tem login? Entre aqui</Text></TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => router.push("/screens/login")}
+          style={styles.link}
+        >
+          <Text style={styles.textoLink}>Já tem login? Entre aqui</Text>
+        </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
-
