@@ -37,6 +37,9 @@ export default function CadastrarScreen() {
         nome: nome,
         email: email,
         aceiteDeTermos: aceiteDeTermos,
+        xp: 0,
+        safira: 0,
+        ofensiva: 0,
       });
       console.log("Usuário cadastrado:", userCredential.user.email);
       router.replace("/screens/CourseScreen");
@@ -47,7 +50,7 @@ export default function CadastrarScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.containerLogin}>
       <Image
         style={styles.imagem}
         source={require("../../assets/images/band_no_celular.png")}
