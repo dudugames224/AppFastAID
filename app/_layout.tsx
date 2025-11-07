@@ -13,6 +13,11 @@ export default function RootLayout() {
       <Stack.Screen name="login"/>
       <Stack.Screen name="cadastrar"/>
       <Stack.Screen name="CourseScreen"/>
+      <Stack.Screen name="screens/RCP"/>
+      <Stack.Screen name="screens/LessonScreen"/>
+      <Stack.Screen name="screens/LessonResultScreen"/>
+      <Stack.Screen name="screens/PracticeScreen"/>
+      <Stack.Screen name="screens/TournamentScreen"/>
     </Stack>
   );
 }
