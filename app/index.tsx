@@ -14,6 +14,7 @@ export default function IndexScreen() {
         biometria();
       } else {
         Sair();
+        router.replace('/screens/login');
             }
     });
 
@@ -30,6 +31,7 @@ export default function IndexScreen() {
         router.replace('/screens/CourseScreen');
       } else {
         Sair();
+        router.replace('/screens/login');
         
 
       }
