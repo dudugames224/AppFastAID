@@ -140,7 +140,7 @@ const CourseScreen: React.FC = () => {
               activeOpacity={0.9}
               onPress={() => {
                 setPanicVisible(false);
-                router.push("/screens/RCP");
+                router.push("./screens/RCP");
               }}
             >
               <View style={panicStyles.optionIconCircle}>

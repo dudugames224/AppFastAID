@@ -4,8 +4,8 @@ import React, { useState } from "react";
 import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Checkbox from "../components/Checkbox";
-import { auth, db, doc, setDoc } from "../firebaseConfig";
-import styles from "../styles";
+import { auth, db, doc, setDoc } from "../firebaseConfig.js";
+import styles from "../styles.js";
 
 export default function CadastrarScreen() {
   const [user, setUser] = useState<User | null>(null);

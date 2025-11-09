@@ -1,18 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Link, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   Image,
   Modal,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { coursesData } from "../data/courseData";
-import styles from "../styles";
+import { Sair } from "../firebaseConfig.js";
+import styles, { panicStyles } from "../styles";
+
 
 type Module = {
   id: string;
@@ -25,6 +26,11 @@ const CourseScreen: React.FC = () => {
   const modules = course.modules as Module[];
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
+
+  function logout() {
+    Sair(); 
+    router.replace('/screens/login'); 
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
@@ -70,9 +76,9 @@ const CourseScreen: React.FC = () => {
               </React.Fragment>
             );
           })}
-          <Link style={styles.sosText} href="./login">
-            <Text>SAIR</Text>
-          </Link>
+          <TouchableOpacity style={styles.unitButton} onPress={logout}>
+            <Text style={[styles.unitLabel, { color: "#FF4B4B" }]}>SAIR</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
 
@@ -100,7 +106,7 @@ const CourseScreen: React.FC = () => {
               activeOpacity={0.9}
               onPress={() => {
                 setPanicVisible(false);
-                router.push("/screens/RCP");
+                router.push("./screens/RCP");
               }}
             >
               <View style={panicStyles.optionIconCircle}>
@@ -117,61 +123,4 @@ const CourseScreen: React.FC = () => {
 
 export default CourseScreen;
 
-// Estilos locais do modal de pânico
-const panicStyles = StyleSheet.create({
-  centerBackdrop: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.6)",
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 24,
-  },
-  card: {
-    width: "100%",
-    backgroundColor: "#FF4B4B",
-    borderRadius: 22,
-    padding: 16,
-    gap: 16,
-  },
-  cardHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-  },
-  cardTitle: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 18,
-  },
-  cardClose: {
-    position: "absolute",
-    right: 6,
-    top: -10,
-    backgroundColor: "rgba(255,255,255,0.25)",
-    borderRadius: 16,
-    padding: 6,
-  },
-  option: {
-    backgroundColor: "#FFD5D5",
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  optionIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  optionLabel: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#000",
-  },
-});
+

@@ -206,4 +206,64 @@ const styles = StyleSheet.create({
 
     
   });
+
+  const panicStyles = StyleSheet.create({
+  centerBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+  },
+  card: {
+    width: "100%",
+    backgroundColor: "#FF4B4B",
+    borderRadius: 22,
+    padding: 16,
+    gap: 16,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  cardTitle: {
+    color: "#fff",
+    fontWeight: "bold",
+    fontSize: 18,
+  },
+  cardClose: {
+    position: "absolute",
+    right: 6,
+    top: -10,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 16,
+    padding: 6,
+  },
+  option: {
+    backgroundColor: "#FFD5D5",
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  optionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+  },
+});
   export default styles;
+  export { panicStyles };
+

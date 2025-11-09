@@ -1,10 +1,12 @@
+import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Image, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { auth } from "../firebaseConfig";
-import styles from "../styles";
+import { auth } from "../firebaseConfig.js";
+import styles, { panicStyles } from "../styles.js";
+
 
 
 
@@ -14,6 +16,7 @@ export default function LoginScreen() {
   const [email,setEmail] = useState('');
   const [senha,setSenha] = useState('');
   const [user,setUser] = useState<User | null>(null);
+  const [panicVisible, setPanicVisible] = useState(false);
 
   async function login() {
     try{
@@ -56,10 +59,40 @@ export default function LoginScreen() {
       
       <TouchableOpacity onPress={() => router.push('/screens/cadastrar')} style={styles.link}><Text style={styles.textoLink}>Não tem login? Cadastre-se</Text></TouchableOpacity>
     </View>
+    <View style={styles.sosButton} pointerEvents="box-none">
+        <TouchableOpacity style={styles.sosTouchable} activeOpacity={0.9} onPress={() => setPanicVisible(true)}>
+          <Ionicons name="warning" size={30} color="#fff" />
+        </TouchableOpacity>
+      </View>
+    <Modal visible={panicVisible} animationType="fade" transparent onRequestClose={() => setPanicVisible(false)}>
+        <View style={panicStyles.centerBackdrop}>
+          <View style={panicStyles.card}>
+            <View style={panicStyles.cardHeader}>
+              <Ionicons name="warning" size={22} color="#fff" />
+              <Text style={panicStyles.cardTitle}>Modo Pânico</Text>
+              <TouchableOpacity onPress={() => setPanicVisible(false)} style={panicStyles.cardClose}>
+                <Ionicons name="close" size={18} color="#fff" />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={panicStyles.option}
+              activeOpacity={0.9}
+              onPress={() => {
+                setPanicVisible(false);
+                router.push("./RCP");
+              }}
+            >
+              <View style={panicStyles.optionIconCircle}>
+                <Ionicons name="medkit" size={20} color="#FF4B4B" />
+              </View>
+              <Text style={panicStyles.optionLabel}>RCP (Reanimação)</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
   </SafeAreaView>
   )
   
   
 }
-
-
