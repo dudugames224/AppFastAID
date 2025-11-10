@@ -1,44 +1,72 @@
 import { Dimensions, StyleSheet } from "react-native";
 const { width, height } = Dimensions.get('window');
 
+const lightColors = {
+  background: "#F0F2F5", // Um cinza claro para o fundo
+  text: "#1C1E21", // Texto escuro
+  textClaro: "#F0F2F5",
+  primary: "#238bccff",
+  card: "#FFFFFF", // Cards brancos
+  inputBackground: "#E8E8E8",
+  inputTextColor: "#000000",
+  sosButton: "#D93F3F",
+  sosCard: "#FF4B4B",
+  sosOption: "#FFD5D5",
+  ofensivaPerdida:"#f80202ff",
+  circle:"#dbdbdbff",
+  border:"#cecdcdff",
+};
 
-const styles = StyleSheet.create({
-    
+const darkColors = {
+  background: "#121212",
+  textClaro: "#F0F2F5",
+  text: "#FFFFFF",
+  primary: "#238bccff",
+  card: "#1f1e1eff",
+  inputBackground: "#272626ff",
+  inputTextColor: "#FFFFFF",
+  sosButton: "#FF4B4B",
+  sosCard: "#FF4B4B",
+  sosOption: "#FFD5D5",
+  ofensivaPerdida:"#392323",
+  circle:"#4A4A4A",
+  border:"#2D2D2D",
+};
+
+const getThemedStyles = (theme) => {
+  const colors = theme === 'dark' ? darkColors : lightColors;
+
+  const styles = StyleSheet.create({
   containerLogin:{
     flex:1,
     alignItems:"center",
-    backgroundColor: "#121212",
+    backgroundColor: colors.background,
   },
   imagem:{
-
     height:250,
     width:320,
     resizeMode:"contain",
     marginTop: height * 0.02,
     //position:"absolute",
     //top: 100,
-    
   },
   titulo:{
    //color: "#0eb6f8ff",
-   color: "#238bccff",
+   color: colors.primary,
     fontSize:40,
     textAlign:"center",
     fontWeight:"700",
-    
-
   },
   caixa:{
-    backgroundColor:"#1f1e1eff",
+    backgroundColor: colors.card,
     padding:15,
     gap:15,
     borderRadius:20,
     paddingBottom:30,
     width:330,
-    //top:50
   },
   caixaBand:{
-    backgroundColor:"#1f1e1eff",
+    backgroundColor: colors.card,
     padding:5,
     gap:0,
     borderRadius:20,
@@ -46,17 +74,17 @@ const styles = StyleSheet.create({
     width:330,
   },
   caixaInsercao:{
-    backgroundColor: "#272626ff",
+    backgroundColor: colors.inputBackground,
     borderRadius:10,
     padding:10,
     paddingLeft:12,
     width:300,
     height:45,
-    color: "#fff"
+    color: colors.inputTextColor,
 
   },
   botao:{
-    backgroundColor:"#238bccff",
+    backgroundColor: colors.primary,
     padding:10,
     borderRadius:7,
 
@@ -72,17 +100,17 @@ const styles = StyleSheet.create({
 
   },
   textoLink:{
-    color: "#238bccff",
+    color: colors.primary,
     textAlign:"center",
 
   },
   safe: {
     flex: 1,
-    backgroundColor: "#121212",
+    backgroundColor: colors.background,
   },
   container: {
     flex: 1,
-    backgroundColor: "#121212",
+    backgroundColor: colors.background,
     padding: 20,
   },
   character: {
@@ -97,15 +125,15 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     alignSelf: "center",
     padding: 10,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.card,
     borderRadius: 15,
     borderWidth: 1,
-    borderColor: "#2D2D2D",
+    borderColor: colors.border,
   },
   topicIcon: {
     width: 50,
     height: 50,
-    borderRadius: 12,
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
     marginRight: 12,
@@ -120,7 +148,7 @@ const styles = StyleSheet.create({
   courseTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "#FFFFFF",
+    color: colors.text,
     marginRight: 8,
   },
   chevron: {
@@ -152,7 +180,7 @@ const styles = StyleSheet.create({
   unitLabel: {
     fontWeight: "600",
     fontSize: 16,
-    color: "#FFFFFF",
+    color: colors.text,
   },
   pathConnector: {
     width: 4,
@@ -161,7 +189,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   streakLossContainer: {
-    backgroundColor: "#392323",
+    backgroundColor: colors.ofensivaPerdida,
     padding: 15,
     borderRadius: 12,
     marginBottom: 20,
@@ -170,12 +198,13 @@ const styles = StyleSheet.create({
     borderColor: "#FF4B4B",
   },
   streakLossTitle: {
-    color: "#FF4B4B",
+    color: colors.textClaro,
     fontSize: 18,
     fontWeight: "bold",
   },
   streakLossText: {
-    color: "#A9A9A9",
+    color: colors.textClaro,
+    fontSize: 16,
     textAlign: "center",
     marginTop: 5,
   },
@@ -185,7 +214,7 @@ const styles = StyleSheet.create({
     bottom: 24,
     zIndex: 10,
   },
-  sosTouchable: {
+  sosTouchable: { // Mantido vermelho para destaque
     backgroundColor: "#FF4B4B",
     width: 64,
     height: 64,
@@ -204,9 +233,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 
-    
   });
-
   const panicStyles = StyleSheet.create({
   centerBackdrop: {
     flex: 1,
@@ -217,7 +244,7 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "100%",
-    backgroundColor: "#FF4B4B",
+    backgroundColor: colors.sosCard,
     borderRadius: 22,
     padding: 16,
     gap: 16,
@@ -237,6 +264,60 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 6,
     top: -10,
+    backgroundColor: "rgba(255,255,255,0.25)",
+    borderRadius: 16,
+    padding: 6,
+  },
+  option: {
+    backgroundColor: colors.sosOption,
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  optionIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#fff",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  optionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#000",
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "flex-end",
+  },
+  sheet: {
+    backgroundColor: "#FF4B4B",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 16,
+    gap: 12,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  title: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  close: {
     backgroundColor: "rgba(255,255,255,0.25)",
     borderRadius: 16,
     padding: 6,
@@ -264,6 +345,8 @@ const styles = StyleSheet.create({
     color: "#000",
   },
 });
-  export default styles;
-  export { panicStyles };
 
+  return { styles, panicStyles,colors };
+};
+
+export default getThemedStyles;

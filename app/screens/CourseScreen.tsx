@@ -1,4 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
@@ -7,12 +9,13 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  View
+  View,
+  useColorScheme
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { coursesData } from "../data/courseData";
 import { Sair } from "../firebaseConfig.js";
-import styles, { panicStyles } from "../styles";
+import getThemedStyles from "../styles";
 
 
 type Module = {
@@ -26,6 +29,10 @@ const CourseScreen: React.FC = () => {
   const modules = course.modules as Module[];
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
+  
+  const deviceTheme = useColorScheme();
+  const [currentTheme, setCurrentTheme] = useState(deviceTheme || 'light');
+  const { styles, panicStyles, colors } = getThemedStyles(currentTheme);
 
   function logout() {
     Sair(); 
@@ -61,9 +68,9 @@ const CourseScreen: React.FC = () => {
         <View style={styles.lessonPath}>
           {modules.map((m, index) => {
             const locked = index > 0;
-            const labelColor = locked ? "#777" : "#FFFFFF";
-            const circleColor = locked ? "#4A4A4A" : m.color;
-            const symbol = locked ? "🔒" : "✓";
+            const labelColor = locked ? "#777" : colors.text;
+            const circleColor = locked ? colors.circle : m.color;
+            const symbol = locked ? <FontAwesome6 name="lock" size={30} color="black" /> : <FontAwesome name="check" size={30} color="black" />;
             return (
               <React.Fragment key={m.id}>
                 <TouchableOpacity style={styles.unitButton} activeOpacity={0.8} disabled={locked}>
@@ -78,6 +85,12 @@ const CourseScreen: React.FC = () => {
           })}
           <TouchableOpacity style={styles.unitButton} onPress={logout}>
             <Text style={[styles.unitLabel, { color: "#FF4B4B" }]}>SAIR</Text>
+          </TouchableOpacity>
+          {/* Botão para alternar o tema */}
+          <TouchableOpacity 
+            style={styles.unitButton} 
+            onPress={() => setCurrentTheme(currentTheme === 'light' ? 'dark' : 'light')}>
+            <Text style={[styles.unitLabel, { color: "#FF4B4B" }]}>Trocar Tema</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -122,5 +135,3 @@ const CourseScreen: React.FC = () => {
 };
 
 export default CourseScreen;
-
-

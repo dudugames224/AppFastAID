@@ -2,17 +2,19 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, useColorScheme, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { auth } from "../firebaseConfig.js";
-import styles, { panicStyles } from "../styles.js";
-
-
-
-
-
+import getThemedStyles from "../styles.js";
 
 export default function LoginScreen() {
+  // 1. Obtenha o tema atual do dispositivo (claro ou escuro)
+  const colorScheme = useColorScheme();
+
+  // 2. Gere os estilos dinamicamente com base no tema
+  // A partir daqui, 'styles' e 'panicStyles' terão os valores corretos
+  const { styles, panicStyles } = getThemedStyles(colorScheme);
+
   const [email,setEmail] = useState('');
   const [senha,setSenha] = useState('');
   const [user,setUser] = useState<User | null>(null);
@@ -24,7 +26,7 @@ export default function LoginScreen() {
       setUser(userCredential.user);
       console.log("Usuário logado:", userCredential.user.email);
     
-      router.replace('/screens/CourseScreen');
+      router.replace('/screens/TournamentScreen');
 
     } catch (error: any) {
       console.log("Erro ao fazer login:", error.message);

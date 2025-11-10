@@ -9,10 +9,11 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useColorScheme
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { coursesData } from "../data/courseData";
-import styles from "../styles";
+import getThemedStyles from "../styles";
 
 type Module = {
   id: string;
@@ -25,6 +26,9 @@ const CourseScreen: React.FC = () => {
   const modules = course.modules as Module[];
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
+  const colorScheme = useColorScheme();
+  
+  const { styles, panicStyles } = getThemedStyles(colorScheme);
 
   return (
     <SafeAreaView style={styles.safe}>
