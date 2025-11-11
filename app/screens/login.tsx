@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { signInWithEmailAndPassword, User } from "firebase/auth";
+import { sendPasswordResetEmail, signInWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -25,6 +25,19 @@ export default function LoginScreen() {
     } catch (error: any) {
       console.log("Erro ao fazer login:", error.message);
       Alert.alert("Erro no Login", "Email ou senha inválidos. Por favor, tente novamente.");
+    }
+  }
+
+  async function handleForgotPassword() {
+    if (email === "") {
+      Alert.alert("Redefinir Senha", "Por favor, digite seu e-mail no campo correspondente para redefinir sua senha.");
+      return;
+    }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      Alert.alert("Redefinir Senha", "Um e-mail foi enviado para você com as instruções para redefinir sua senha. Verifique sua caixa de entrada e spam.");
+    } catch (error: any) {
+      Alert.alert("Erro", "Não foi possível enviar o e-mail de redefinição. Verifique se o e-mail está correto.");
     }
   }
 
@@ -54,6 +67,7 @@ export default function LoginScreen() {
       <TouchableOpacity style={styles.botao} onPress={login}><Text style={styles.textoBotao}>ENTRAR</Text></TouchableOpacity>
       
       <TouchableOpacity onPress={() => router.push('/screens/cadastrar')} style={styles.link}><Text style={styles.textoLink}>Não tem login? Cadastre-se</Text></TouchableOpacity>
+      <TouchableOpacity onPress={handleForgotPassword} style={styles.link}><Text style={styles.textoLink}>Esqueci minha senha</Text></TouchableOpacity>
     </View>
     <View style={styles.sosButton} pointerEvents="box-none">
         <TouchableOpacity style={styles.sosTouchable} activeOpacity={0.9} onPress={() => setPanicVisible(true)}>
