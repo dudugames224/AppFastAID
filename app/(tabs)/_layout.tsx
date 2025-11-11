@@ -1,6 +1,6 @@
 import { Tabs } from "expo-router"; // ✅ Importar Tabs do expo-router
 import React from "react";
-import { HomeIcon, PracticeIcon, TrophyIcon } from "../components/Icons"; // Seus ícones customizados
+import { HomeIcon, PracticeIcon, ProfileIcon, ShopIcon, TrophyIcon } from "../components/Icons"; // Seus ícones customizados
 import { useTheme } from "../context/ThemeContext";
 
 export default function TabsLayout() {
@@ -54,13 +54,29 @@ export default function TabsLayout() {
         }}
       />
 
-      {/* Adicione outras Tabs.Screen aqui para cada tela que você mover para (tabs) */}
-      {/* Exemplo:
       <Tabs.Screen
-        name="ShopScreen"
-        options={{ title: "", tabBarShowLabel: false, tabBarIcon: ({ color, size }) => <ShopIcon color={color} size={size} /> }}
+        name="StoreScreen" // Nome do arquivo dentro de app/(tabs)/StoreScreen.tsx
+        options={{
+          title: "", // Sem texto abaixo do ícone
+          tabBarShowLabel: false,
+          tabBarIcon: ({ color }) => (
+            <ShopIcon color={color}  /> // ✅ Passando o size
+          ),
+        }}
       />
-      */}
+
+      <Tabs.Screen
+        name="ProfileScreen" // Nome do arquivo dentro de app/(tabs)/ProfileScreen.tsx
+        options={{
+          title: "", // Sem texto abaixo do ícone
+          tabBarShowLabel: false,
+          tabBarIcon: ({ color }) => (
+            <ProfileIcon color={color}  /> // ✅ Passando o size
+          ),
+        }}
+      />
+
+      
     </Tabs>
   );
 }

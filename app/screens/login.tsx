@@ -20,7 +20,7 @@ export default function LoginScreen() {
       setUser(userCredential.user);
       console.log("Usuário logado:", userCredential.user.email);
     
-      router.replace('../(tabs)../(tabs)/CourseScreen');
+      router.replace('../(tabs)/CourseScreen');
 
     } catch (error: any) {
       console.log("Erro ao fazer login:", error.message);

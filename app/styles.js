@@ -63,6 +63,7 @@ const getThemedStyles = (theme = 'light') => {
     borderRadius:20,
     paddingBottom:30,
     width:330,
+    
   },
   caixaBand:{
     backgroundColor: colors.card,
@@ -111,6 +112,7 @@ const getThemedStyles = (theme = 'light') => {
     flex: 1,
     backgroundColor: colors.background,
     padding: 20,
+    paddingEnd:50,
   },
   character: {
     width: 120,
@@ -291,8 +293,8 @@ const getThemedStyles = (theme = 'light') => {
     justifyContent: "center",
   },
   container: { flex: 1, backgroundColor: colors.background, padding: 20 },
-  title: { fontSize: 28, fontWeight: "bold", color: "#FFFFFF", marginBottom: 10, textAlign: "center" },
-  subtitle: { fontSize: 16, color: "#A9A9A9", marginBottom: 30, textAlign: "center" },
+  title: { fontSize: 28, fontWeight: "bold", color: colors.text, marginBottom: 10, textAlign: "center" },
+  subtitle: { fontSize: 16, color: colors.text, marginBottom: 30, textAlign: "center" },
   leaderboard: { gap: 10 },
   leaderboardRow: {
     flexDirection: "row",
@@ -300,9 +302,9 @@ const getThemedStyles = (theme = 'light') => {
     gap: 15,
     padding: 15,
     borderRadius: 8,
-    backgroundColor: "#1E1E1E",
+    backgroundColor: colors.background,
     borderWidth: 1,
-    borderColor: "#2D2D2D",
+    borderColor: colors.border,
   },
   leaderboardRowUser: {
     flexDirection: "row",
@@ -314,8 +316,24 @@ const getThemedStyles = (theme = 'light') => {
     borderWidth: 2,
     borderColor: "#3B82F6",
   },
-  playerName: { flex: 1, fontSize: 16, color: "#FFFFFF" },
-  playerXp: { fontWeight: "bold", fontSize: 16, color: "#FFFFFF" },
+  playerName: { flex: 1, fontSize: 16, color: colors.text },
+  playerXp: { fontWeight: "bold", fontSize: 16, color: colors.text },
+  courseCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    width: "100%",
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 15,
+    backgroundColor: colors.background,
+    marginBottom: 15,
+  },
+  topicIcon: { width: 50, height: 50, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  topicIconImage: { width: 50, height: 50, resizeMode: "contain" },
+  arrow: { color: "#A9A9A9", fontSize: 24 },
+
 
   });
 
@@ -398,11 +416,7 @@ const getThemedStyles = (theme = 'light') => {
     alignItems: "center",
     gap: 8,
   },
-  title: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
+  
   close: {
     backgroundColor: "rgba(255,255,255,0.25)",
     borderRadius: 16,
