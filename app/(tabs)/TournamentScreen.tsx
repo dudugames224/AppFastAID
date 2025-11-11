@@ -2,11 +2,17 @@ import React from "react";
 import { Image, ScrollView, StyleSheet, Text, View } from "react-native";
 import { leaderboardData } from "../data/courseData";
 
+
+
+
+
+
 const TournamentScreen = () => {
   const user = { name: "Você", xp: 2100, avatar: "🙂" };
   const fullLeaderboard = [...leaderboardData, { rank: "?", name: `${user.name} (Você)`, xp: user.xp, avatar: user.avatar }].sort(
     (a: any, b: any) => b.xp - a.xp
   );
+ 
 
   return (
     <ScrollView style={styles.container}>
@@ -26,6 +32,7 @@ const TournamentScreen = () => {
           );
         })}
       </View>
+      
     </ScrollView>
   );
 };

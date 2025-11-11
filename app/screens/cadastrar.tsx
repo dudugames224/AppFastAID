@@ -1,11 +1,11 @@
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { Image, Text, TextInput, TouchableOpacity, useColorScheme, View } from "react-native";
+import { Image, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Checkbox from "../components/Checkbox";
+import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, setDoc } from "../firebaseConfig.js";
-import getThemedStyles from "../styles";
 
 export default function CadastrarScreen() {
   const [user, setUser] = useState<User | null>(null);
@@ -13,9 +13,10 @@ export default function CadastrarScreen() {
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
-    const colorScheme = useColorScheme();
+  
+  const { styles, colors, currentTheme, setCurrentTheme } = useTheme();
 
-    const { styles, panicStyles } = getThemedStyles(colorScheme);
+   
 
 
   const cadastrar = async () => {
@@ -46,7 +47,7 @@ export default function CadastrarScreen() {
         ofensiva: 0,
       });
       console.log("Usuário cadastrado:", userCredential.user.email);
-      router.replace("/screens/CourseScreen");
+      router.replace("../(tabs)/CourseScreen");
     } catch (error: any) {
       console.log("Erro ao cadastrar:", error.message);
       alert(`Erro: ${error.message}`);

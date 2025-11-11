@@ -18,7 +18,7 @@ export const XIcon = ({ color = "#A9A9A9", size = 28 }) => (
 );
 
 // --- Ícones da Barra de Navegação ---
-export const HomeIcon = ({ color = "#A9A9A9" }) => (
+export const HomeIcon = ({ color = "#A9A9A9"}) => (
   <Svg
     width="32"
     height="32"

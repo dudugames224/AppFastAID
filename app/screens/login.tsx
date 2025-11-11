@@ -2,22 +2,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { signInWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, useColorScheme, View } from "react-native";
+import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useTheme } from "../context/ThemeContext";
 import { auth } from "../firebaseConfig.js";
-import getThemedStyles from "../styles.js";
 
 export default function LoginScreen() {
-  // 1. Obtenha o tema atual do dispositivo (claro ou escuro)
-  const colorScheme = useColorScheme();
-
-  // 2. Gere os estilos dinamicamente com base no tema
-  // A partir daqui, 'styles' e 'panicStyles' terão os valores corretos
-  const { styles, panicStyles } = getThemedStyles(colorScheme);
-
-  const [email,setEmail] = useState('');
-  const [senha,setSenha] = useState('');
-  const [user,setUser] = useState<User | null>(null);
+  const { styles, panicStyles } = useTheme(); // Pega os estilos diretamente do contexto global
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+  const [user, setUser] = useState<User | null>(null);
   const [panicVisible, setPanicVisible] = useState(false);
 
   async function login() {
@@ -26,7 +20,7 @@ export default function LoginScreen() {
       setUser(userCredential.user);
       console.log("Usuário logado:", userCredential.user.email);
     
-      router.replace('/screens/TournamentScreen');
+      router.replace('../(tabs)../(tabs)/CourseScreen');
 
     } catch (error: any) {
       console.log("Erro ao fazer login:", error.message);
@@ -82,7 +76,7 @@ export default function LoginScreen() {
               activeOpacity={0.9}
               onPress={() => {
                 setPanicVisible(false);
-                router.push("./RCP");
+                router.push("/screens/RCP"); // Caminho absoluto para a tela RCP
               }}
             >
               <View style={panicStyles.optionIconCircle}>

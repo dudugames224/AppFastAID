@@ -32,8 +32,7 @@ const darkColors = {
   circle:"#4A4A4A",
   border:"#2D2D2D",
 };
-
-const getThemedStyles = (theme) => {
+const getThemedStyles = (theme = 'light') => {
   const colors = theme === 'dark' ? darkColors : lightColors;
 
   const styles = StyleSheet.create({
@@ -210,8 +209,8 @@ const getThemedStyles = (theme) => {
   },
   sosButton: {
     position: "absolute",
-    right: 24,
-    bottom: 24,
+    right: 20,
+    bottom: 20,
     zIndex: 10,
   },
   sosTouchable: { // Mantido vermelho para destaque
@@ -232,8 +231,95 @@ const getThemedStyles = (theme) => {
     fontWeight: "bold",
     fontSize: 18,
   },
+  BarraNavegacao: {
+    width: 240, // Largura fixa
+    backgroundColor: "#1E3A8A",
+    paddingVertical: 20,
+    paddingHorizontal: 10,
+    borderRightWidth: 0,
+  },
+  logoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 40,
+    width: "100%",
+    paddingLeft: 6,
+  },
+  logoText: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+    marginLeft: 10,
+  },
+  BarraNavegacaoButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    marginBottom: 8,
+    borderRadius: 12,
+    width: "100%",
+    borderWidth: 2,
+    borderColor: "transparent",
+  },
+  BarraNavegacaoButtonActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderColor: "#FFFFFF",
+  },
+  BarraNavegacaoText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#DBEAFE",
+    marginLeft: 16,
+  },
+  BarraNavegacaoTextActive: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#FFFFFF",
+    marginLeft: 16,
+  },
+  tabBarContainer: {
+    flexDirection: "row",
+    height: 80,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    justifyContent: "space-around",
+  },
+  tabItem: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  container: { flex: 1, backgroundColor: colors.background, padding: 20 },
+  title: { fontSize: 28, fontWeight: "bold", color: "#FFFFFF", marginBottom: 10, textAlign: "center" },
+  subtitle: { fontSize: 16, color: "#A9A9A9", marginBottom: 30, textAlign: "center" },
+  leaderboard: { gap: 10 },
+  leaderboardRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: "#1E1E1E",
+    borderWidth: 1,
+    borderColor: "#2D2D2D",
+  },
+  leaderboardRowUser: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 15,
+    padding: 15,
+    borderRadius: 8,
+    backgroundColor: colors.background,
+    borderWidth: 2,
+    borderColor: "#3B82F6",
+  },
+  playerName: { flex: 1, fontSize: 16, color: "#FFFFFF" },
+  playerXp: { fontWeight: "bold", fontSize: 16, color: "#FFFFFF" },
 
   });
+
+  
   const panicStyles = StyleSheet.create({
   centerBackdrop: {
     flex: 1,
@@ -344,9 +430,10 @@ const getThemedStyles = (theme) => {
     fontWeight: "700",
     color: "#000",
   },
+  
 });
 
-  return { styles, panicStyles,colors };
+  return { styles, panicStyles, colors };
 };
 
 export default getThemedStyles;
