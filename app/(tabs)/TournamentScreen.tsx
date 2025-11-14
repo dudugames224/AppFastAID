@@ -2,7 +2,7 @@ import React from "react";
 import { Image, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { leaderboardData } from "../data/courseData";
+import { leaderboardData } from "../data/leaderboardData";
 
 
 

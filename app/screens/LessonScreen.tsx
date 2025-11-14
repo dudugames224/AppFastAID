@@ -1,5 +1,7 @@
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Animated,
   Image,
@@ -9,18 +11,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon, XIcon } from "../components/Icons";
-
-interface LessonCard {
-  type: "info" | "mcq";
-  title?: string;
-  text?: string;
-  question?: string;
-  options?: string[];
-  answer?: number;
-  correctFeedback?: string;
-  incorrectFeedback?: string;
-}
+import {
+  fetchCourseModules,
+  fetchModuleLessons,
+} from "../services/lessonService";
+import { markModuleCompleted } from "../services/progressService";
+import { LessonCard } from "../types/lesson";
 
 // Demo: lição simples só para visual
 const demoLesson: LessonCard[] = [
@@ -39,6 +37,22 @@ const demoLesson: LessonCard[] = [
   },
 ];
 
+const shuffleArray = <T,>(array: T[]): T[] => {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+const shuffleLessonCards = (data: LessonCard[]): LessonCard[] => {
+  if (data.length <= 2) return data;
+  const firstTwo = data.slice(0, 2);
+  const remaining = data.slice(2);
+  return [...firstTwo, ...shuffleArray(remaining)];
+};
+
 const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
   return data.map((card) => {
     if (card.type === "mcq" && card.options && card.answer !== undefined) {
@@ -51,19 +65,76 @@ const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
   });
 };
 
+const fallbackCourseId = "burns";
+
 const LessonScreen = () => {
-  // Estados locais para simular AppContext
+  const router = useRouter();
+  const {
+    courseId: paramsCourseId,
+    moduleId: paramsModuleId,
+    mode,
+  } = useLocalSearchParams<{
+    courseId?: string;
+    moduleId?: string;
+    mode?: string;
+  }>();
+
+  const isPracticeMode = mode === "practice";
+  const courseId = (paramsCourseId as string) || fallbackCourseId;
+
   const [userXP, setUserXP] = useState(1200);
   const [lives, setLives] = useState(5);
   const isPremium = false;
 
   const [currentStep, setCurrentStep] = useState(0);
-  const [questions, setQuestions] = useState(() =>
+  const [questions, setQuestions] = useState<LessonCard[]>(
     getShuffledLesson(demoLesson)
   );
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [isLoadingLessons, setIsLoadingLessons] = useState(true);
+
+  useEffect(() => {
+    const loadLessons = async () => {
+      setIsLoadingLessons(true);
+      setLives(5);
+      try {
+        let deck: LessonCard[] = [];
+        if (isPracticeMode) {
+          const modules = await fetchCourseModules(courseId);
+          const aggregated = modules.flatMap((module) => module.lessons ?? []);
+          const practiceOnly = aggregated.filter(
+            (card) =>
+              Array.isArray(card.options) &&
+              card.options.length > 0 &&
+              typeof card.answer === "number"
+          );
+          deck = practiceOnly.length ? practiceOnly : aggregated;
+        } else if (paramsModuleId) {
+          deck = await fetchModuleLessons(courseId, paramsModuleId as string);
+        }
+        const finalDeck = deck.length ? deck : demoLesson;
+        const randomizedDeck = shuffleLessonCards(finalDeck);
+        setQuestions(getShuffledLesson(randomizedDeck));
+        setCurrentStep(0);
+        setSelectedOption(null);
+        setIsCorrect(null);
+        setShowFeedback(false);
+      } catch (error) {
+        console.warn("Erro ao carregar a lição:", error);
+        setQuestions(getShuffledLesson(demoLesson));
+      } finally {
+        setIsLoadingLessons(false);
+      }
+    };
+    loadLessons();
+  }, [courseId, paramsModuleId, isPracticeMode]);
+
+  const exitTarget = isPracticeMode
+    ? "/(tabs)/PracticeScreen"
+    : "/(tabs)/CourseScreen";
+  const xpReward = isPracticeMode ? 15 : 20;
 
   const feedbackAnim = useRef(new Animated.Value(200)).current;
   const currentCard = questions[currentStep];
@@ -95,20 +166,43 @@ const LessonScreen = () => {
     else setLives((l) => l - 1);
   };
 
-  const handleNext = () => {
-    const nextStep = currentStep + 1;
-    if (nextStep <= questions.length) {
+  const goToResults = async () => {
+    if (!isPracticeMode && paramsModuleId) {
+      await markModuleCompleted(courseId, paramsModuleId as string);
+    }
+    router.replace({
+      pathname: "/screens/LessonResultScreen",
+      params: {
+        courseId,
+        moduleId: (paramsModuleId as string) || "",
+        mode: isPracticeMode ? "practice" : "course",
+        xp: String(xpReward),
+      },
+    });
+  };
+
+  const handleNext = async () => {
+    if (currentStep >= questions.length - 1) {
       setShowFeedback(false);
       setSelectedOption(null);
       setIsCorrect(null);
-      setTimeout(() => setCurrentStep(nextStep), 100);
+      await goToResults();
+      return;
     }
+    setShowFeedback(false);
+    setSelectedOption(null);
+    setIsCorrect(null);
+    setCurrentStep((step) => step + 1);
+  };
+
+  const handleExit = () => {
+    router.replace(exitTarget);
   };
 
   const confirmExit = () => {
-    Alert.alert("Sair da lição?", "Este é apenas um preview de interface.", [
+    Alert.alert("Sair da lição?", "Tem certeza que deseja sair da lição atual?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Sair", onPress: () => {} },
+      { text: "Sair", onPress: handleExit },
     ]);
   };
 
@@ -123,131 +217,142 @@ const LessonScreen = () => {
           Oh não!
         </Text>
         <Text style={styles.completionText}>Você ficou sem vidas.</Text>
-        <TouchableOpacity style={styles.restartButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.restartButton} onPress={handleExit}>
           <Text style={styles.restartButtonText}>Voltar</Text>
         </TouchableOpacity>
       </View>
     );
   }
 
-  const progress = (currentStep / questions.length) * 100;
+  const progress =
+    questions.length > 0 ? (currentStep / questions.length) * 100 : 0;
 
   return (
-    <View style={styles.fullScreen}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={confirmExit}>
-          <XIcon />
-        </TouchableOpacity>
-        <View style={styles.progressBarContainer}>
-          <View style={{ ...styles.progressBar, width: `${progress}%` }} />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.fullScreen}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={confirmExit}>
+            <XIcon />
+          </TouchableOpacity>
+          <View style={styles.progressBarContainer}>
+            <View style={{ ...styles.progressBar, width: `${progress}%` }} />
+          </View>
+          <View style={styles.livesContainer}>
+            <HeartIcon />
+            <Text style={styles.livesText}>{isPremium ? "∞" : lives}</Text>
+          </View>
         </View>
-        <View style={styles.livesContainer}>
-          <HeartIcon />
-          <Text style={styles.livesText}>{isPremium ? "∞" : lives}</Text>
-        </View>
-      </View>
 
-      <ScrollView contentContainerStyle={styles.contentContainer}>
-        {isInfoCard && (
-          <Image
-            source={require("../../assets/images/band_lendo.png")}
-            style={{ width: 140, height: 140 }}
-          />
-        )}
-        <View style={styles.card}>
+        <ScrollView contentContainerStyle={styles.contentContainer}>
+          {isLoadingLessons && (
+            <ActivityIndicator
+              size="small"
+              color="#5D9CFB"
+              style={{ marginBottom: 16 }}
+            />
+          )}
+          {isInfoCard && (
+            <Image
+              source={require("../../assets/images/band_lendo.png")}
+              style={styles.lessonMascot}
+            />
+          )}
+          <View style={styles.card}>
           {isInfoCard ? (
-            <View>
-              <Text style={styles.title}>{currentCard.title}</Text>
-              <Text style={styles.infoText}>{currentCard.text}</Text>
-            </View>
-          ) : (
-            <View>
-              <Text style={styles.question}>{currentCard.question}</Text>
-              {currentCard.options?.map((option, index) => {
-                let optionStyle: any = [styles.optionButton];
-                let textStyle: any = [styles.optionText];
-                if (showFeedback) {
-                  if (index === currentCard.answer) {
-                    optionStyle.push(styles.correctOption);
-                    textStyle.push(styles.correctOptionText);
-                  } else if (index === selectedOption) {
-                    optionStyle.push(styles.incorrectOption);
-                    textStyle.push(styles.incorrectOptionText);
-                  } else {
-                    optionStyle.push({ opacity: 0.5 });
+              <View>
+                <Text style={styles.title}>{currentCard.title}</Text>
+                <Text style={styles.infoText}>{currentCard.text}</Text>
+              </View>
+            ) : (
+              <View>
+                <Text style={styles.question}>{currentCard.question}</Text>
+                {currentCard.options?.map((option, index) => {
+                  let optionStyle: any = [styles.optionButton];
+                  let textStyle: any = [styles.optionText];
+                  if (showFeedback) {
+                    if (index === currentCard.answer) {
+                      optionStyle.push(styles.correctOption);
+                      textStyle.push(styles.correctOptionText);
+                    } else if (index === selectedOption) {
+                      optionStyle.push(styles.incorrectOption);
+                      textStyle.push(styles.incorrectOptionText);
+                    } else {
+                      optionStyle.push({ opacity: 0.5 });
+                    }
                   }
-                }
-                return (
-                  <TouchableOpacity
-                    key={index}
-                    style={optionStyle}
-                    onPress={() => handleOptionSelect(index)}
-                    disabled={showFeedback}
-                  >
-                    <Text style={textStyle}>{option}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+                  return (
+                    <TouchableOpacity
+                      key={index}
+                      style={optionStyle}
+                      onPress={() => handleOptionSelect(index)}
+                      disabled={showFeedback}
+                    >
+                      <Text style={textStyle}>{option}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        </ScrollView>
+
+        <Animated.View
+          style={[
+            styles.feedbackContainer,
+            {
+              backgroundColor:
+                isCorrect === null
+                  ? "#121212"
+                  : isCorrect
+                  ? "#1A331C"
+                  : "#392323",
+              transform: [{ translateY: feedbackAnim }],
+            },
+          ]}
+        >
+          {isInfoCard && !showFeedback && (
+            <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
+              <Text style={styles.continueButtonText}>Continuar</Text>
+            </TouchableOpacity>
+          )}
+          {showFeedback && (
+            <View>
+              <Text
+                style={[
+                  styles.feedbackTitle,
+                  { color: isCorrect ? "#58CC02" : "#FF4B4B" },
+                ]}
+              >
+                {isCorrect ? "Excelente!" : "Resposta Incorreta"}
+              </Text>
+              <Text style={styles.infoText}>
+                {isCorrect
+                  ? currentCard.correctFeedback
+                  : currentCard.incorrectFeedback}
+              </Text>
+              <TouchableOpacity
+                style={[
+                  styles.continueButton,
+                  { backgroundColor: isCorrect ? "#58CC02" : "#FF4B4B" },
+                ]}
+                onPress={handleNext}
+              >
+                <Text style={styles.continueButtonText}>
+                  {currentStep >= questions.length - 1
+                    ? "Finalizar"
+                    : "Continuar"}
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
-        </View>
-      </ScrollView>
-
-      <Animated.View
-        style={[
-          styles.feedbackContainer,
-          {
-            backgroundColor:
-              isCorrect === null
-                ? "#121212"
-                : isCorrect
-                ? "#1A331C"
-                : "#392323",
-            transform: [{ translateY: feedbackAnim }],
-          },
-        ]}
-      >
-        {isInfoCard && !showFeedback && (
-          <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
-            <Text style={styles.continueButtonText}>Continuar</Text>
-          </TouchableOpacity>
-        )}
-        {showFeedback && (
-          <View>
-            <Text
-              style={[
-                styles.feedbackTitle,
-                { color: isCorrect ? "#58CC02" : "#FF4B4B" },
-              ]}
-            >
-              {isCorrect ? "Excelente!" : "Resposta Incorreta"}
-            </Text>
-            <Text style={styles.infoText}>
-              {isCorrect
-                ? currentCard.correctFeedback
-                : currentCard.incorrectFeedback}
-            </Text>
-            <TouchableOpacity
-              style={[
-                styles.continueButton,
-                { backgroundColor: isCorrect ? "#58CC02" : "#FF4B4B" },
-              ]}
-              onPress={handleNext}
-            >
-              <Text style={styles.continueButtonText}>
-                {currentStep >= questions.length - 1
-                  ? "Finalizar"
-                  : "Continuar"}
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </Animated.View>
-    </View>
+        </Animated.View>
+      </View>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: "#121212" },
   fullScreen: { flex: 1, backgroundColor: "#121212" },
   header: {
     paddingVertical: 10,
@@ -296,6 +401,12 @@ const styles = StyleSheet.create({
     color: "#EAEAEA",
     marginBottom: 30,
     textAlign: "center",
+  },
+  lessonMascot: {
+    width: 140,
+    height: 140,
+    alignSelf: "center",
+    marginBottom: 20,
   },
   optionButton: {
     borderWidth: 2,

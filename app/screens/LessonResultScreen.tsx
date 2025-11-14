@@ -1,5 +1,14 @@
-import React, { useEffect, useRef } from "react";
-import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  Animated,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { fetchCourseModules, RemoteModule } from "../services/lessonService";
 
 // Simples substituto visual do Character
 const CharacterImg = ({ size = 180 }: { size?: number }) => (
@@ -19,13 +28,30 @@ interface LessonResultProps {
 }
 
 const LessonResultScreen = ({
-  onNext = null,
-  onBack = () => {},
-  xpGained = 20,
-  isPractice = false,
+  onNext,
+  onBack,
+  xpGained: xpFromProps,
+  isPractice: isPracticeFromProps,
   safeAreaTop,
   safeAreaBottom,
-}: LessonResultProps) => {
+}: LessonResultProps = {}) => {
+  const router = useRouter();
+  const { courseId, moduleId, mode, xp } = useLocalSearchParams<{
+    courseId?: string;
+    moduleId?: string;
+    mode?: string;
+    xp?: string;
+  }>();
+
+  const [nextModule, setNextModule] = useState<RemoteModule | null>(null);
+
+  const parsedXp = xp !== undefined ? Number(xp) : undefined;
+  const computedXp =
+    parsedXp !== undefined && !Number.isNaN(parsedXp)
+      ? parsedXp
+      : xpFromProps ?? 20;
+  const computedIsPractice =
+    mode === "practice" ? true : isPracticeFromProps ?? false;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
 
@@ -46,6 +72,52 @@ const LessonResultScreen = ({
 
   const paddingTop = (safeAreaTop || 0) + 20;
   const paddingBottom = (safeAreaBottom || 0) + 20;
+  const exitTarget = computedIsPractice
+    ? "/(tabs)/PracticeScreen"
+    : "/(tabs)/CourseScreen";
+  useEffect(() => {
+    const loadNextModule = async () => {
+      if (computedIsPractice || !courseId || !moduleId) {
+        setNextModule(null);
+        return;
+      }
+      const modules = await fetchCourseModules(courseId as string);
+      const index = modules.findIndex((module) => module.id === moduleId);
+      if (index !== -1 && index + 1 < modules.length) {
+        setNextModule(modules[index + 1]);
+      } else {
+        setNextModule(null);
+      }
+    };
+    loadNextModule();
+  }, [computedIsPractice, courseId, moduleId]);
+
+  const showNextButton = Boolean(
+    onNext || (!computedIsPractice && nextModule)
+  );
+
+  const handleBackPress = () => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    router.replace(exitTarget);
+  };
+
+  const handleNextPress = () => {
+    if (onNext) {
+      onNext();
+      return;
+    }
+    if (!computedIsPractice && courseId && nextModule) {
+      router.replace({
+        pathname: "/screens/LessonScreen",
+        params: { courseId: courseId as string, moduleId: nextModule.id },
+      });
+      return;
+    }
+    router.replace(exitTarget);
+  };
 
   return (
     <Animated.View
@@ -60,18 +132,25 @@ const LessonResultScreen = ({
       ]}
     >
       <CharacterImg size={180} />
-      <Text style={styles.title}>{isPractice ? "Prática Concluída!" : "Módulo Concluído!"}</Text>
-      <Text style={styles.subtitle}>Você ganhou {xpGained} XP e está mais perto de se tornar um herói!</Text>
+      <Text style={styles.title}>
+        {computedIsPractice ? "Prática Concluída!" : "Módulo Concluído!"}
+      </Text>
+      <Text style={styles.subtitle}>
+        Você ganhou {computedXp} XP e está mais perto de se tornar um herói!
+      </Text>
 
-      {onNext && (
-        <TouchableOpacity style={[styles.button, { marginBottom: 10 }]} onPress={onNext}>
+      {showNextButton && (
+        <TouchableOpacity
+          style={[styles.button, { marginBottom: 10 }]}
+          onPress={handleNextPress}
+        >
           <Text style={styles.buttonText}>Próximo Módulo</Text>
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity style={[styles.button, styles.backButton]} onPress={onBack}>
+      <TouchableOpacity style={[styles.button, styles.backButton]} onPress={handleBackPress}>
         <Text style={[styles.buttonText, styles.backButtonText]}>
-          {isPractice ? "Voltar a Praticar" : "Voltar ao Curso"}
+          {computedIsPractice ? "Voltar a Praticar" : "Voltar ao Curso"}
         </Text>
       </TouchableOpacity>
     </Animated.View>
@@ -122,4 +201,3 @@ const styles = StyleSheet.create({
 });
 
 export default LessonResultScreen;
-
