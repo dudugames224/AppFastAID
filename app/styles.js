@@ -15,6 +15,11 @@ const lightColors = {
   ofensivaPerdida:"#f80202ff",
   circle:"#dbdbdbff",
   border:"#cecdcdff",
+  cardsLesson:"#dededeff",
+  textLesson:"#5f5f5fff",
+  bar:"#dedadaff",
+  backgroundCorrect: "#d2fbd8ff",
+  backgroundError:"#ffbcbcff"
 };
 
 const darkColors = {
@@ -31,6 +36,11 @@ const darkColors = {
   ofensivaPerdida:"#392323",
   circle:"#4A4A4A",
   border:"#2D2D2D",
+  cardsLesson:"#1E1E1E",
+  textLesson:"#EAEAEA",
+  bar:"#333",
+  backgroundCorrect: "#1A331C",
+  backgroundError:"#392323"
 };
 const getThemedStyles = (theme = 'light') => {
   const colors = theme === 'dark' ? darkColors : lightColors;
@@ -334,6 +344,15 @@ const getThemedStyles = (theme = 'light') => {
   topicIconImage: { width: 50, height: 50, resizeMode: "contain" },
   arrow: { color: "#A9A9A9", fontSize: 24 },
 
+  containerPerfil:{
+    flex:1,
+    margin:20,
+    alignItems:"center",
+    backgroundColor: colors.background,
+
+
+  }
+
 
   });
 
@@ -447,7 +466,127 @@ const getThemedStyles = (theme = 'light') => {
   
 });
 
-  return { styles, panicStyles, colors };
+const lessonstyles = StyleSheet.create({
+  safeArea: { flex: 1, backgroundColor: colors.background },
+  fullScreen: { flex: 1, backgroundColor: colors.background },
+  header: {
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    borderBottomWidth: 1,
+    borderBottomColor: colors.background,
+    gap: 15,
+  },
+  progressBarContainer: {
+    flex: 1,
+    height: 16,
+    backgroundColor: colors.bar,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  progressBar: { height: 16, backgroundColor: "#0eb6f8ff", borderRadius: 8 },
+  livesContainer: { flexDirection: "row", alignItems: "center", gap: 5 },
+  livesText: { color: "#EF4444", fontWeight: "bold", fontSize: 18 },
+  contentContainer: { flexGrow: 1, justifyContent: "center", padding: 20 },
+  card: {
+    backgroundColor: colors.cardsLesson,
+    borderRadius: 20,
+    padding: 25,
+    width: "100%",
+    minHeight: 300,
+    justifyContent: "center",
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: colors.textLesson,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  infoText: {
+    fontSize: 18,
+    color: colors.textLesson,
+    lineHeight: 28,
+    textAlign: "center",
+  },
+  question: {
+    fontSize: 22,
+    fontWeight: "bold",
+    color: colors.textLesson,
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  lessonMascot: {
+    width: 140,
+    height: 140,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  optionButton: {
+    borderWidth: 2,
+    borderColor: colors.border,
+    borderRadius: 12,
+    padding: 15,
+    marginBottom: 10,
+    width: "100%",
+    backgroundColor: colors.cardsLesson,
+  },
+  optionText: { fontSize: 18, fontWeight: "600", color: colors.text },
+  correctOption: { backgroundColor: "#58CC02", borderColor: "#58A700" },
+  correctOptionText: { color: colors.text },
+  incorrectOption: { backgroundColor: "#FF4B4B", borderColor: "#EA2B2B" },
+  incorrectOptionText: { color: colors.text },
+  feedbackContainer: {
+    paddingHorizontal: 30,
+    paddingBottom: 20,
+    paddingTop: 10,
+    borderTopWidth: 2,
+    borderTopColor: colors.border,
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+  },
+  feedbackTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 5 },
+  continueButton: {
+    backgroundColor: "#3B82F6",
+    borderRadius: 12,
+    padding: 18,
+    marginTop: 15,
+    alignItems: "center",
+  },
+  continueButtonText: { color: colors.text, fontSize: 18, fontWeight: "bold" },
+  completionContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+    backgroundColor: colors.background,
+  },
+  completionTitle: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#5D9CFB",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  completionText: {
+    fontSize: 18,
+    color: colors.textLesson,
+    marginBottom: 30,
+    textAlign: "center",
+  },
+  restartButton: {
+    backgroundColor: "#3B82F6",
+    borderRadius: 12,
+    paddingVertical: 18,
+    paddingHorizontal: 50,
+  },
+  restartButtonText: { color: colors.text, fontSize: 18, fontWeight: "bold" },
+});
+
+  return { styles, panicStyles, colors, lessonstyles };
 };
 
 export default getThemedStyles;

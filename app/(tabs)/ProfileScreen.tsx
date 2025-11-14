@@ -23,7 +23,7 @@ const ProfileScreen = () => {
     <SafeAreaView style={styles.safe}>
         <Image source={require("../../assets/images/band_no_celular.png")} style={{ width: 140, height: 140, alignSelf: "center" }} />
             <Text style={styles.titulo}>PERFIL</Text>
-            <View style={styles.containerLogin}>
+            <View style={styles.containerPerfil}>
                 <View style={styles.caixa}>
                     <Text style={{color:colors.text}}>Nome</Text>
                      <Text style={styles.titulo}>{userData ? userData.nome : "Carregando..."}</Text>

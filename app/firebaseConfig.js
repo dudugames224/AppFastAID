@@ -26,7 +26,7 @@ function Sair(){
   auth.signOut();
 }
 
-export { addDoc, app, auth, collection, db, deleteDoc, doc, getDocs, Sair, setDoc };
+export { addDoc, app, auth, collection, db, deleteDoc, doc, getDoc, getDocs, Sair, setDoc };
 export const getUserData = async () => {
   const user = auth.currentUser;
   if (user) {

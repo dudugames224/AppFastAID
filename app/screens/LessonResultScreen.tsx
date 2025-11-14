@@ -5,10 +5,14 @@ import {
   Image,
   StyleSheet,
   Text,
-  TouchableOpacity,
-  View,
+  TouchableOpacity
 } from "react-native";
+import { useTheme } from "../context/ThemeContext";
+import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 import { fetchCourseModules, RemoteModule } from "../services/lessonService";
+
+
+
 
 // Simples substituto visual do Character
 const CharacterImg = ({ size = 180 }: { size?: number }) => (
@@ -44,6 +48,7 @@ const LessonResultScreen = ({
   }>();
 
   const [nextModule, setNextModule] = useState<RemoteModule | null>(null);
+  const [currentUserData, setCurrentUserData] = useState<any>(null);
 
   const parsedXp = xp !== undefined ? Number(xp) : undefined;
   const computedXp =
@@ -54,6 +59,42 @@ const LessonResultScreen = ({
     mode === "practice" ? true : isPracticeFromProps ?? false;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
+
+  const { colors } = useTheme();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      alignItems: "center",
+      justifyContent: "center",
+      paddingHorizontal: 20,
+      backgroundColor: colors.background,
+    },
+    title: {
+      fontSize: 32,
+      fontWeight: "bold",
+      color: "#58CC02",
+      marginBottom: 10,
+      textAlign: "center",
+    },
+    subtitle: {
+      fontSize: 18,
+      color: "#A9A9A9",
+      marginBottom: 40,
+      textAlign: "center",
+    },
+    button: {
+      backgroundColor: "#58CC02",
+      borderRadius: 12,
+      paddingVertical: 18,
+      width: "100%",
+      alignItems: "center",
+    },
+    buttonText: { color: colors.text, fontSize: 18, fontWeight: "bold" },
+    backButton: { backgroundColor: "transparent", borderWidth: 2, borderColor: colors.text },
+    backButtonText: { color: "#5D9CFB" },
+  });
+
 
   useEffect(() => {
     Animated.parallel([
@@ -92,11 +133,35 @@ const LessonResultScreen = ({
     loadNextModule();
   }, [computedIsPractice, courseId, moduleId]);
 
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          setCurrentUserData(userDoc.data());
+        }
+      }
+    };
+    fetchUserData();
+  }, []);
+
   const showNextButton = Boolean(
     onNext || (!computedIsPractice && nextModule)
   );
 
-  const handleBackPress = () => {
+  const updateXpAndExit = async () => {
+    const user = auth.currentUser;
+    if (user && currentUserData) {
+      const userDocRef = doc(db, "users", user.uid);
+      const newXp = (currentUserData.xp || 0) + computedXp;
+      await setDoc(userDocRef, { xp: newXp }, { merge: true });
+    }
+  };
+
+  const handleBackPress = async () => {
+    await updateXpAndExit();
     if (onBack) {
       onBack();
       return;
@@ -104,7 +169,8 @@ const LessonResultScreen = ({
     router.replace(exitTarget);
   };
 
-  const handleNextPress = () => {
+  const handleNextPress = async () => {
+    await updateXpAndExit();
     if (onNext) {
       onNext();
       return;
@@ -154,50 +220,8 @@ const LessonResultScreen = ({
         </Text>
       </TouchableOpacity>
     </Animated.View>
+    
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 20,
-    backgroundColor: "#121212",
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#58CC02",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  subtitle: {
-    fontSize: 18,
-    color: "#A9A9A9",
-    marginBottom: 40,
-    textAlign: "center",
-  },
-  button: {
-    backgroundColor: "#58CC02",
-    borderRadius: 12,
-    paddingVertical: 18,
-    width: "100%",
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  backButton: {
-    backgroundColor: "transparent",
-    borderWidth: 2,
-    borderColor: "#444",
-  },
-  backButtonText: {
-    color: "#5D9CFB",
-  },
-});
 
 export default LessonResultScreen;

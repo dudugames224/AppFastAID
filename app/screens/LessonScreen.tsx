@@ -6,19 +6,20 @@ import {
   Animated,
   Image,
   ScrollView,
-  StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon, XIcon } from "../components/Icons";
+import { useTheme } from "../context/ThemeContext";
 import {
   fetchCourseModules,
   fetchModuleLessons,
 } from "../services/lessonService";
 import { markModuleCompleted } from "../services/progressService";
 import { LessonCard } from "../types/lesson";
+
 
 // Demo: lição simples só para visual
 const demoLesson: LessonCard[] = [
@@ -68,6 +69,8 @@ const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
 const fallbackCourseId = "burns";
 
 const LessonScreen = () => {
+    const {  lessonstyles, colors } = useTheme();
+ 
   const router = useRouter();
   const {
     courseId: paramsCourseId,
@@ -208,17 +211,17 @@ const LessonScreen = () => {
 
   if ((lives <= 0 && !isPremium) || !currentCard) {
     return (
-      <View style={styles.completionContainer}>
+      <View style={lessonstyles.completionContainer}>
         <Image
           source={require("../../assets/images/band_chorando.png")}
           style={{ width: 160, height: 160 }}
         />
-        <Text style={[styles.completionTitle, { color: "#FF4B4B" }]}>
+        <Text style={[lessonstyles.completionTitle, { color: "#FF4B4B" }]}>
           Oh não!
         </Text>
-        <Text style={styles.completionText}>Você ficou sem vidas.</Text>
-        <TouchableOpacity style={styles.restartButton} onPress={handleExit}>
-          <Text style={styles.restartButtonText}>Voltar</Text>
+        <Text style={lessonstyles.completionText}>Você ficou sem vidas.</Text>
+        <TouchableOpacity style={lessonstyles.restartButton} onPress={handleExit}>
+          <Text style={lessonstyles.restartButtonText}>Voltar</Text>
         </TouchableOpacity>
       </View>
     );
@@ -228,22 +231,22 @@ const LessonScreen = () => {
     questions.length > 0 ? (currentStep / questions.length) * 100 : 0;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.fullScreen}>
-        <View style={styles.header}>
+    <SafeAreaView style={lessonstyles.safeArea}>
+      <View style={lessonstyles.fullScreen}>
+        <View style={lessonstyles.header}>
           <TouchableOpacity onPress={confirmExit}>
             <XIcon />
           </TouchableOpacity>
-          <View style={styles.progressBarContainer}>
-            <View style={{ ...styles.progressBar, width: `${progress}%` }} />
+          <View style={lessonstyles.progressBarContainer}>
+            <View style={{ ...lessonstyles.progressBar, width: `${progress}%` }} />
           </View>
-          <View style={styles.livesContainer}>
+          <View style={lessonstyles.livesContainer}>
             <HeartIcon />
-            <Text style={styles.livesText}>{isPremium ? "∞" : lives}</Text>
+            <Text style={lessonstyles.livesText}>{isPremium ? "∞" : lives}</Text>
           </View>
         </View>
 
-        <ScrollView contentContainerStyle={styles.contentContainer}>
+        <ScrollView contentContainerStyle={lessonstyles.contentContainer}>
           {isLoadingLessons && (
             <ActivityIndicator
               size="small"
@@ -254,28 +257,28 @@ const LessonScreen = () => {
           {isInfoCard && (
             <Image
               source={require("../../assets/images/band_lendo.png")}
-              style={styles.lessonMascot}
+              style={lessonstyles.lessonMascot}
             />
           )}
-          <View style={styles.card}>
+          <View style={lessonstyles.card}>
           {isInfoCard ? (
               <View>
-                <Text style={styles.title}>{currentCard.title}</Text>
-                <Text style={styles.infoText}>{currentCard.text}</Text>
+                <Text style={lessonstyles.title}>{currentCard.title}</Text>
+                <Text style={lessonstyles.infoText}>{currentCard.text}</Text>
               </View>
             ) : (
               <View>
-                <Text style={styles.question}>{currentCard.question}</Text>
+                <Text style={lessonstyles.question}>{currentCard.question}</Text>
                 {currentCard.options?.map((option, index) => {
-                  let optionStyle: any = [styles.optionButton];
-                  let textStyle: any = [styles.optionText];
+                  let optionStyle: any = [lessonstyles.optionButton];
+                  let textStyle: any = [lessonstyles.optionText];
                   if (showFeedback) {
                     if (index === currentCard.answer) {
-                      optionStyle.push(styles.correctOption);
-                      textStyle.push(styles.correctOptionText);
+                      optionStyle.push(lessonstyles.correctOption);
+                      textStyle.push(lessonstyles.correctOptionText);
                     } else if (index === selectedOption) {
-                      optionStyle.push(styles.incorrectOption);
-                      textStyle.push(styles.incorrectOptionText);
+                      optionStyle.push(lessonstyles.incorrectOption);
+                      textStyle.push(lessonstyles.incorrectOptionText);
                     } else {
                       optionStyle.push({ opacity: 0.5 });
                     }
@@ -298,46 +301,46 @@ const LessonScreen = () => {
 
         <Animated.View
           style={[
-            styles.feedbackContainer,
+            lessonstyles.feedbackContainer,
             {
               backgroundColor:
                 isCorrect === null
-                  ? "#121212"
+                  ? colors.background
                   : isCorrect
-                  ? "#1A331C"
-                  : "#392323",
+                  ? colors.backgroundCorrect
+                  : colors.backgroundError,
               transform: [{ translateY: feedbackAnim }],
             },
           ]}
         >
           {isInfoCard && !showFeedback && (
-            <TouchableOpacity style={styles.continueButton} onPress={handleNext}>
-              <Text style={styles.continueButtonText}>Continuar</Text>
+            <TouchableOpacity style={lessonstyles.continueButton} onPress={handleNext}>
+              <Text style={lessonstyles.continueButtonText}>Continuar</Text>
             </TouchableOpacity>
           )}
           {showFeedback && (
             <View>
               <Text
                 style={[
-                  styles.feedbackTitle,
+                  lessonstyles.feedbackTitle,
                   { color: isCorrect ? "#58CC02" : "#FF4B4B" },
                 ]}
               >
                 {isCorrect ? "Excelente!" : "Resposta Incorreta"}
               </Text>
-              <Text style={styles.infoText}>
+              <Text style={lessonstyles.infoText}>
                 {isCorrect
                   ? currentCard.correctFeedback
                   : currentCard.incorrectFeedback}
               </Text>
               <TouchableOpacity
                 style={[
-                  styles.continueButton,
+                  lessonstyles.continueButton,
                   { backgroundColor: isCorrect ? "#58CC02" : "#FF4B4B" },
                 ]}
                 onPress={handleNext}
               >
-                <Text style={styles.continueButtonText}>
+                <Text style={lessonstyles.continueButtonText}>
                   {currentStep >= questions.length - 1
                     ? "Finalizar"
                     : "Continuar"}
@@ -351,124 +354,6 @@ const LessonScreen = () => {
   );
 };
 
-const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#121212" },
-  fullScreen: { flex: 1, backgroundColor: "#121212" },
-  header: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    borderBottomWidth: 1,
-    borderBottomColor: "#2D2D2D",
-    gap: 15,
-  },
-  progressBarContainer: {
-    flex: 1,
-    height: 16,
-    backgroundColor: "#333",
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  progressBar: { height: 16, backgroundColor: "#0eb6f8ff", borderRadius: 8 },
-  livesContainer: { flexDirection: "row", alignItems: "center", gap: 5 },
-  livesText: { color: "#EF4444", fontWeight: "bold", fontSize: 18 },
-  contentContainer: { flexGrow: 1, justifyContent: "center", padding: 20 },
-  card: {
-    backgroundColor: "#1E1E1E",
-    borderRadius: 20,
-    padding: 25,
-    width: "100%",
-    minHeight: 300,
-    justifyContent: "center",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#EAEAEA",
-    marginBottom: 15,
-    textAlign: "center",
-  },
-  infoText: {
-    fontSize: 18,
-    color: "#A9A9A9",
-    lineHeight: 28,
-    textAlign: "center",
-  },
-  question: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#EAEAEA",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  lessonMascot: {
-    width: 140,
-    height: 140,
-    alignSelf: "center",
-    marginBottom: 20,
-  },
-  optionButton: {
-    borderWidth: 2,
-    borderColor: "#444",
-    borderRadius: 12,
-    padding: 15,
-    marginBottom: 10,
-    width: "100%",
-    backgroundColor: "#1E1E1E",
-  },
-  optionText: { fontSize: 18, fontWeight: "600", color: "#EAEAEA" },
-  correctOption: { backgroundColor: "#58CC02", borderColor: "#58A700" },
-  correctOptionText: { color: "#FFFFFF" },
-  incorrectOption: { backgroundColor: "#FF4B4B", borderColor: "#EA2B2B" },
-  incorrectOptionText: { color: "#FFFFFF" },
-  feedbackContainer: {
-    paddingHorizontal: 30,
-    paddingBottom: 20,
-    paddingTop: 10,
-    borderTopWidth: 2,
-    borderTopColor: "#2D2D2D",
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-  },
-  feedbackTitle: { fontSize: 22, fontWeight: "bold", marginBottom: 5 },
-  continueButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 12,
-    padding: 18,
-    marginTop: 15,
-    alignItems: "center",
-  },
-  continueButtonText: { color: "#FFFFFF", fontSize: 18, fontWeight: "bold" },
-  completionContainer: {
-    flex: 1,
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#121212",
-  },
-  completionTitle: {
-    fontSize: 32,
-    fontWeight: "bold",
-    color: "#5D9CFB",
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  completionText: {
-    fontSize: 18,
-    color: "#A9A9A9",
-    marginBottom: 30,
-    textAlign: "center",
-  },
-  restartButton: {
-    backgroundColor: "#3B82F6",
-    borderRadius: 12,
-    paddingVertical: 18,
-    paddingHorizontal: 50,
-  },
-  restartButtonText: { color: "#FFFFFF", fontSize: 18, fontWeight: "bold" },
-});
+
 
 export default LessonScreen;

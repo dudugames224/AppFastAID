@@ -28,7 +28,7 @@ export default function LoginScreen() {
     }
   }
 
-  async function handleForgotPassword() {
+  async function EsqueciMinhaSenha() {
     if (email === "") {
       Alert.alert("Redefinir Senha", "Por favor, digite seu e-mail no campo correspondente para redefinir sua senha.");
       return;
@@ -67,7 +67,7 @@ export default function LoginScreen() {
       <TouchableOpacity style={styles.botao} onPress={login}><Text style={styles.textoBotao}>ENTRAR</Text></TouchableOpacity>
       
       <TouchableOpacity onPress={() => router.push('/screens/cadastrar')} style={styles.link}><Text style={styles.textoLink}>Não tem login? Cadastre-se</Text></TouchableOpacity>
-      <TouchableOpacity onPress={handleForgotPassword} style={styles.link}><Text style={styles.textoLink}>Esqueci minha senha</Text></TouchableOpacity>
+      <TouchableOpacity onPress={EsqueciMinhaSenha} style={styles.link}><Text style={styles.textoLink}>Esqueci minha senha</Text></TouchableOpacity>
     </View>
     <View style={styles.sosButton} pointerEvents="box-none">
         <TouchableOpacity style={styles.sosTouchable} activeOpacity={0.9} onPress={() => setPanicVisible(true)}>

@@ -1,8 +1,9 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Image, ScrollView, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { leaderboardData } from "../data/leaderboardData";
+import { getUserData } from "../firebaseConfig.js";
 
 
 
@@ -11,8 +12,20 @@ import { leaderboardData } from "../data/leaderboardData";
 
 const TournamentScreen = () => {
       const { styles, colors, currentTheme, setCurrentTheme } = useTheme();
+      const [userData, setUserData] = useState<any>(null);
+      
+        useEffect(() => {
+          const fetchUserData = async () => {
+            const data = await getUserData();
+            if (data) {
+              setUserData(data);
+            }
+          };
+      
+          fetchUserData();
+        }, []);
   
-  const user = { name: "Você", xp: 2100, avatar: "🙂" };
+  const user = { name: userData ? userData.nome : "Você", xp: userData ? userData.xp : 0, avatar: "🙂" };
   const fullLeaderboard = [...leaderboardData, { rank: "?", name: `${user.name} (Você)`, xp: user.xp, avatar: user.avatar }].sort(
     (a: any, b: any) => b.xp - a.xp
   );
@@ -47,4 +60,3 @@ const TournamentScreen = () => {
 
 
 export default TournamentScreen;
-

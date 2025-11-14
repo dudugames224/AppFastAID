@@ -8,6 +8,7 @@ interface ThemeContextType {
   setCurrentTheme: (theme: 'light' | 'dark') => void;
   styles: ReturnType<typeof getThemedStyles>['styles'];
   panicStyles: ReturnType<typeof getThemedStyles>['panicStyles'];
+  lessonstyles: ReturnType<typeof getThemedStyles>['lessonstyles'];
   colors: ReturnType<typeof getThemedStyles>['colors'];
 }
 
@@ -21,8 +22,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   // useMemo garante que os estilos só sejam recalculados quando o tema mudar.
   const themeValue = useMemo(() => {
-    const { styles, panicStyles, colors } = getThemedStyles(currentTheme);
-    return { currentTheme, setCurrentTheme, styles, panicStyles, colors };
+    const { styles, panicStyles, colors , lessonstyles} = getThemedStyles(currentTheme);
+    return { currentTheme, setCurrentTheme, styles, panicStyles, colors, lessonstyles };
   }, [currentTheme]);
 
   return (
