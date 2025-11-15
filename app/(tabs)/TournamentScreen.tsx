@@ -34,8 +34,8 @@ const TournamentScreen = () => {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView style={styles.container}>
-      <Image source={require("../../assets/images/torneios.png")} style={{ width: 120, height: 120, alignSelf: "center" }} />
-      <Text style={styles.title}>🏆 Torneios</Text>
+      <Image source={require("../../assets/images/band_feliz.png")} style={{ width: 140, height: 140, alignSelf: "center" }} />
+      <Text style={styles.titulo}>TORNEIOS</Text>
       <Text style={styles.subtitle}>Veja a sua posição no ranking semanal!</Text>
       
       <View style={styles.leaderboard}>

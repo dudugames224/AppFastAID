@@ -75,6 +75,19 @@ const getThemedStyles = (theme = 'light') => {
     width:330,
     
   },
+  caixaPerfil:{
+    backgroundColor: colors.card,
+    padding:15,
+    gap:15,
+    borderRadius:20,
+    elevation:0.6,
+    borderColor:colors.border,
+    borderWidth:0.5,
+    width: '100%'
+    
+    
+    
+  },
   caixaBand:{
     backgroundColor: colors.card,
     padding:5,
@@ -125,8 +138,8 @@ const getThemedStyles = (theme = 'light') => {
     paddingEnd:50,
   },
   character: {
-    width: 120,
-    height: 120,
+    width: 200,
+    height: 200,
     resizeMode: "contain",
     marginBottom: 16,
   },
@@ -349,6 +362,7 @@ const getThemedStyles = (theme = 'light') => {
     margin:20,
     alignItems:"center",
     backgroundColor: colors.background,
+    gap:20,
 
 
   }

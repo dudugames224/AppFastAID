@@ -12,8 +12,8 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { CircleIcon, FlaskIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
-import { Sair } from "../firebaseConfig.js";
 import {
   fetchCourseModules,
   fetchCoursesMeta,
@@ -21,7 +21,6 @@ import {
   RemoteModule,
 } from "../services/lessonService";
 import { getCompletedModules } from "../services/progressService";
-import { CircleIcon, FlaskIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
 
 const moduleIconMap: Record<string, React.ComponentType<any>> = {
   FlaskIcon,
@@ -96,10 +95,7 @@ const CourseScreen: React.FC = () => {
 
   const courseOptions = useMemo(() => courses, [courses]);
 
-  function logout() {
-    Sair();
-    router.replace("/screens/login");
-  }
+  
 
   function startModule(moduleId: string) {
     if (!selectedCourseId) return;
@@ -122,8 +118,9 @@ const CourseScreen: React.FC = () => {
       >
         <Image
           source={require("../../assets/images/band.png")}
-          style={styles.character}
+          style={[styles.character, { marginBottom:0,paddingEnd:0}]}
         />
+        <Text style={[styles.titulo, {paddingBottom:15,marginTop:0}]}>FASTAID</Text>
 
         <View style={styles.streakLossContainer}>
           <Text style={styles.streakLossTitle}>Ofensiva perdida!</Text>
@@ -209,20 +206,9 @@ const CourseScreen: React.FC = () => {
               );
             })}
 
-          <TouchableOpacity style={styles.unitButton} onPress={logout}>
-            <Text style={[styles.unitLabel, { color: "#FF4B4B" }]}>SAIR</Text>
-          </TouchableOpacity>
+          
 
-          <TouchableOpacity
-            style={styles.unitButton}
-            onPress={() =>
-              setCurrentTheme(currentTheme === "light" ? "dark" : "light")
-            }
-          >
-            <Text style={[styles.unitLabel, { color: "#FF4B4B" }]}>
-              Trocar Tema
-            </Text>
-          </TouchableOpacity>
+          
         </View>
       </ScrollView>
 
@@ -288,7 +274,7 @@ const CourseScreen: React.FC = () => {
         >
           <View
             style={{
-              backgroundColor: "#1E1E1E",
+              backgroundColor: colors.background,
               borderRadius: 16,
               padding: 20,
               gap: 12,
@@ -296,7 +282,7 @@ const CourseScreen: React.FC = () => {
           >
             <Text
               style={{
-                color: "#FFFFFF",
+                color: colors.text,
                 fontWeight: "bold",
                 fontSize: 18,
                 textAlign: "center",
@@ -315,7 +301,7 @@ const CourseScreen: React.FC = () => {
                   paddingVertical: 10,
                   borderRadius: 10,
                   backgroundColor:
-                    item.id === selectedCourseId ? "#2A2A2A" : "transparent",
+                    item.id === selectedCourseId ? colors.primary : "transparent",
                 }}
                 onPress={() => handleCourseSelect(item.id)}
               >
@@ -323,7 +309,7 @@ const CourseScreen: React.FC = () => {
                   source={item.iconSource}
                   style={{ width: 40, height: 40, borderRadius: 10 }}
                 />
-                <Text style={{ color: "#FFFFFF", fontWeight: "600" }}>
+                <Text style={{ color: colors.text, fontWeight: "600" }}>
                   {item.title}
                 </Text>
               </TouchableOpacity>

@@ -13,7 +13,7 @@ export default function TabsLayout() {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
           height: 70, // Altura da barra
-          paddingTop: 5, // Ajuste para posicionamento vertical
+          paddingTop: 7, // Ajuste para posicionamento vertical
           paddingBottom: 5, // Ajuste para posicionamento vertical
         },
         tabBarActiveTintColor: colors.primary, // Cor do ícone ativo

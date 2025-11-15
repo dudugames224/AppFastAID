@@ -42,7 +42,7 @@ const PracticeScreen = () => {
           source={require("../../assets/images/band_halter.png")}
           style={{ width: 140, height: 140, alignSelf: "center" }}
         />
-        <Text style={styles.titulo}>Praticar</Text>
+        <Text style={styles.titulo}>PRATICAR</Text>
         <Text style={styles.subtitle}>
           Teste os seus conhecimentos com desafios de nível difícil!
         </Text>
