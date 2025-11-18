@@ -13,6 +13,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon, XIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
+import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
 import {
   fetchCourseModules,
   fetchModuleLessons,
@@ -86,7 +87,6 @@ const LessonScreen = () => {
   const courseId = (paramsCourseId as string) || fallbackCourseId;
 
   const [userXP, setUserXP] = useState(1200);
-  const [lives, setLives] = useState(5);
   const isPremium = false;
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -97,11 +97,23 @@ const LessonScreen = () => {
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
+  const [lives, setLives] = useState(5);
 
   useEffect(() => {
+    const loadInitialData = async () => {
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setLives(userData.lives ?? 5);
+        }
+      }
+    };
+
     const loadLessons = async () => {
       setIsLoadingLessons(true);
-      setLives(5);
       try {
         let deck: LessonCard[] = [];
         if (isPracticeMode) {
@@ -117,7 +129,15 @@ const LessonScreen = () => {
         } else if (paramsModuleId) {
           deck = await fetchModuleLessons(courseId, paramsModuleId as string);
         }
-        const finalDeck = deck.length ? deck : demoLesson;
+        // Mapeia os nomes do feedback para corresponder ao tipo LessonCard
+        const mappedDeck = deck.map(card => ({
+          ...card,
+          correctFeedback: card.FeedbackCorreto || card.correctFeedback,
+          incorrectFeedback: card.FeedbackIncorreto || card.incorrectFeedback,
+        }));
+
+        const finalDeck = mappedDeck.length ? mappedDeck : demoLesson;
+
         const randomizedDeck = shuffleLessonCards(finalDeck);
         setQuestions(getShuffledLesson(randomizedDeck));
         setCurrentStep(0);
@@ -131,13 +151,14 @@ const LessonScreen = () => {
         setIsLoadingLessons(false);
       }
     };
-    loadLessons();
+    loadInitialData(); // Carrega as vidas do usuário
+    loadLessons(); // Carrega as lições
   }, [courseId, paramsModuleId, isPracticeMode]);
 
   const exitTarget = isPracticeMode
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";
-  const xpReward = isPracticeMode ? 15 : 20;
+  const xpReward = isPracticeMode ? 10 : 20;
 
   const feedbackAnim = useRef(new Animated.Value(200)).current;
   const currentCard = questions[currentStep];
@@ -158,15 +179,24 @@ const LessonScreen = () => {
     }
   }, [showFeedback, currentStep, isInfoCard]);
 
-  const handleOptionSelect = (index: number) => {
+  const decrementLive = async () => {
+    const user = auth.currentUser;
+    if (user && !isPremium) {
+      const newLives = Math.max(0, lives - 1);
+      setLives(newLives);
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, { lives: newLives });
+    }
+  };
+
+  const handleOptionSelect = async (index: number) => {
     if (showFeedback || !currentCard || currentCard.answer === undefined)
       return;
     setSelectedOption(index);
     const correct = index === currentCard.answer;
     setIsCorrect(correct);
     setShowFeedback(true);
-    if (correct) setUserXP((xp) => xp + 10);
-    else setLives((l) => l - 1);
+    if (!correct) await decrementLive();
   };
 
   const goToResults = async () => {
@@ -189,7 +219,7 @@ const LessonScreen = () => {
       setShowFeedback(false);
       setSelectedOption(null);
       setIsCorrect(null);
-      await goToResults();
+      goToResults();
       return;
     }
     setShowFeedback(false);

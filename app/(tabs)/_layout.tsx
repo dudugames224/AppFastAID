@@ -1,5 +1,6 @@
 import { Tabs } from "expo-router"; // ✅ Importar Tabs do expo-router
 import React from "react";
+import { GlobalHeader } from "../components/GlobalHeader";
 import { HomeIcon, PracticeIcon, ProfileIcon, ShopIcon, TrophyIcon } from "../components/Icons"; // Seus ícones customizados
 import { useTheme } from "../context/ThemeContext";
 
@@ -9,6 +10,7 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
+        header: () => <GlobalHeader />,
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
@@ -18,7 +20,6 @@ export default function TabsLayout() {
         },
         tabBarActiveTintColor: colors.primary, // Cor do ícone ativo
         tabBarInactiveTintColor: colors.text, // Cor do ícone inativo
-        headerShown: false, // Esconde o cabeçalho padrão para todas as telas de aba
       }}
     >
       <Tabs.Screen

@@ -1,7 +1,8 @@
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   Image,
+  Modal,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,78 +11,67 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { getUserData, Sair } from "../firebaseConfig.js";
-import { fetchCoursesMeta, RemoteCourseMeta } from "../services/lessonService";
-import { getCompletedModules } from "../services/progressService";
+import { auth, getUserData, Sair, updateUserAvatar } from "../firebaseConfig.js";
+import { getUserAchievements } from "../services/progressService.js";
+
+const AVATAR_OPTIONS = ["🧑‍⚕️", "👩‍⚕️", "👨‍⚕️", "🩺", "🩹", "❤️", "💉", "🚑"];
 
 const ProfileScreen = () => {
   const [userData, setUserData] = useState<any>(null);
-  const [cursos, setCursos] = useState<RemoteCourseMeta[]>([]);
-  const [StatusConquista, setStatusConquista] = useState<Record<string, boolean>>({});
-  const { styles, colors, currentTheme, setCurrentTheme, panicStyles } =
+  const [achievementData, setAchievementData] = useState<any>({
+    achievements: {},
+    courses: [],
+  });  const { styles, colors, currentTheme, setCurrentTheme, panicStyles } =
       useTheme();
   const router = useRouter();
+  const [avatarModalVisible, setAvatarModalVisible] = useState(false);
 
   function logout() {
     Sair();
     router.replace("/screens/login");
   }
 
-  useEffect(() => {
-    const fetchUserData = async () => {
-      const data = await getUserData();
-      if (data) {
-        setUserData(data);
-      }
-    };
-
-    fetchUserData();
-
-    const checarPremios = async () => {
-      const DadosCursos = await fetchCoursesMeta();
-      setCursos(DadosCursos);
-
-      const status: Record<string, boolean> = {};
-      for (const curso of DadosCursos) {
-        const ModulosCompletos = await getCompletedModules(curso.id); 
-        if(ModulosCompletos.length>0){
-          status[curso.id] = true;
-          return(true)
-        } else{
-          return(false)
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        const currentUserData = await getUserData();
+        if (currentUserData) {
+          setUserData(currentUserData);
         }
-          
-        
-        
+  
+        const userId = auth.currentUser?.uid;
+        if (userId) {
+          const achievements = await getUserAchievements(userId);
+          setAchievementData(achievements);
+        }
+      };
+  
+      fetchData();
+    }, [])
+  );
+
+  const handleAvatarSelect = async (avatar: string) => {
+    const userId = auth.currentUser?.uid;
+    if (userId) {
+      const success = await updateUserAvatar(userId, avatar);
+      if (success) {
+        setUserData((prev) => ({ ...prev, avatar }));
       }
-      setStatusConquista(status);
-    };
+    }
+    setAvatarModalVisible(false);
+  };
 
-    checarPremios();
-
-  }, []);
   return (
     <SafeAreaView style={styles.safe}>
         <Image source={require("../../assets/images/band_no_celular.png")} style={{ width: 140, height: 140, alignSelf: "center" }} />
-            <Text style={styles.titulo}>PERFIL</Text>
-            <View style={[styles.containerPerfil,{margin:'3%'}]}>
-              {/*
-                <View style={styles.caixaPerfil}>
-                    <Text style={{color:colors.text}}>Nome</Text>
-                     <Text style={styles.titulo}>{userData ? userData.nome : "Carregando..."}</Text>
-                     <Text style={{color:colors.text}}>XP:</Text>
-                     <Text style={styles.titulo}>{userData ? userData.xp : 0}</Text>
-                     <Text style={{color:colors.text}}>OFENSIVA:</Text>
-                     <Text style={styles.titulo}>{userData ? userData.ofensiva : 0} dias</Text>
-                     
-            </View>
-        */}
-          <View style={[styles.caixaPerfil, {height:85}]}>
-
+        <Text style={styles.titulo}>PERFIL</Text>
+        <ScrollView contentContainerStyle={[styles.containerPerfil, { marginHorizontal: '3%', paddingBottom: 30 }]}>
              
-        
+            <View style={[styles.caixaPerfil, { height: 85, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20 }]}>
+                <TouchableOpacity onPress={() => setAvatarModalVisible(true)}>
+                  <Text style={{ fontSize: 40 }}>{userData?.avatar || "🙂"}</Text>
+                </TouchableOpacity>
                 <Text style={[styles.titulo]}>{userData ? userData.nome : "Carregando..."}</Text>
-                
           </View>
           <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center", width:"100%"}}>
               <View style={[styles.caixaPerfil,{ alignSelf:"flex-start",width:"47%", height:"100%" }]}>
@@ -95,13 +85,13 @@ const ProfileScreen = () => {
                 </View>
                 <View style={[styles.caixaPerfil, {height:85}]}>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
-                    {cursos.map((curso) => (
+                    {achievementData.courses.map((curso: any) => (
                       <Image
                         key={curso.id}
                         source={curso.iconSource}
                         style={[
                           EstiloImagem.achievement,
-                          !StatusConquista[curso.id] && EstiloImagem.grayscale, 
+                          !achievementData.achievements[curso.id] && EstiloImagem.grayscale, 
                         ]}
                       />
                     ))}
@@ -118,8 +108,36 @@ const ProfileScreen = () => {
                 >
                   <Text style={[styles.textoBotao, { color: colors.text }]}>TROCAR DE TEMA</Text>
                 </TouchableOpacity>
-              </View>
             </View>
+        </ScrollView>
+
+            <Modal
+              visible={avatarModalVisible}
+              animationType="fade"
+              transparent
+              onRequestClose={() => setAvatarModalVisible(false)}
+            >
+              <TouchableOpacity
+                style={styles.modalBackdrop}
+                activeOpacity={1}
+                onPressOut={() => setAvatarModalVisible(false)}
+              >
+                <View style={[styles.modalView, { backgroundColor: colors.background }]}>
+                  <Text style={[styles.modalTitle, { color: colors.text }]}>Escolha seu Avatar</Text>
+                  <View style={styles.avatarGrid}>
+                    {AVATAR_OPTIONS.map((avatar) => (
+                      <TouchableOpacity
+                        key={avatar}
+                        style={styles.avatarTouchable}
+                        onPress={() => handleAvatarSelect(avatar)}
+                      >
+                        <Text style={{ fontSize: 40 }}>{avatar}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              </TouchableOpacity>
+            </Modal>
             
     </SafeAreaView>
     
@@ -141,4 +159,5 @@ const EstiloImagem = StyleSheet.create({
   grayscale: {
     tintColor: "#238bccff",
   },
+  
 });

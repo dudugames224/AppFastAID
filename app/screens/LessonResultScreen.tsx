@@ -156,7 +156,28 @@ const LessonResultScreen = ({
     if (user && currentUserData) {
       const userDocRef = doc(db, "users", user.uid);
       const newXp = (currentUserData.xp || 0) + computedXp;
-      await setDoc(userDocRef, { xp: newXp }, { merge: true });
+
+      // Lógica da Ofensiva
+      const today = new Date();
+      const lastLessonDate = currentUserData.lastLessonDate ? new Date(currentUserData.lastLessonDate) : null;
+      let newStreak = currentUserData.ofensiva || 0;
+
+      if (lastLessonDate) {
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const lastLessonStart = new Date(lastLessonDate.getFullYear(), lastLessonDate.getMonth(), lastLessonDate.getDate());
+        const diffTime = todayStart.getTime() - lastLessonStart.getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        if (diffDays === 1) {
+          newStreak++; // Continua a ofensiva
+        } else if (diffDays > 1) {
+          newStreak = 1; // Reinicia a ofensiva
+        }
+      } else {
+        newStreak = 1; // Começa a primeira ofensiva
+      }
+
+      await setDoc(userDocRef, { xp: newXp, ofensiva: newStreak, lastLessonDate: today.toISOString() }, { merge: true });
     }
   };
 

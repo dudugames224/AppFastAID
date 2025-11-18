@@ -37,7 +37,7 @@ const PracticeScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 30 }}>
         <Image
           source={require("../../assets/images/band_halter.png")}
           style={{ width: 140, height: 140, alignSelf: "center" }}
@@ -79,4 +79,3 @@ const PracticeScreen = () => {
 };
 
 export default PracticeScreen;
-

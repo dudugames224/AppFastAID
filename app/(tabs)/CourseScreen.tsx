@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { CircleIcon, FlaskIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
+import { getUserData } from "../firebaseConfig";
 import {
   fetchCourseModules,
   fetchCoursesMeta,
@@ -45,6 +46,7 @@ const CourseScreen: React.FC = () => {
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
   const [courseModalVisible, setCourseModalVisible] = useState(false);
+  const [streakLost, setStreakLost] = useState(false);
 
   const { styles, colors, currentTheme, setCurrentTheme, panicStyles } =
     useTheme();
@@ -55,6 +57,27 @@ const CourseScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    const checkStreak = async () => {
+      const userData = await getUserData();
+      if (userData && userData.lastLessonDate) {
+        const today = new Date();
+        const lastLessonDate = new Date(userData.lastLessonDate);
+
+        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        const lastLessonStart = new Date(lastLessonDate.getFullYear(), lastLessonDate.getMonth(), lastLessonDate.getDate());
+
+        const diffTime = todayStart.getTime() - lastLessonStart.getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        // Se a diferença for maior que 1 dia, a ofensiva foi perdida.
+        if (diffDays > 1) {
+          setStreakLost(true);
+        } else {
+          setStreakLost(false);
+        }
+      }
+    };
+
     const loadCourses = async () => {
       setCoursesLoading(true);
       const data = await fetchCoursesMeta();
@@ -62,6 +85,7 @@ const CourseScreen: React.FC = () => {
       setSelectedCourseId((prev) => prev ?? data[0]?.id ?? null);
       setCoursesLoading(false);
     };
+    checkStreak();
     loadCourses();
   }, []);
 
@@ -122,12 +146,14 @@ const CourseScreen: React.FC = () => {
         />
         <Text style={[styles.titulo, {paddingBottom:15,marginTop:0}]}>FASTAID</Text>
 
-        <View style={styles.streakLossContainer}>
-          <Text style={styles.streakLossTitle}>Ofensiva perdida!</Text>
-          <Text style={styles.streakLossText}>
-            Complete uma lição hoje para começar uma nova ofensiva.
-          </Text>
-        </View>
+        {streakLost && (
+          <View style={styles.streakLossContainer}>
+            <Text style={styles.streakLossTitle}>Ofensiva perdida!</Text>
+            <Text style={styles.streakLossText}>
+              Complete uma lição hoje para começar uma nova ofensiva.
+            </Text>
+          </View>
+        )}
 
         <TouchableOpacity
           style={styles.topicHeader}

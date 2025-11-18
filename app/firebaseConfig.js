@@ -1,7 +1,7 @@
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
-import { initializeApp, } from "firebase/app";
+import { getApp, getApps, initializeApp } from "firebase/app";
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc, updateDoc } from "firebase/firestore";
 
 
 
@@ -17,7 +17,13 @@ const firebaseConfig = {
 
 
 
-const app = initializeApp(firebaseConfig);
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApp();
+}
+
 const db = getFirestore(app);
 const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(ReactNativeAsyncStorage)
@@ -26,7 +32,7 @@ function Sair(){
   auth.signOut();
 }
 
-export { addDoc, app, auth, collection, db, deleteDoc, doc, getDoc, getDocs, Sair, setDoc };
+export { addDoc, app, auth, collection, db, deleteDoc, doc, getDoc, getDocs, Sair, setDoc, updateDoc };
 export const getUserData = async () => {
   const user = auth.currentUser;
   if (user) {
@@ -38,4 +44,30 @@ export const getUserData = async () => {
   }
   return null; // Retorna nulo se não houver usuário ou documento
 
+};
+
+export const getAllUsers = async () => {
+  try {
+    const usersCollectionRef = collection(db, "users");
+    const querySnapshot = await getDocs(usersCollectionRef);
+    const users = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    return users;
+  } catch (error) {
+    console.error("Erro ao buscar todos os usuários:", error);
+    return [];
+  }
+};
+
+export const updateUserAvatar = async (userId, avatar) => {
+  if (!userId || !avatar) return false;
+  try {
+    const userDocRef = doc(db, "users", userId);
+    await updateDoc(userDocRef, {
+      avatar: avatar
+    });
+    return true;
+  } catch (error) {
+    console.error("Erro ao atualizar o avatar do usuário:", error);
+    return false;
+  }
 };

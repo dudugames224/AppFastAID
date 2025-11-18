@@ -17,9 +17,10 @@ export default function RootLayout() {
         <Stack.Screen name="screens/RCP"/>
         <Stack.Screen name="screens/LessonScreen"/>
         <Stack.Screen name="screens/LessonResultScreen"/>
+        <Stack.Screen name="screens/UserProfileScreen"/>
 
         {/* Esta linha renderiza todo o nosso grupo de abas */}
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(tabs)" />
       </Stack>
       
     </ThemeProvider>
