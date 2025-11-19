@@ -9,6 +9,8 @@ import { HeartIcon } from "./Icons";
 export const GlobalHeader = () => {
   const { colors } = useTheme();
   const [userData, setUserData] = useState({ ofensiva: 0, lives: 5 });
+  const {styles } = useTheme();
+
 
   useFocusEffect(
     useCallback(() => {
@@ -40,17 +42,17 @@ export const GlobalHeader = () => {
     >
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
         
-        <Ionicons name="flame" size={24} color="#FF9500" />
+        <Ionicons name="flame" size={24} color={colors.primary} />
         
         <Text style={{ color: colors.text, fontWeight: "bold", fontSize: 16 }}>
           {userData.ofensiva}
         </Text>
         
       </View>
-      <Text style={{alignSelf:"center", color: colors.text, fontWeight: "bold", fontSize: 16, textAlign:"center" }}>FASTAID</Text>
+      <Text style={[styles.titulo,{fontSize:27}]}>FASTAID</Text>
 
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-        <HeartIcon color="#FF4B4B" />
+        <HeartIcon/>
         <Text style={{ color: colors.text, fontWeight: "bold", fontSize: 16 }}>
           {userData.lives}
         </Text>
