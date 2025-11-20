@@ -115,7 +115,7 @@ const LessonScreen = () => {
     const loadLessons = async () => {
       setIsLoadingLessons(true);
       try {
-        let deck: LessonCard[] = [];
+        let deck: any[] = [];
         if (isPracticeMode) {
           const modules = await fetchCourseModules(courseId);
           const aggregated = modules.flatMap((module) => module.lessons ?? []);

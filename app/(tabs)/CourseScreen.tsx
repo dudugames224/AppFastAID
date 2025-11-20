@@ -308,14 +308,14 @@ const CourseScreen: React.FC = () => {
           >
             <Text
               style={{
-                color: colors.text,
+                color: colors.primary,
                 fontWeight: "bold",
-                fontSize: 18,
+                fontSize: 25,
                 textAlign: "center",
                 marginBottom: 8,
               }}
             >
-              Escolha um curso
+              ESCOLHA UM CURSO
             </Text>
           {courseOptions.map((item) => (
             <TouchableOpacity
@@ -327,13 +327,13 @@ const CourseScreen: React.FC = () => {
                   paddingVertical: 10,
                   borderRadius: 10,
                   backgroundColor:
-                    item.id === selectedCourseId ? colors.primary : "transparent",
+                    item.id === selectedCourseId ? "rgba(96, 194, 255, 1)" : "transparent",
                 }}
                 onPress={() => handleCourseSelect(item.id)}
               >
                 <Image
                   source={item.iconSource}
-                  style={{ width: 40, height: 40, borderRadius: 10 }}
+                  style={{ width: 40, height: 40, borderRadius: 10, marginLeft:10 }}
                 />
                 <Text style={{ color: colors.text, fontWeight: "600" }}>
                   {item.title}

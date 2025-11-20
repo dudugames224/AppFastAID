@@ -5,7 +5,7 @@ const lightColors = {
   background: "#F0F2F5", // Um cinza claro para o fundo
   text: "#1C1E21", // Texto escuro
   textClaro: "#F0F2F5",
-  primary: "#238bccff",
+  primary: "rgba(35, 139, 204, 1.00)",
   card: "#FFFFFF", // Cards brancos
   inputBackground: "#E8E8E8",
   inputTextColor: "#000000",

@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { sendPasswordResetEmail, signInWithEmailAndPassword, User } from "firebase/auth";
 import React, { useState } from "react";
-import { Alert, Image, Modal, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { auth } from "../firebaseConfig.js";
@@ -45,9 +45,13 @@ export default function LoginScreen() {
     
     <SafeAreaView style={styles.containerLogin}>
      
-        <Image source={require("../../assets/images/band_no_celular.png")} style={styles.imagem}/>
-      
-      
+        
+    <KeyboardAvoidingView
+            style={{ flex: 1 }}
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+          >
+    <ScrollView contentContainerStyle={{ flexGrow: 1}}>
+      <Image source={require("../../assets/images/band_no_celular.png")} style={styles.imagem}/>
     <View style={styles.caixa}>
       <Text style={styles.titulo}>LOGIN</Text>
       <TextInput
@@ -101,6 +105,8 @@ export default function LoginScreen() {
           </View>
         </View>
       </Modal>
+      </ScrollView>
+      </KeyboardAvoidingView>
   </SafeAreaView>
   )
   

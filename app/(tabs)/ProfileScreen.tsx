@@ -1,22 +1,24 @@
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
+  Dimensions,
   Image,
   Modal,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { auth, getUserData, Sair, updateUserAvatar } from "../firebaseConfig.js";
 import { getUserAchievements } from "../services/progressService.js";
 
-const AVATAR_OPTIONS = ["🧑‍⚕️", "👩‍⚕️", "👨‍⚕️", "🩺", "🩹", "❤️", "💉", "🚑"];
+const AVATAR_OPTIONS = ["🧑‍⚕️", "👩‍⚕️", "👨‍⚕️", "👩‍🦲", "👨‍🦱", "🧑‍🦰","👼","👧","👦"];
 
 const ProfileScreen = () => {
+  const { width, height } = Dimensions.get('window');
   const [userData, setUserData] = useState<any>(null);
   const [achievementData, setAchievementData] = useState<any>({
     achievements: {},
@@ -55,7 +57,7 @@ const ProfileScreen = () => {
     if (userId) {
       const success = await updateUserAvatar(userId, avatar);
       if (success) {
-        setUserData((prev) => ({ ...prev, avatar }));
+        setUserData((prev: any) => ({ ...prev, avatar }));
       }
     }
     setAvatarModalVisible(false);
@@ -63,6 +65,9 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
+      <ScrollView>
+
+      
         <Image source={require("../../assets/images/band_no_celular.png")} style={{ width: 140, height: 140, alignSelf: "center" }} />
         <Text style={styles.titulo}>PERFIL</Text>
         <ScrollView contentContainerStyle={[styles.containerPerfil, { marginHorizontal: '3%', paddingBottom: 30 }]}>
@@ -75,11 +80,11 @@ const ProfileScreen = () => {
           </View>
           <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center", width:"100%"}}>
               <View style={[styles.caixaPerfil,{ alignSelf:"flex-start",width:"47%", height:"100%" }]}>
-                <Text style={[styles.titulo, {  marginBottom:0 }]}>{userData ? userData.xp : 0} XP</Text>
+                <Text style={[styles.titulo, {  marginBottom:0, fontSize: width*0.101 }]}>{userData ? userData.xp : 0} XP</Text>
                 </View>
 
                 <View style={[styles.caixaPerfil,{ alignSelf:"flex-end",width:"47%",height:"100%" }]}>
-                <Text style={[styles.titulo, {  marginBottom:0, fontSize:40 }]}>{userData ? userData.ofensiva : 0} DIAS</Text>
+                <Text style={[styles.titulo, {  marginBottom:0, fontSize: width*0.101  }]}>{userData ? userData.ofensiva : 0} DIAS</Text>
                 </View>
 
                 </View>
@@ -123,7 +128,7 @@ const ProfileScreen = () => {
                 onPressOut={() => setAvatarModalVisible(false)}
               >
                 <View style={[styles.modalView, { backgroundColor: colors.background }]}>
-                  <Text style={[styles.modalTitle, { color: colors.text }]}>Escolha seu Avatar</Text>
+                  <Text style={[styles.modalTitle, { color: colors.primary }]}>ESCOLHA SEU AVATAR</Text>
                   <View style={styles.avatarGrid}>
                     {AVATAR_OPTIONS.map((avatar) => (
                       <TouchableOpacity
@@ -138,6 +143,7 @@ const ProfileScreen = () => {
                 </View>
               </TouchableOpacity>
             </Modal>
+            </ScrollView>
             
     </SafeAreaView>
     

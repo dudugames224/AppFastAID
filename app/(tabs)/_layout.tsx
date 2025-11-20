@@ -1,11 +1,11 @@
-import { Tabs } from "expo-router"; // ✅ Importar Tabs do expo-router
+import { Tabs } from "expo-router";
 import React from "react";
 import { GlobalHeader } from "../components/GlobalHeader";
 import { HomeIcon, PracticeIcon, ProfileIcon, ShopIcon, TrophyIcon } from "../components/Icons"; // Seus ícones customizados
 import { useTheme } from "../context/ThemeContext";
 
 export default function TabsLayout() {
-  const { colors } = useTheme(); // ✅ Pegar as cores do tema
+  const { colors } = useTheme(); 
 
   return (
     <Tabs
@@ -14,65 +14,65 @@ export default function TabsLayout() {
         tabBarStyle: {
           backgroundColor: colors.background,
           borderTopColor: colors.border,
-          height: 70, // Altura da barra
-          paddingTop: 7, // Ajuste para posicionamento vertical
-          paddingBottom: 5, // Ajuste para posicionamento vertical
+          height: 70,
+          paddingTop: 7,
+          paddingBottom: 5, 
         },
-        tabBarActiveTintColor: colors.primary, // Cor do ícone ativo
-        tabBarInactiveTintColor: colors.text, // Cor do ícone inativo
+        tabBarActiveTintColor: colors.primary, 
+        tabBarInactiveTintColor: colors.text, 
       }}
     >
       <Tabs.Screen
-        name="CourseScreen" // Nome do arquivo dentro de app/(tabs)/CourseScreen.tsx
+        name="CourseScreen" 
         options={{
-          title: "", // Sem texto abaixo do ícone
+          title: "",
           tabBarShowLabel: false,
           tabBarIcon: ({ color }) => (
-            <HomeIcon color={color}  /> // ✅ Passando o size
+            <HomeIcon color={color}  /> 
           ),
         }}
       />
 
       <Tabs.Screen
-        name="PracticeScreen" // Nome do arquivo dentro de app/(tabs)/PracticeScreen.tsx
+        name="PracticeScreen" 
         options={{
-          title: "", // Sem texto abaixo do ícone
+          title: "", 
           tabBarShowLabel: false,
           tabBarIcon: ({ color }) => (
-            <PracticeIcon color={color}  /> // ✅ Passando o size
+            <PracticeIcon color={color}  /> 
           ),
         }}
       />
 
       <Tabs.Screen
-        name="TournamentScreen" // Nome do arquivo dentro de app/(tabs)/TournamentScreen.tsx
+        name="TournamentScreen" 
         options={{
-          title: "", // Sem texto abaixo do ícone
+          title: "", 
           tabBarShowLabel: false,
           tabBarIcon: ({ color }) => (
-            <TrophyIcon color={color}  /> // ✅ Passando o size
+            <TrophyIcon color={color}  /> 
           ),
         }}
       />
 
       <Tabs.Screen
-        name="StoreScreen" // Nome do arquivo dentro de app/(tabs)/StoreScreen.tsx
+        name="StoreScreen" 
         options={{
-          title: "", // Sem texto abaixo do ícone
+          title: "", 
           tabBarShowLabel: false,
           tabBarIcon: ({ color }) => (
-            <ShopIcon color={color}  /> // ✅ Passando o size
+            <ShopIcon color={color}  /> 
           ),
         }}
       />
 
       <Tabs.Screen
-        name="ProfileScreen" // Nome do arquivo dentro de app/(tabs)/ProfileScreen.tsx
+        name="ProfileScreen" 
         options={{
-          title: "", // Sem texto abaixo do ícone
+          title: "", 
           tabBarShowLabel: false,
           tabBarIcon: ({ color }) => (
-            <ProfileIcon color={color}  /> // ✅ Passando o size
+            <ProfileIcon color={color}  /> 
           ),
         }}
       />

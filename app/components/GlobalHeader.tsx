@@ -1,12 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Text, View } from "react-native";
+import { Dimensions, Text, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { getUserData } from "../firebaseConfig";
 import { HeartIcon } from "./Icons";
 
+
 export const GlobalHeader = () => {
+  const { width, height } = Dimensions.get('window');
   const { colors } = useTheme();
   const [userData, setUserData] = useState({ ofensiva: 0, lives: 5 });
   const {styles } = useTheme();
@@ -19,7 +21,7 @@ export const GlobalHeader = () => {
         if (data) {
           setUserData({
             ofensiva: data.ofensiva || 0,
-            lives: data.lives ?? 5, // Se 'lives' não existir, assume 5
+            lives: data.lives ?? 5, 
           });
         }
       };
@@ -34,7 +36,7 @@ export const GlobalHeader = () => {
         justifyContent: "space-around",
         alignItems: "center",
         backgroundColor: colors.background,
-        paddingTop: 50, // Espaço para a status bar
+        paddingTop: 30,
         paddingBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,
