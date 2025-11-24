@@ -14,22 +14,21 @@ const TournamentScreen = () => {
   useFocusEffect(
     useCallback(() => {
           const fetchData = async () => {
-            // Busca os dados do usuário logado
+          
             const currentUserData = await getUserData();
             if (currentUserData) {
               setUserData(currentUserData);
             }
 
-            // Busca os dados de todos os usuários para o leaderboard
+           
             const allUsers = await getAllUsers();
             const currentUserId = auth.currentUser?.uid;
 
-            // Filtra e formata os dados dos outros usuários
             const otherUsers = allUsers
               .filter(user => user.id !== currentUserId)
               .map(user => ({
                 id: user.id,
-                name: user.nome, // Mapeia 'nome' para 'name'
+                name: user.nome, 
                 xp: user.xp,
                 avatar: user.avatar || '👤'
               }));
