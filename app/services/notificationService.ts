@@ -1,11 +1,22 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import * as Notifications from "expo-notifications";
+import cancelScheduledNotificationAsync from "expo-notifications/build/cancelScheduledNotificationAsync";
+import getAllScheduledNotificationsAsync from "expo-notifications/build/getAllScheduledNotificationsAsync";
+import { AndroidImportance } from "expo-notifications/build/NotificationChannelManager.types";
+import { IosAuthorizationStatus } from "expo-notifications/build/NotificationPermissions.types";
+import {
+  getPermissionsAsync,
+  requestPermissionsAsync,
+} from "expo-notifications/build/NotificationPermissions";
+import scheduleNotificationAsync from "expo-notifications/build/scheduleNotificationAsync";
+import setNotificationChannelAsync from "expo-notifications/build/setNotificationChannelAsync";
+import { setNotificationHandler } from "expo-notifications/build/NotificationsHandler";
 import { Platform } from "react-native";
 
 const STORAGE_PREFIX = "fastaid:scheduled-notification:";
 const REMINDER_CHANNEL_ID = "fastaid-reminders";
 
-Notifications.setNotificationHandler({
+// Use deep imports to avoid loading push-token side effects that are blocked in Expo Go.
+setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
     shouldPlaySound: true,
@@ -18,9 +29,9 @@ const ensureAndroidChannel = async () => {
     return;
   }
 
-  await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
+  await setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
     name: "Lembretes FastAid",
-    importance: Notifications.AndroidImportance.HIGH,
+    importance: AndroidImportance.HIGH,
     sound: "default",
     vibrationPattern: [0, 250, 250, 250],
     lightColor: "#FF4B4B",
@@ -28,19 +39,19 @@ const ensureAndroidChannel = async () => {
 };
 
 export const ensureNotificationPermissions = async (): Promise<boolean> => {
-  const currentSettings = await Notifications.getPermissionsAsync();
+  const currentSettings = await getPermissionsAsync();
   if (
     currentSettings.granted ||
-    currentSettings.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL
+    currentSettings.ios?.status === IosAuthorizationStatus.PROVISIONAL
   ) {
     await ensureAndroidChannel();
     return true;
   }
 
-  const requestResult = await Notifications.requestPermissionsAsync();
+  const requestResult = await requestPermissionsAsync();
   const granted =
     requestResult.granted ||
-    requestResult.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+    requestResult.ios?.status === IosAuthorizationStatus.PROVISIONAL;
 
   if (granted) {
     await ensureAndroidChannel();
@@ -102,7 +113,7 @@ export const isReminderScheduled = async (identifier: string): Promise<boolean> 
   if (!storedId) {
     return false;
   }
-  const allScheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const allScheduled = await getAllScheduledNotificationsAsync();
   return allScheduled.some((item) => item.identifier === storedId);
 };
 
@@ -121,14 +132,14 @@ export const scheduleRepeatingReminder = async ({
   const storedId = await AsyncStorage.getItem(storageKey);
 
   if (storedId) {
-    await Notifications.cancelScheduledNotificationAsync(storedId).catch(() => {});
+    await cancelScheduledNotificationAsync(storedId).catch(() => {});
     await AsyncStorage.removeItem(storageKey);
   }
 
   const reminderMessage = message ?? getRandomReminderMessage();
   const secondsInterval = Math.max(60, Math.round(intervalInMinutes * 60));
 
-  const newId = await Notifications.scheduleNotificationAsync({
+  const newId = await scheduleNotificationAsync({
     content: {
       title: `${reminderMessage.emoji} ${reminderMessage.title}`,
       body: reminderMessage.body,
@@ -152,6 +163,6 @@ export const cancelReminder = async (identifier: string): Promise<void> => {
   if (!storedId) {
     return;
   }
-  await Notifications.cancelScheduledNotificationAsync(storedId).catch(() => {});
+  await cancelScheduledNotificationAsync(storedId).catch(() => {});
   await AsyncStorage.removeItem(storageKey);
 };
