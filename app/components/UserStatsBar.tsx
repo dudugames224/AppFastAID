@@ -1,15 +1,17 @@
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Image,
   StyleProp,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
   ViewStyle,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import { getUserData } from "../firebaseConfig.js";
+import { auth, db, doc, getUserData, updateDoc } from "../firebaseConfig.js";
 import { HeartIcon } from "./Icons";
 
 type ThemeColors = ReturnType<typeof useTheme>["colors"];
@@ -34,6 +36,7 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
     ofensiva: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [restoringLives, setRestoringLives] = useState(false);
 
   const loadStats = useCallback(async () => {
     try {
@@ -76,9 +79,37 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
     loadStats();
   }, [loadStats]);
 
+  const handleRestoreLives = useCallback(async () => {
+    if (restoringLives) {
+      return;
+    }
+    const user = auth.currentUser;
+    if (!user) {
+      Alert.alert("Conta necessária", "Entre na sua conta para restaurar as vidas.");
+      return;
+    }
+    try {
+      setRestoringLives(true);
+      const userDocRef = doc(db, "users", user.uid);
+      await updateDoc(userDocRef, { lives: DEFAULT_LIVES });
+      setStats((prev) => ({ ...prev, lives: DEFAULT_LIVES }));
+      Alert.alert("Pronto!", "As 5 vidas foram restauradas.");
+    } catch (error) {
+      console.warn("Nao foi possivel restaurar as vidas:", error);
+      Alert.alert("Ops", "Não conseguimos restaurar as vidas. Tente novamente.");
+    } finally {
+      setRestoringLives(false);
+    }
+  }, [restoringLives]);
+
   return (
     <View style={[styles.wrapper, containerStyle]}>
-      <View style={styles.statItem}>
+      <TouchableOpacity
+        style={styles.statItem}
+        activeOpacity={0.8}
+        onPress={handleRestoreLives}
+        disabled={restoringLives}
+      >
         <View style={styles.iconCircle}>
           <HeartIcon size={24} color="#FF4B4B" />
         </View>
@@ -86,7 +117,7 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
           <Text style={styles.value}>{loading ? "--" : stats.lives}</Text>
           <Text style={styles.label}>Vidas</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.statItem}>
         <View style={styles.iconCircle}>
