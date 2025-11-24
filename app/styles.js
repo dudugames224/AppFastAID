@@ -2,11 +2,11 @@ import { Dimensions, StyleSheet } from "react-native";
 const { width, height } = Dimensions.get('window');
 
 const lightColors = {
-  background: "#F0F2F5", // Um cinza claro para o fundo
-  text: "#1C1E21", // Texto escuro
+  background: "#F0F2F5",
+  text: "#1C1E21",
   textClaro: "#F0F2F5",
   primary: "rgba(35, 139, 204, 1.00)",
-  card: "#FFFFFF", // Cards brancos
+  card: "#FFFFFF",
   inputBackground: "#E8E8E8",
   inputTextColor: "#000000",
   sosButton: "#D93F3F",
@@ -56,11 +56,8 @@ const getThemedStyles = (theme = 'light') => {
     width:320,
     resizeMode:"contain",
     marginTop: height * 0.02,
-    //position:"absolute",
-    //top: 100,
   },
   titulo:{
-   //color: "#0eb6f8ff",
    color: colors.primary,
     fontSize:40,
     textAlign:"center",
@@ -232,13 +229,60 @@ const getThemedStyles = (theme = 'light') => {
     textAlign: "center",
     marginTop: 5,
   },
+  notificationCard: {
+    width: "100%",
+    backgroundColor: colors.card,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 20,
+  },
+  notificationTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: colors.text,
+    marginBottom: 4,
+  },
+  notificationDescription: {
+    color: colors.text,
+    opacity: 0.8,
+    fontSize: 14,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  notificationActions: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+  },
+  notificationButton: {
+    minWidth: 180,
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: "center",
+  },
+  notificationButtonSecondary: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: colors.primary,
+  },
+  notificationButtonText: {
+    color: colors.background,
+    fontWeight: "600",
+    fontSize: 15,
+  },
+  notificationButtonTextSecondary: {
+    color: colors.primary,
+  },
   sosButton: {
     position: "absolute",
     right: 20,
     bottom: 20,
     zIndex: 10,
   },
-  sosTouchable: { // Mantido vermelho para destaque
+  sosTouchable: {
     backgroundColor: "#FF4B4B",
     width: 64,
     height: 64,
@@ -257,7 +301,7 @@ const getThemedStyles = (theme = 'light') => {
     fontSize: 18,
   },
   BarraNavegacao: {
-    width: 240, // Largura fixa
+    width: 240,
     backgroundColor: "#1E3A8A",
     paddingVertical: 20,
     paddingHorizontal: 10,

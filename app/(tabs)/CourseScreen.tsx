@@ -48,8 +48,7 @@ const CourseScreen: React.FC = () => {
   const [courseModalVisible, setCourseModalVisible] = useState(false);
   const [streakLost, setStreakLost] = useState(false);
 
-  const { styles, colors, currentTheme, setCurrentTheme, panicStyles } =
-    useTheme();
+  const { styles, colors, panicStyles } = useTheme();
 
   const currentCourse = useMemo(
     () => courses.find((course) => course.id === selectedCourseId),
@@ -68,8 +67,6 @@ const CourseScreen: React.FC = () => {
 
         const diffTime = todayStart.getTime() - lastLessonStart.getTime();
         const diffDays = diffTime / (1000 * 60 * 60 * 24);
-
-        // Se a diferença for maior que 1 dia, a ofensiva foi perdida.
         if (diffDays > 1) {
           setStreakLost(true);
         } else {
@@ -118,8 +115,6 @@ const CourseScreen: React.FC = () => {
   );
 
   const courseOptions = useMemo(() => courses, [courses]);
-
-  
 
   function startModule(moduleId: string) {
     if (!selectedCourseId) return;

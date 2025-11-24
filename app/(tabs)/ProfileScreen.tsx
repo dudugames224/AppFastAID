@@ -1,6 +1,9 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
   Image,
   Modal,
@@ -8,25 +11,36 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { auth, getUserData, Sair, updateUserAvatar } from "../firebaseConfig.js";
 import { getUserAchievements } from "../services/progressService.js";
+import {
+  cancelReminder,
+  getRandomReminderMessage,
+  isReminderScheduled,
+  scheduleRepeatingReminder,
+} from "../services/notificationService";
 
-const AVATAR_OPTIONS = ["🧑‍⚕️", "👩‍⚕️", "👨‍⚕️", "👩‍🦲", "👨‍🦱", "🧑‍🦰","👼","👧","👦"];
+const AVATAR_OPTIONS = ["??", "??", "??", "?????", "?????", "?????", "?????", "??", "??"];
+const REMINDER_IDENTIFIER = "lesson-demo-reminder";
+
 
 const ProfileScreen = () => {
-  const { width, height } = Dimensions.get('window');
+  const { width } = Dimensions.get("window");
   const [userData, setUserData] = useState<any>(null);
   const [achievementData, setAchievementData] = useState<any>({
     achievements: {},
     courses: [],
-  });  const { styles, colors, currentTheme, setCurrentTheme, panicStyles } =
-      useTheme();
+  });
+  const { styles, colors, currentTheme, setCurrentTheme } = useTheme();
   const router = useRouter();
   const [avatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [reminderLoading, setReminderLoading] = useState(false);
+  const [reminderActive, setReminderActive] = useState(false);
+  const [previewMessage, setPreviewMessage] = useState(getRandomReminderMessage());
 
   function logout() {
     Sair();
@@ -51,6 +65,72 @@ const ProfileScreen = () => {
       fetchData();
     }, [])
   );
+
+  useEffect(() => {
+    let mounted = true;
+    const syncReminderStatus = async () => {
+      const active = await isReminderScheduled(REMINDER_IDENTIFIER);
+      if (mounted) {
+        setReminderActive(active);
+      }
+    };
+    syncReminderStatus();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const handleReminderError = (error: unknown) => {
+    const message = error instanceof Error ? error.message : "unknown";
+    if (message === "notifications-permission-denied") {
+      Alert.alert(
+        "Permissão necessária",
+        "Autorize o FastAid a enviar notificações para receber os lembretes."
+      );
+    } else {
+      Alert.alert(
+        "Notificações",
+        "Não foi possível atualizar o lembrete. Tente novamente."
+      );
+    }
+  };
+
+  const handleActivateReminder = async () => {
+    try {
+      setReminderLoading(true);
+      const message = previewMessage ?? getRandomReminderMessage();
+      await scheduleRepeatingReminder({
+        identifier: REMINDER_IDENTIFIER,
+        message,
+        data: { type: "lesson-reminder" },
+        intervalInMinutes: 1,
+      });
+      setReminderActive(true);
+      setPreviewMessage(getRandomReminderMessage());
+      Alert.alert(
+        "Lembrete ativo",
+        `${message.emoji} ${message.title} chega a cada 1 minuto.`
+      );
+    } catch (error) {
+      handleReminderError(error);
+    } finally {
+      setReminderLoading(false);
+    }
+  };
+
+  const handleDeactivateReminder = async () => {
+    try {
+      setReminderLoading(true);
+      await cancelReminder(REMINDER_IDENTIFIER);
+      setReminderActive(false);
+      setPreviewMessage(getRandomReminderMessage());
+      Alert.alert("Lembrete desativado", "As notificações de demonstração foram pausadas.");
+    } catch (error) {
+      handleReminderError(error);
+    } finally {
+      setReminderLoading(false);
+    }
+  };
 
   const handleAvatarSelect = async (avatar: string) => {
     const userId = auth.currentUser?.uid;
@@ -113,7 +193,57 @@ const ProfileScreen = () => {
                 >
                   <Text style={[styles.textoBotao, { color: colors.text }]}>TROCAR DE TEMA</Text>
                 </TouchableOpacity>
-            </View>
+              </View>
+              <View style={[styles.notificationCard, { marginTop: 20 }]}>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+                  <Ionicons
+                    name={reminderActive ? "notifications" : "notifications-outline"}
+                    size={22}
+                    color={colors.primary}
+                  />
+                  <Text style={styles.notificationTitle}>Lembretes FastAid</Text>
+                </View>
+                <Text style={styles.notificationDescription}>
+                  {reminderActive
+                    ? "Lembretes ativos: você receberá um alerta divertido a cada minuto."
+                    : "Ative para receber notificações locais de 1 em 1 minuto (modo demonstração)."}
+                </Text>
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => setPreviewMessage(getRandomReminderMessage())}
+                  style={{ marginBottom: 12 }}
+                >
+                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
+                    {previewMessage.emoji} {previewMessage.title} • {previewMessage.body}
+                  </Text>
+                  <Text style={{ color: colors.primary, fontSize: 12 }}>
+                    Toque para sortear outra mensagem criativa
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.notificationButton,
+                    reminderActive && styles.notificationButtonSecondary,
+                    reminderLoading && { opacity: 0.7 },
+                  ]}
+                  activeOpacity={0.85}
+                  onPress={reminderActive ? handleDeactivateReminder : handleActivateReminder}
+                  disabled={reminderLoading}
+                >
+                  {reminderLoading ? (
+                    <ActivityIndicator color={reminderActive ? colors.primary : "#fff"} />
+                  ) : (
+                    <Text
+                      style={[
+                        styles.notificationButtonText,
+                        reminderActive && styles.notificationButtonTextSecondary,
+                      ]}
+                    >
+                      {reminderActive ? "Desativar lembrete" : "Ativar lembrete demo"}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
         </ScrollView>
 
             <Modal
