@@ -15,16 +15,16 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { auth, getUserData, Sair, updateUserAvatar } from "../firebaseConfig.js";
-import { getUserAchievements } from "../services/progressService.js";
+import { auth, getUserData, Sair, updateUserAvatar } from "../firebaseConfig";
 import {
   cancelReminder,
   getRandomReminderMessage,
   isReminderScheduled,
   scheduleRepeatingReminder,
 } from "../services/notificationService";
+import { getUserAchievements } from "../services/progressService";
 
-const AVATAR_OPTIONS = ["??", "??", "??", "?????", "?????", "?????", "?????", "??", "??"];
+const AVATAR_OPTIONS = ["😀", "😎", "🤔", "😂", "🥳", "🤯", "😇", "😴", "🤩"];
 const REMINDER_IDENTIFIER = "lesson-demo-reminder";
 
 
@@ -293,7 +293,7 @@ const EstiloImagem = StyleSheet.create({
     marginHorizontal: 10,
   },
   grayscale: {
-    tintColor: "#238bccff",
+    opacity: 0.5,
   },
   
 });
