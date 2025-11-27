@@ -21,7 +21,7 @@ interface TabItemProps {
 
   isActive: boolean;
   onNavigate: (screen: string) => void;
-  styles: any; // Adiciona a prop para receber os estilos
+  styles: any; 
 }
 
 const TabItem = ({ item, isActive, onNavigate, styles }: TabItemProps) => {
@@ -30,7 +30,6 @@ const TabItem = ({ item, isActive, onNavigate, styles }: TabItemProps) => {
   const Icon = item.icon;
 
   useEffect(() => {
-    // Animação de "salto" para o ícone ativo
 
     Animated.spring(scaleAnim, {
       toValue: isActive ? 1.2 : 1,
@@ -72,17 +71,17 @@ const BarraNavegacao = ({ activeScreen, onNavigate }: BarraNavegacaoProps) => {
     { name: "PERFIL", icon: ProfileIcon, key: "TournamentScreen" },
   ];
 
-  const { styles } = useTheme(); // Pega os estilos diretamente do contexto global
+  const { styles } = useTheme(); 
 
   return (
     <View style={styles.tabBarContainer}>
       {menuItems.map((item) => (
         <TabItem
-          key={item.name} // ✅ Alterado de item.key para item.name para garantir unicidade
+          key={item.name} 
           item={item}
           isActive={activeScreen === item.key}
           onNavigate={onNavigate}
-          styles={styles} // Passa os estilos para o componente filho
+          styles={styles} 
         />
       ))}
     </View>

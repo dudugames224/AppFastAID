@@ -80,14 +80,14 @@ const RCP: React.FC = () => {
 
   const percent = ((index + 1) / total) * 100;
 
-  // Pulsação para compressões
+
   const scale = useRef(new Animated.Value(1)).current;
   const opacity = useRef(new Animated.Value(0.35)).current;
   const loopRef = useRef<Animated.CompositeAnimation | null>(null);
   const beatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const startPulse = () => {
-    const beatMs = 550; // ~110 bpm
+    const beatMs = 550; 
     loopRef.current = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -101,7 +101,7 @@ const RCP: React.FC = () => {
       ])
     );
     loopRef.current.start();
-    // Haptics a cada batida
+
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     beatTimer.current = setInterval(() => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -152,7 +152,7 @@ const RCP: React.FC = () => {
                 <Text style={s.bulletText}>{b}</Text>
               </View>
             ))}
-            {/* Imagens explicativas */}
+
             {i === 1 && (
               <View style={s.stepImgWrap}>
                 <Image source={require("../../assets/images/RCP1.png")} style={s.stepImg} />
@@ -285,7 +285,6 @@ const s = StyleSheet.create({
     padding: 16,
     gap: 12,
   },
-  // Cards pretos
   card: {
     backgroundColor: "#151515",
     borderRadius: 14,

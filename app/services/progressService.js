@@ -1,11 +1,10 @@
-import { doc, getDoc, setDoc } from "firebase/firestore"; // Mantém a importação direta
-import { auth, db } from "../firebaseConfig"; // Pega apenas o essencial da sua config
+import { doc, getDoc, setDoc } from "firebase/firestore"; 
+import { auth, db } from "../firebaseConfig"; 
 import { fetchCoursesMeta } from "./lessonService";
 
 /**
- * Retorna uma lista de IDs de módulos concluídos para um curso específico do usuário logado.
- * @param {string} courseId - O ID do curso.
- * @returns {Promise<string[]>} - Array com os IDs dos módulos concluídos.
+ * @param {string} courseId 
+ * @returns {Promise<string[]>}
  */
 export const getCompletedModules = async (courseId) => {
   const user = auth.currentUser;
@@ -18,10 +17,9 @@ export const getCompletedModules = async (courseId) => {
 };
 
 /**
- * Retorna uma lista de IDs de módulos concluídos para um curso e usuário específicos.
- * @param {string} userId - O ID do usuário.
- * @param {string} courseId - O ID do curso.
- * @returns {Promise<string[]>} - Array com os IDs dos módulos concluídos.
+ * @param {string} userId 
+ * @param {string} courseId 
+ * @returns {Promise<string[]>} 
  */
 export const getCompletedModulesForUser = async (userId, courseId) => {
   if (!userId || !courseId) return [];

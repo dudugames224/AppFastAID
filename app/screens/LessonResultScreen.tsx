@@ -11,10 +11,6 @@ import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 import { fetchCourseModules, RemoteModule } from "../services/lessonService";
 
-
-
-
-// Simples substituto visual do Character
 const CharacterImg = ({ size = 180 }: { size?: number }) => (
   <Image
     source={require("../../assets/images/band_feliz.png")}
@@ -169,12 +165,12 @@ const LessonResultScreen = ({
         const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
         if (diffDays === 1) {
-          newStreak++; // Continua a ofensiva
+          newStreak++; 
         } else if (diffDays > 1) {
-          newStreak = 1; // Reinicia a ofensiva
+          newStreak = 1; 
         }
       } else {
-        newStreak = 1; // Começa a primeira ofensiva
+        newStreak = 1;
       }
 
       await setDoc(userDocRef, { xp: newXp, ofensiva: newStreak, lastLessonDate: today.toISOString() }, { merge: true });

@@ -42,7 +42,7 @@ export const getUserData = async () => {
       return userDoc.data();
     }
   }
-  return null; // Retorna nulo se não houver usuário ou documento
+  return null; 
 
 };
 

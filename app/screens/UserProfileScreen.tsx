@@ -35,14 +35,13 @@ const UserProfileScreen = () => {
 
     const fetchData = async () => {
       setLoading(true);
-      // Buscar dados do usuário
+
       const userDocRef = doc(db, "users", userId);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         setUserData(userDoc.data());
       }
 
-      // Buscar conquistas
       const achievements = await getUserAchievements(userId);
       setAchievementData(achievements);
 

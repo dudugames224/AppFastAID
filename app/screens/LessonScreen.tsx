@@ -21,8 +21,6 @@ import {
 import { markModuleCompleted } from "../services/progressService";
 import { LessonCard } from "../types/lesson";
 
-
-// Demo: lição simples só para visual
 const demoLesson: LessonCard[] = [
   {
     type: "info",
@@ -129,7 +127,6 @@ const LessonScreen = () => {
         } else if (paramsModuleId) {
           deck = await fetchModuleLessons(courseId, paramsModuleId as string);
         }
-        // Mapeia os nomes do feedback para corresponder ao tipo LessonCard
         const mappedDeck = deck.map(card => ({
           ...card,
           correctFeedback: card.FeedbackCorreto || card.correctFeedback,
@@ -151,8 +148,8 @@ const LessonScreen = () => {
         setIsLoadingLessons(false);
       }
     };
-    loadInitialData(); // Carrega as vidas do usuário
-    loadLessons(); // Carrega as lições
+    loadInitialData(); 
+    loadLessons(); 
   }, [courseId, paramsModuleId, isPracticeMode]);
 
   const exitTarget = isPracticeMode

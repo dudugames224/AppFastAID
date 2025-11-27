@@ -15,7 +15,6 @@ import { Platform } from "react-native";
 const STORAGE_PREFIX = "fastaid:scheduled-notification:";
 const REMINDER_CHANNEL_ID = "fastaid-reminders";
 
-// Use deep imports to avoid loading push-token side effects that are blocked in Expo Go.
 setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,

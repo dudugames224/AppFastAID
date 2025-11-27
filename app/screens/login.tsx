@@ -8,7 +8,7 @@ import { useTheme } from "../context/ThemeContext";
 import { auth } from "../firebaseConfig.js";
 
 export default function LoginScreen() {
-  const { styles, panicStyles } = useTheme(); // Pega os estilos diretamente do contexto global
+  const { styles, panicStyles } = useTheme(); 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [user, setUser] = useState<User | null>(null);
@@ -94,7 +94,7 @@ export default function LoginScreen() {
               activeOpacity={0.9}
               onPress={() => {
                 setPanicVisible(false);
-                router.push("/screens/RCP"); // Caminho absoluto para a tela RCP
+                router.push("/screens/RCP");
               }}
             >
               <View style={panicStyles.optionIconCircle}>

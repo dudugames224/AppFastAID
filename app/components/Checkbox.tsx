@@ -32,21 +32,21 @@ const Checkbox: React.FC<CheckboxProps> = ({ label, value, onValueChange, style 
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: 'row', // Alinha a caixa e o texto lado a lado
-    alignItems: 'center', // Centraliza verticalmente
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#238bccff', // Cor da borda
+    borderColor: '#238bccff', 
     borderRadius: 7,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 10, // Espaço entre a caixa e o texto
+    marginRight: 10, 
   },
   checked: {
-    backgroundColor: '#238bccff', // Cor de fundo quando a caixa está marcada
+    backgroundColor: '#238bccff', 
   },
   label: {
     color: '#aaa',
