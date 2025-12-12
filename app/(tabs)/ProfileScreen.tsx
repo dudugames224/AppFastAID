@@ -194,56 +194,6 @@ const ProfileScreen = () => {
                   <Text style={[styles.textoBotao, { color: colors.text }]}>TROCAR DE TEMA</Text>
                 </TouchableOpacity>
               </View>
-              <View style={[styles.notificationCard, { marginTop: 20 }]}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-                  <Ionicons
-                    name={reminderActive ? "notifications" : "notifications-outline"}
-                    size={22}
-                    color={colors.primary}
-                  />
-                  <Text style={styles.notificationTitle}>Lembretes FastAid</Text>
-                </View>
-                <Text style={styles.notificationDescription}>
-                  {reminderActive
-                    ? "Lembretes ativos: você receberá um alerta divertido a cada minuto."
-                    : "Ative para receber notificações locais de 1 em 1 minuto (modo demonstração)."}
-                </Text>
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => setPreviewMessage(getRandomReminderMessage())}
-                  style={{ marginBottom: 12 }}
-                >
-                  <Text style={{ color: colors.primary, fontWeight: "600" }}>
-                    {previewMessage.emoji} {previewMessage.title} • {previewMessage.body}
-                  </Text>
-                  <Text style={{ color: colors.primary, fontSize: 12 }}>
-                    Toque para sortear outra mensagem criativa
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[
-                    styles.notificationButton,
-                    reminderActive && styles.notificationButtonSecondary,
-                    reminderLoading && { opacity: 0.7 },
-                  ]}
-                  activeOpacity={0.85}
-                  onPress={reminderActive ? handleDeactivateReminder : handleActivateReminder}
-                  disabled={reminderLoading}
-                >
-                  {reminderLoading ? (
-                    <ActivityIndicator color={reminderActive ? colors.primary : "#fff"} />
-                  ) : (
-                    <Text
-                      style={[
-                        styles.notificationButtonText,
-                        reminderActive && styles.notificationButtonTextSecondary,
-                      ]}
-                    >
-                      {reminderActive ? "Desativar lembrete" : "Ativar lembrete demo"}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-              </View>
         </ScrollView>
 
             <Modal

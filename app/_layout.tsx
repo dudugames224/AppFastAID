@@ -1,7 +1,22 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
+import { AppState } from "react-native";
+import { refreshInactivityReminder } from "./services/notificationService";
 import { ThemeProvider } from "./context/ThemeContext";
 
 export default function RootLayout() {
+  useEffect(() => {
+    refreshInactivityReminder().catch(() => {});
+
+    const subscription = AppState.addEventListener("change", (status) => {
+      if (status === "active") {
+        refreshInactivityReminder().catch(() => {});
+      }
+    });
+
+    return () => subscription.remove();
+  }, []);
+
   return (
 
     <ThemeProvider>

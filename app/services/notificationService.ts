@@ -14,6 +14,9 @@ import { Platform } from "react-native";
 
 const STORAGE_PREFIX = "fastaid:scheduled-notification:";
 const REMINDER_CHANNEL_ID = "fastaid-reminders";
+const INACTIVITY_REMINDER_IDENTIFIER = "daily-inactivity-reminder";
+const LAST_ACTIVITY_STORAGE_KEY = `${STORAGE_PREFIX}last-activity`;
+const INACTIVITY_INTERVAL_IN_HOURS = 24;
 
 setNotificationHandler({
   handleNotification: async () => ({
@@ -164,4 +167,66 @@ export const cancelReminder = async (identifier: string): Promise<void> => {
   }
   await cancelScheduledNotificationAsync(storedId).catch(() => {});
   await AsyncStorage.removeItem(storageKey);
+};
+
+type InactivityReminderMessage = {
+  title: string;
+  body: string;
+};
+
+const INACTIVITY_MESSAGES: InactivityReminderMessage[] = [
+  {
+    title: "Ofensiva em risco",
+    body: "Voce ainda nao entrou hoje. Abra o FastAid e mantenha o ritmo.",
+  },
+  {
+    title: "Chamada do socorro",
+    body: "Faz um dia sem treino. Revise um modulo rapido e ganhe XP agora.",
+  },
+  {
+    title: "Seu streak precisa de voce",
+    body: "Volte para o FastAid hoje e nao deixe a ofensiva cair.",
+  },
+];
+
+const getRandomInactivityMessage = (): InactivityReminderMessage => {
+  const index = Math.floor(Math.random() * INACTIVITY_MESSAGES.length);
+  return INACTIVITY_MESSAGES[index];
+};
+
+const updateLastActivityTimestamp = async () => {
+  await AsyncStorage.setItem(LAST_ACTIVITY_STORAGE_KEY, Date.now().toString());
+};
+
+export const refreshInactivityReminder = async (): Promise<void> => {
+  await updateLastActivityTimestamp();
+
+  const hasPermission = await ensureNotificationPermissions();
+  if (!hasPermission) {
+    return;
+  }
+
+  const storageKey = getStorageKey(INACTIVITY_REMINDER_IDENTIFIER);
+  const storedId = await AsyncStorage.getItem(storageKey);
+  if (storedId) {
+    await cancelScheduledNotificationAsync(storedId).catch(() => {});
+  }
+
+  const reminderMessage = getRandomInactivityMessage();
+
+  const newId = await scheduleNotificationAsync({
+    content: {
+      title: reminderMessage.title,
+      body: reminderMessage.body,
+      sound: true,
+      data: { type: "inactivity-reminder" },
+    },
+    trigger: {
+      seconds: INACTIVITY_INTERVAL_IN_HOURS * 60 * 60,
+      repeats: true,
+      channelId: Platform.OS === "android" ? REMINDER_CHANNEL_ID : undefined,
+    },
+  });
+
+  await AsyncStorage.setItem(storageKey, newId);
 };

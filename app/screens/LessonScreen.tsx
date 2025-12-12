@@ -20,6 +20,7 @@ import {
 } from "../services/lessonService";
 import { markModuleCompleted } from "../services/progressService";
 import { LessonCard } from "../types/lesson";
+import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
 
 const demoLesson: LessonCard[] = [
   {
@@ -85,7 +86,7 @@ const LessonScreen = () => {
   const courseId = (paramsCourseId as string) || fallbackCourseId;
 
   const [userXP, setUserXP] = useState(1200);
-  const isPremium = false;
+  const [isPremium, setIsPremium] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [questions, setQuestions] = useState<LessonCard[]>(
@@ -96,6 +97,7 @@ const LessonScreen = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
   const [lives, setLives] = useState(5);
+  const [lastLifeUpdate, setLastLifeUpdate] = useState<number | null>(null);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -105,7 +107,28 @@ const LessonScreen = () => {
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          setLives(userData.lives ?? 5);
+          const initialLives =
+            typeof (userData as any).lives === "number"
+              ? (userData as any).lives
+              : typeof (userData as any).vidas === "number"
+              ? (userData as any).vidas
+              : 5;
+          const regenerated = applyLifeRegeneration({
+            lives: initialLives,
+            lastLifeUpdate: (userData as any).lastLifeUpdate ?? null,
+          });
+
+          setLives(regenerated.lives);
+          setLastLifeUpdate(regenerated.lastLifeUpdate);
+
+          if (!Boolean((userData as any).isPremium) && regenerated.lives !== initialLives) {
+            await updateDoc(userDocRef, {
+              lives: regenerated.lives,
+              vidas: regenerated.lives,
+              lastLifeUpdate: regenerated.lastLifeUpdate,
+            });
+          }
+          setIsPremium(Boolean((userData as any).isPremium));
         }
       }
     };
@@ -182,7 +205,12 @@ const LessonScreen = () => {
       const newLives = Math.max(0, lives - 1);
       setLives(newLives);
       const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, { lives: newLives });
+      await updateDoc(userDocRef, {
+        lives: newLives,
+        vidas: newLives,
+        lastLifeUpdate: startLifeCountdown(),
+      });
+      setLastLifeUpdate(Date.now());
     }
   };
 
