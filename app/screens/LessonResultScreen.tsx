@@ -1,14 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import {
-  Animated,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
-import { Video, ResizeMode } from "expo-av";
+import { Animated, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 import { fetchCourseModules, RemoteModule } from "../services/lessonService";
@@ -47,12 +39,6 @@ const LessonResultScreen = ({
 
   const [nextModule, setNextModule] = useState<RemoteModule | null>(null);
   const [currentUserData, setCurrentUserData] = useState<any>(null);
-  const [safiraReward] = useState(() => Math.floor(Math.random() * 21) + 10);
-  const [chestOpened, setChestOpened] = useState(false);
-  const [rewardGranted, setRewardGranted] = useState(false);
-  const [videoFinished, setVideoFinished] = useState(false);
-  const chestPulse = useRef(new Animated.Value(0)).current;
-  const chestVideoRef = useRef<Video | null>(null);
 
   const parsedXp = xp !== undefined ? Number(xp) : undefined;
   const computedXp =
@@ -83,7 +69,7 @@ const LessonResultScreen = ({
     subtitle: {
       fontSize: 18,
       color: "#A9A9A9",
-      marginBottom: 20,
+      marginBottom: 30,
       textAlign: "center",
     },
     button: {
@@ -96,46 +82,7 @@ const LessonResultScreen = ({
     buttonText: { color: colors.text, fontSize: 18, fontWeight: "bold" },
     backButton: { backgroundColor: "transparent", borderWidth: 2, borderColor: colors.text },
     backButtonText: { color: "#5D9CFB" },
-    chestCard: {
-      width: "100%",
-      marginTop: 8,
-      padding: 16,
-      borderRadius: 14,
-      borderWidth: 1,
-      borderColor: colors.border,
-      backgroundColor: colors.card,
-      alignItems: "center",
-      gap: 8,
-    },
-    chestTitle: { fontSize: 18, fontWeight: "700", color: colors.text },
-    chestSubtitle: { color: colors.text, opacity: 0.8, textAlign: "center" },
-    rewardText: { fontSize: 16, fontWeight: "700", color: colors.primary },
-    chestButton: {
-      backgroundColor: colors.primary,
-      paddingVertical: 12,
-      paddingHorizontal: 20,
-      borderRadius: 12,
-      marginTop: 6,
-    },
-    chestButtonText: { color: "#fff", fontWeight: "700", fontSize: 16 },
-    chestPulseBox: {
-      width: 160,
-      height: 120,
-      borderRadius: 16,
-      alignItems: "center",
-      justifyContent: "center",
-      backgroundColor: "#000",
-      padding: 8,
-    },
-    chestVideo: {
-      width: 160,
-      height: 120,
-      borderRadius: 12,
-      overflow: "hidden",
-      backgroundColor: "#000",
-    },
   });
-
 
   useEffect(() => {
     Animated.parallel([
@@ -150,13 +97,14 @@ const LessonResultScreen = ({
         useNativeDriver: false,
       }),
     ]).start();
-  }, []);
+  }, [fadeAnim, scaleAnim]);
 
   const paddingTop = (safeAreaTop || 0) + 20;
   const paddingBottom = (safeAreaBottom || 0) + 20;
   const exitTarget = computedIsPractice
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";
+
   useEffect(() => {
     const loadNextModule = async () => {
       if (computedIsPractice || !courseId || !moduleId) {
@@ -188,49 +136,41 @@ const LessonResultScreen = ({
     fetchUserData();
   }, []);
 
-  const showNextButton = Boolean(
-    onNext || (!computedIsPractice && nextModule)
-  );
-
-  const grantSafirasIfNeeded = async () => {
-    if (rewardGranted) return;
-    const user = auth.currentUser;
-    if (user && currentUserData) {
-      const userDocRef = doc(db, "users", user.uid);
-      const currentSafiras = typeof currentUserData.safiras === "number" ? currentUserData.safiras : 0;
-      await setDoc(
-        userDocRef,
-        { safiras: currentSafiras + safiraReward },
-        { merge: true }
-      );
-      setRewardGranted(true);
-    }
-  };
+  const showNextButton = Boolean(onNext || (!computedIsPractice && nextModule));
 
   const updateXpAndExit = async () => {
     const user = auth.currentUser;
     if (user && currentUserData) {
       const userDocRef = doc(db, "users", user.uid);
-      const doubleXpCharges = typeof currentUserData.doubleXpCharges === "number" ? currentUserData.doubleXpCharges : 0;
+      const doubleXpCharges =
+        typeof currentUserData.doubleXpCharges === "number"
+          ? currentUserData.doubleXpCharges
+          : 0;
       const xpMultiplier = doubleXpCharges > 0 ? 2 : 1;
       const nextCharges = doubleXpCharges > 0 ? doubleXpCharges - 1 : 0;
       const rewardedXp = computedXp * xpMultiplier;
       const newXp = (currentUserData.xp || 0) + rewardedXp;
 
       const today = new Date();
-      const lastLessonDate = currentUserData.lastLessonDate ? new Date(currentUserData.lastLessonDate) : null;
+      const lastLessonDate = currentUserData.lastLessonDate
+        ? new Date(currentUserData.lastLessonDate)
+        : null;
       let newStreak = currentUserData.ofensiva || 0;
 
       if (lastLessonDate) {
         const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const lastLessonStart = new Date(lastLessonDate.getFullYear(), lastLessonDate.getMonth(), lastLessonDate.getDate());
+        const lastLessonStart = new Date(
+          lastLessonDate.getFullYear(),
+          lastLessonDate.getMonth(),
+          lastLessonDate.getDate()
+        );
         const diffTime = todayStart.getTime() - lastLessonStart.getTime();
         const diffDays = diffTime / (1000 * 60 * 60 * 24);
 
         if (diffDays === 1) {
-          newStreak++; 
+          newStreak++;
         } else if (diffDays > 1) {
-          newStreak = 1; 
+          newStreak = 1;
         }
       } else {
         newStreak = 1;
@@ -246,7 +186,6 @@ const LessonResultScreen = ({
         },
         { merge: true }
       );
-      await grantSafirasIfNeeded();
     }
   };
 
@@ -275,18 +214,6 @@ const LessonResultScreen = ({
     router.replace(exitTarget);
   };
 
-  const handleOpenChest = async () => {
-    if (!chestOpened) {
-      setChestOpened(true);
-      Animated.sequence([
-        Animated.spring(chestPulse, { toValue: 1, useNativeDriver: true, speed: 6, bounciness: 12 }),
-        Animated.spring(chestPulse, { toValue: 0, useNativeDriver: true, speed: 6, bounciness: 6 }),
-      ]).start();
-    }
-    setVideoFinished(false);
-    await grantSafirasIfNeeded();
-  };
-
   return (
     <Animated.View
       style={[
@@ -304,64 +231,10 @@ const LessonResultScreen = ({
         {computedIsPractice ? "Pratica Concluida!" : "Modulo Concluido!"}
       </Text>
       <Text style={styles.subtitle}>
-        Voce ganhou {computedXp} XP{currentUserData?.doubleXpCharges > 0 ? " (XP x2 ativo)" : ""} e esta mais perto de se tornar um heroi!
+        Voce ganhou {computedXp} XP
+        {currentUserData?.doubleXpCharges > 0 ? " (XP x2 ativo)" : ""} e esta mais
+        perto de se tornar um heroi!
       </Text>
-
-      {!computedIsPractice && (
-        <View style={styles.chestCard}>
-          <Animated.View
-            style={[
-              styles.chestPulseBox,
-              {
-                transform: [
-                  {
-                    scale: chestPulse.interpolate({
-                      inputRange: [0, 1],
-                      outputRange: [1, 1.08],
-                    }),
-                  },
-                ],
-              },
-            ]}
-          >
-            {!videoFinished ? (
-              <Video
-                ref={chestVideoRef}
-                source={require("../../assets/animations/bau_recodificado.mp4")}
-                style={styles.chestVideo}
-                resizeMode={ResizeMode.CONTAIN}
-                isLooping={false}
-                shouldPlay={chestOpened}
-                useNativeControls={false}
-                onPlaybackStatusUpdate={(status) => {
-                  if ("didJustFinish" in status && status.didJustFinish) {
-                    setVideoFinished(true);
-                  }
-                }}
-              />
-            ) : (
-              <Image
-                source={require("../../assets/images/torneios.png")}
-                style={{ width: 120, height: 120, resizeMode: "contain" }}
-              />
-            )}
-          </Animated.View>
-          <Text style={styles.chestTitle}>Bau de Safiras</Text>
-          {rewardGranted && (
-            <Text style={styles.rewardText}>Safiras adicionadas: +{safiraReward}</Text>
-          )}
-          <TouchableOpacity
-            style={[styles.chestButton, chestOpened && { opacity: 0.6 }]}
-            activeOpacity={0.9}
-            onPress={handleOpenChest}
-            disabled={chestOpened}
-          >
-            <Text style={styles.chestButtonText}>
-              {rewardGranted ? "Safiras coletadas" : "Abrir bau"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      )}
 
       {showNextButton && (
         <TouchableOpacity
@@ -378,7 +251,6 @@ const LessonResultScreen = ({
         </Text>
       </TouchableOpacity>
     </Animated.View>
-    
   );
 };
 

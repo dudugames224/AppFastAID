@@ -228,8 +228,9 @@ const LessonScreen = () => {
     if (!isPracticeMode && paramsModuleId) {
       await markModuleCompleted(courseId, paramsModuleId as string);
     }
+    const targetPath = isPracticeMode ? "/screens/LessonResultScreen" : "/screens/ChestRewardScreen";
     router.replace({
-      pathname: "/screens/LessonResultScreen",
+      pathname: targetPath,
       params: {
         courseId,
         moduleId: (paramsModuleId as string) || "",
