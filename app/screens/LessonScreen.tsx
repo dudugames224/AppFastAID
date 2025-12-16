@@ -226,7 +226,8 @@ const LessonScreen = () => {
 
   const goToResults = async () => {
     if (!isPracticeMode && paramsModuleId) {
-      await markModuleCompleted(courseId, paramsModuleId as string);
+      // Evita travar a navegação no Android aguardando persistência.
+      void markModuleCompleted(courseId, paramsModuleId as string).catch(() => {});
     }
     const targetPath = isPracticeMode ? "/screens/LessonResultScreen" : "/screens/ChestRewardScreen";
     router.replace({

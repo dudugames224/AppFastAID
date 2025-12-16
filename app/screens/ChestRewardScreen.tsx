@@ -58,7 +58,7 @@ const ChestRewardScreen = () => {
   ]).current;
   const frameSwapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const chestIdleLoop = useRef<Animated.CompositeAnimation | null>(null);
-  const openFrameTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const continueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const arrowAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
 
   const rarityLabel: Record<Rarity, string> = {
@@ -208,9 +208,9 @@ const ChestRewardScreen = () => {
       chestIdleLoop.current.stop();
       chestIdleLoop.current = null;
     }
-    if (openFrameTimeout.current) {
-      clearTimeout(openFrameTimeout.current);
-      openFrameTimeout.current = null;
+    if (continueTimer.current) {
+      clearTimeout(continueTimer.current);
+      continueTimer.current = null;
     }
   };
 
@@ -357,11 +357,6 @@ const ChestRewardScreen = () => {
       setChestFrame("open");
       frameSwapTimer.current = null;
     }, 220);
-    if (openFrameTimeout.current) {
-      clearTimeout(openFrameTimeout.current);
-      openFrameTimeout.current = null;
-    }
-    openFrameTimeout.current = setTimeout(() => setChestFrame("openAlt"), 5000);
 
     Animated.sequence([
       Animated.sequence([
@@ -436,15 +431,22 @@ const ChestRewardScreen = () => {
   };
 
   const handleContinue = () => {
-    router.replace({
-      pathname: "/screens/LessonResultScreen",
-      params: {
-        courseId: (courseId as string) || "",
-        moduleId: (moduleId as string) || "",
-        mode,
-        xp,
-      },
-    });
+    if (continueTimer.current) {
+      clearTimeout(continueTimer.current);
+      continueTimer.current = null;
+    }
+    setChestFrame("openAlt");
+    continueTimer.current = setTimeout(() => {
+      router.replace({
+        pathname: "/screens/LessonResultScreen",
+        params: {
+          courseId: (courseId as string) || "",
+          moduleId: (moduleId as string) || "",
+          mode,
+          xp,
+        },
+      });
+    }, 450);
   };
 
   const startIdleAnimation = (frame: ChestFrame) => {
