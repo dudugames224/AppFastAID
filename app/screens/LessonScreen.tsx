@@ -98,6 +98,11 @@ const LessonScreen = () => {
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
   const [lives, setLives] = useState(5);
   const [lastLifeUpdate, setLastLifeUpdate] = useState<number | null>(null);
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  useEffect(() => {
+    setIsNavigating(false);
+  }, [currentStep]);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -199,29 +204,29 @@ const LessonScreen = () => {
     }
   }, [showFeedback, currentStep, isInfoCard]);
 
-  const decrementLive = async () => {
+  const decrementLive = () => {
     const user = auth.currentUser;
     if (user && !isPremium) {
       const newLives = Math.max(0, lives - 1);
       setLives(newLives);
       const userDocRef = doc(db, "users", user.uid);
-      await updateDoc(userDocRef, {
+      void updateDoc(userDocRef, {
         lives: newLives,
         vidas: newLives,
         lastLifeUpdate: startLifeCountdown(),
-      });
+      }).catch(error => console.error("Failed to update lives:", error));
       setLastLifeUpdate(Date.now());
     }
   };
 
-  const handleOptionSelect = async (index: number) => {
+  const handleOptionSelect = (index: number) => {
     if (showFeedback || !currentCard || currentCard.answer === undefined)
       return;
     setSelectedOption(index);
     const correct = index === currentCard.answer;
     setIsCorrect(correct);
     setShowFeedback(true);
-    if (!correct) await decrementLive();
+    if (!correct) void decrementLive();
   };
 
   const goToResults = async () => {
@@ -242,6 +247,9 @@ const LessonScreen = () => {
   };
 
   const handleNext = async () => {
+    if (isNavigating) return;
+    setIsNavigating(true);
+
     if (currentStep >= questions.length - 1) {
       setShowFeedback(false);
       setSelectedOption(null);
@@ -371,7 +379,11 @@ const LessonScreen = () => {
           ]}
         >
           {isInfoCard && !showFeedback && (
-            <TouchableOpacity style={lessonstyles.continueButton} onPress={handleNext}>
+            <TouchableOpacity
+              style={lessonstyles.continueButton}
+              onPress={handleNext}
+              disabled={isNavigating}
+            >
               <Text style={lessonstyles.continueButtonText}>Continuar</Text>
             </TouchableOpacity>
           )}
@@ -396,6 +408,7 @@ const LessonScreen = () => {
                   { backgroundColor: isCorrect ? "#58CC02" : "#FF4B4B" },
                 ]}
                 onPress={handleNext}
+                disabled={isNavigating}
               >
                 <Text style={lessonstyles.continueButtonText}>
                   {currentStep >= questions.length - 1
