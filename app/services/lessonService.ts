@@ -124,6 +124,7 @@ export const fetchCourseModules = async (
         lessons: normalizeLessonPayload(data.lessons),
       };
     });
+
     return modules.sort((a, b) => {
       const orderA = a.order ?? a.id;
       const orderB = b.order ?? b.id;

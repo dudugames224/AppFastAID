@@ -2,21 +2,23 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Svg, { Path } from "react-native-svg";
-import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 
 type ChestFrame = "closed" | "open" | "openAlt";
 type Rarity = "normal" | "rare" | "epic" | "legendary";
 
 const ChestRewardScreen = () => {
-  const { courseId, moduleId, mode, xp } = useLocalSearchParams<{
+  const { courseId, moduleId, mode, xp, accuracy, mistakes, answered, durationSeconds } = useLocalSearchParams<{
     courseId?: string;
     moduleId?: string;
     mode?: string;
     xp?: string;
+    accuracy?: string;
+    mistakes?: string;
+    answered?: string;
+    durationSeconds?: string;
   }>();
   const router = useRouter();
-  const { colors } = useTheme();
 
   const [currentUserData, setCurrentUserData] = useState<any>(null);
   const [{ safiraReward, rarity }] = useState(() => {
@@ -220,10 +222,19 @@ const ChestRewardScreen = () => {
     if (mode === "practice") {
       router.replace({
         pathname: "/screens/LessonResultScreen",
-        params: { courseId: courseId as string, moduleId: moduleId as string, mode, xp },
+        params: {
+          courseId: courseId as string,
+          moduleId: moduleId as string,
+          mode,
+          xp,
+          accuracy,
+          mistakes,
+          answered,
+          durationSeconds,
+        },
       });
     }
-  }, [mode, router, courseId, moduleId, xp]);
+  }, [mode, router, courseId, moduleId, xp, accuracy, mistakes, answered, durationSeconds]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -444,6 +455,10 @@ const ChestRewardScreen = () => {
           moduleId: (moduleId as string) || "",
           mode,
           xp,
+          accuracy,
+          mistakes,
+          answered,
+          durationSeconds,
         },
       });
     }, 450);

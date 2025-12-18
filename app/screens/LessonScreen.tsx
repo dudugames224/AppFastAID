@@ -14,6 +14,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { HeartIcon, XIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   fetchCourseModules,
   fetchModuleLessons,
@@ -76,10 +77,12 @@ const LessonScreen = () => {
     courseId: paramsCourseId,
     moduleId: paramsModuleId,
     mode,
+    introModuleId,
   } = useLocalSearchParams<{
     courseId?: string;
     moduleId?: string;
     mode?: string;
+    introModuleId?: string;
   }>();
 
   const isPracticeMode = mode === "practice";
@@ -92,6 +95,12 @@ const LessonScreen = () => {
   const [questions, setQuestions] = useState<LessonCard[]>(
     getShuffledLesson(demoLesson)
   );
+  const [correctCount, setCorrectCount] = useState(0);
+  const [answeredCount, setAnsweredCount] = useState(0);
+  const [lessonStartTime, setLessonStartTime] = useState<number | null>(null);
+  const correctCountRef = useRef(0);
+  const answeredCountRef = useRef(0);
+  const lessonStartTimeRef = useRef<number | null>(null);
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
@@ -164,6 +173,12 @@ const LessonScreen = () => {
         const finalDeck = mappedDeck.length ? mappedDeck : demoLesson;
 
         const randomizedDeck = shuffleLessonCards(finalDeck);
+        correctCountRef.current = 0;
+        answeredCountRef.current = 0;
+        lessonStartTimeRef.current = Date.now();
+        setCorrectCount(0);
+        setAnsweredCount(0);
+        setLessonStartTime(lessonStartTimeRef.current);
         setQuestions(getShuffledLesson(randomizedDeck));
         setCurrentStep(0);
         setSelectedOption(null);
@@ -226,15 +241,37 @@ const LessonScreen = () => {
     const correct = index === currentCard.answer;
     setIsCorrect(correct);
     setShowFeedback(true);
+    answeredCountRef.current += 1;
+    if (correct) correctCountRef.current += 1;
+    setAnsweredCount((value) => value + 1);
+    if (correct) setCorrectCount((value) => value + 1);
     if (!correct) void decrementLive();
   };
 
+
   const goToResults = async () => {
     if (!isPracticeMode && paramsModuleId) {
-      // Evita travar a navegação no Android aguardando persistência.
+      // Evita travar a navega??o no Android aguardando persist?ncia.
       void markModuleCompleted(courseId, paramsModuleId as string).catch(() => {});
+      if (introModuleId) {
+        void markModuleCompleted(courseId, introModuleId as string).catch(() => {});
+        try {
+          const userId = auth.currentUser?.uid ?? "anon";
+          await AsyncStorage.removeItem(`fastaid:rcpIntroPart1:${userId}`);
+        } catch {}
+      }
     }
     const targetPath = isPracticeMode ? "/screens/LessonResultScreen" : "/screens/ChestRewardScreen";
+    const finalAnswered = answeredCountRef.current;
+    const finalCorrect = correctCountRef.current;
+    const startTime = lessonStartTimeRef.current ?? lessonStartTime;
+    const accuracy =
+      finalAnswered > 0 ? Math.round((finalCorrect / finalAnswered) * 100) : 100;
+    const mistakes = Math.max(0, finalAnswered - finalCorrect);
+    const durationSeconds =
+      startTime !== null
+        ? Math.max(0, Math.round((Date.now() - startTime) / 1000))
+        : 0;
     router.replace({
       pathname: targetPath,
       params: {
@@ -242,6 +279,10 @@ const LessonScreen = () => {
         moduleId: (paramsModuleId as string) || "",
         mode: isPracticeMode ? "practice" : "course",
         xp: String(xpReward),
+        accuracy: String(accuracy),
+        mistakes: String(mistakes),
+        answered: String(finalAnswered),
+        durationSeconds: String(durationSeconds),
       },
     });
   };

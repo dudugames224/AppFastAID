@@ -10,11 +10,15 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Animated,
+  Easing,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Circle } from "react-native-svg";
 import { CircleIcon, FlaskIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
-import { getUserData } from "../firebaseConfig";
+import { auth, getUserData } from "../firebaseConfig";
 import {
   fetchCourseModules,
   fetchCoursesMeta,
@@ -37,12 +41,14 @@ const getModuleIcon = (identifier: unknown) => {
 };
 
 const CourseScreen: React.FC = () => {
+  const LAST_COURSE_KEY = "fastaid:lastCourseId";
   const [courses, setCourses] = useState<RemoteCourseMeta[]>([]);
   const [modules, setModules] = useState<RemoteModule[]>([]);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState<string[]>([]);
+  const [rcpIntroHalf, setRcpIntroHalf] = useState(false);
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
   const [courseModalVisible, setCourseModalVisible] = useState(false);
@@ -79,7 +85,13 @@ const CourseScreen: React.FC = () => {
       setCoursesLoading(true);
       const data = await fetchCoursesMeta();
       setCourses(data);
-      setSelectedCourseId((prev) => prev ?? data[0]?.id ?? null);
+      try {
+        const stored = await AsyncStorage.getItem(LAST_COURSE_KEY);
+        const validStored = stored && data.find((c) => c.id === stored);
+        setSelectedCourseId((prev) => prev ?? validStored?.id ?? data[0]?.id ?? null);
+      } catch {
+        setSelectedCourseId((prev) => prev ?? data[0]?.id ?? null);
+      }
       setCoursesLoading(false);
     };
     checkStreak();
@@ -98,6 +110,13 @@ const CourseScreen: React.FC = () => {
       setModules(data);
       const progress = await getCompletedModules(selectedCourseId);
       setCourseProgress(progress);
+      try {
+        const userId = auth.currentUser?.uid ?? "anon";
+        const halfFlag = await AsyncStorage.getItem(`fastaid:rcpIntroPart1:${userId}`);
+        setRcpIntroHalf(halfFlag === "1" && !progress.includes("rcp-intro"));
+      } catch {
+        setRcpIntroHalf(false);
+      }
       setModulesLoading(false);
     };
     loadModules();
@@ -109,15 +128,42 @@ const CourseScreen: React.FC = () => {
         if (!selectedCourseId) return;
         const progress = await getCompletedModules(selectedCourseId);
         setCourseProgress(progress);
+        if (progress.includes("rcp-intro")) {
+          try {
+            const userId = auth.currentUser?.uid ?? "anon";
+            await AsyncStorage.removeItem(`fastaid:rcpIntroPart1:${userId}`);
+            setRcpIntroHalf(false);
+          } catch {}
+        }
       };
       syncProgress();
     }, [selectedCourseId])
   );
 
   const courseOptions = useMemo(() => courses, [courses]);
+  const isFirstAidCourse = useMemo(
+    () =>
+      selectedCourseId === "primeirosSocorros" ||
+      selectedCourseId === "firstAid" ||
+      selectedCourseId === "queimaduras" ||
+      selectedCourseId === "burns",
+    [selectedCourseId]
+  );
 
-  function startModule(moduleId: string) {
+  function startModule(moduleId: string, index: number) {
     if (!selectedCourseId) return;
+    void AsyncStorage.setItem(LAST_COURSE_KEY, selectedCourseId).catch(() => {});
+    if (isFirstAidCourse && index === 0) {
+      router.push({
+        pathname: "/screens/RCPIntroScreen",
+        params: {
+          courseId: selectedCourseId,
+          moduleId,
+          nextModuleId: moduleId,
+        },
+      });
+      return;
+    }
     router.push({
       pathname: "/screens/LessonScreen",
       params: { courseId: selectedCourseId, moduleId },
@@ -126,6 +172,7 @@ const CourseScreen: React.FC = () => {
 
   const handleCourseSelect = (courseId: string) => {
     setSelectedCourseId(courseId);
+    void AsyncStorage.setItem(LAST_COURSE_KEY, courseId).catch(() => {});
     setCourseModalVisible(false);
   };
 
@@ -187,39 +234,21 @@ const CourseScreen: React.FC = () => {
               const labelColor = locked ? "#777" : colors.text;
               const circleColor = locked ? colors.circle : m.color || "#3B82F6";
               const ModuleIcon = getModuleIcon(m.icon);
+              const halfComplete = isFirstAidCourse && index === 0 && rcpIntroHalf && !isCompleted;
 
               return (
                 <React.Fragment key={m.id}>
-                  <TouchableOpacity
-                    style={styles.unitButton}
-                    activeOpacity={0.8}
-                    disabled={locked}
-                    onPress={() => !locked && startModule(m.id)}
-                  >
-                    <View
-                      style={[
-                        styles.unitIconContainer,
-                        { backgroundColor: circleColor },
-                      ]}
-                    >
-                      {isCompleted ? (
-                        <FontAwesome
-                          name="check"
-                          size={30}
-                          color={colors.background}
-                        />
-                      ) : locked ? (
-                        <FontAwesome name="lock" size={30} color="black" />
-                      ) : ModuleIcon ? (
-                        <ModuleIcon color={colors.background} size={30} />
-                      ) : (
-                        <CircleIcon color={colors.background} size={30} />
-                      )}
-                    </View>
-                    <Text style={[styles.unitLabel, { color: labelColor }]}>
-                      {m.title}
-                    </Text>
-                  </TouchableOpacity>
+                  <ModuleItem
+                    title={m.title}
+                    labelColor={labelColor}
+                    circleColor={circleColor}
+                    locked={locked}
+                    completed={isCompleted}
+                    halfComplete={halfComplete}
+                    onPress={() => !locked && startModule(m.id, index)}
+                    ModuleIcon={ModuleIcon}
+                    backgroundColor={colors.background}
+                  />
                   {index < modules.length - 1 && (
                     <View style={styles.pathConnector} />
                   )}
@@ -343,3 +372,122 @@ const CourseScreen: React.FC = () => {
 };
 
 export default CourseScreen;
+
+type ModuleItemProps = {
+  title: string;
+  labelColor: string;
+  circleColor: string;
+  locked: boolean;
+  completed: boolean;
+  halfComplete?: boolean;
+  ModuleIcon: React.ComponentType<any> | null;
+  onPress: () => void;
+  backgroundColor: string;
+};
+
+const ModuleItem: React.FC<ModuleItemProps> = ({
+  title,
+  labelColor,
+  circleColor,
+  locked,
+  completed,
+  halfComplete = false,
+  ModuleIcon,
+  onPress,
+  backgroundColor,
+}) => {
+  const pulse = React.useRef(new Animated.Value(1)).current;
+  const ringSize = 110;
+  const strokeWidth = 8;
+  const gap = 8;
+  const innerSize = ringSize - strokeWidth * 2 - gap * 2;
+  const radius = ringSize / 2 - strokeWidth;
+  const circumference = 2 * Math.PI * radius;
+  const progress = completed ? 1 : halfComplete ? 0.5 : 0;
+
+  React.useEffect(() => {
+    if (locked || completed) {
+      pulse.setValue(1);
+      return;
+    }
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulse, { toValue: 1.08, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+        Animated.timing(pulse, { toValue: 1, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [locked, completed, pulse]);
+
+  return (
+    <TouchableOpacity
+      style={{ alignItems: "center", marginBottom: 14, marginTop: 6 }}
+      activeOpacity={0.8}
+      disabled={locked}
+      onPress={onPress}
+    >
+      <Animated.View style={{ transform: [{ scale: pulse }] }}>
+        <View
+          style={{
+            padding: 6,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <View style={{ width: ringSize, height: ringSize, alignItems: "center", justifyContent: "center" }}>
+          <Svg width={ringSize} height={ringSize} style={{ position: "absolute" }}>
+            <Circle
+              cx={ringSize / 2}
+              cy={ringSize / 2}
+              r={radius}
+              stroke="rgba(255,255,255,0.25)"
+              strokeWidth={strokeWidth}
+              fill="none"
+            />
+            {!locked && (
+              <Circle
+                cx={ringSize / 2}
+                cy={ringSize / 2}
+                r={radius}
+                stroke={circleColor}
+                strokeWidth={strokeWidth}
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={`${circumference} ${circumference}`}
+                strokeDashoffset={circumference * (1 - progress)}
+                transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
+              />
+            )}
+          </Svg>
+          <View
+            style={[
+              {
+                width: innerSize,
+                height: innerSize,
+                borderRadius: 999,
+                alignItems: "center",
+                justifyContent: "center",
+                backgroundColor: circleColor,
+              },
+            ]}
+          >
+            {completed ? (
+              <FontAwesome name="check" size={30} color="#fff" />
+            ) : locked ? (
+              <FontAwesome name="lock" size={30} color="black" />
+            ) : ModuleIcon ? (
+              <ModuleIcon color={backgroundColor} size={30} />
+            ) : (
+              <CircleIcon color={backgroundColor} size={30} />
+            )}
+          </View>
+          </View>
+        </View>
+      </Animated.View>
+      <Text style={[{ marginTop: 6, fontWeight: "700", textAlign: "center" }, { color: labelColor }]}>
+        {title}
+      </Text>
+    </TouchableOpacity>
+  );
+};
