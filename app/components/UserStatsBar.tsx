@@ -1,4 +1,4 @@
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
@@ -33,6 +33,7 @@ const ofensivaIcon = require("../../assets/images/ofensiva.png");
 const safiraIcon = require("../../assets/images/torneios.png");
 
 const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
+  const router = useRouter();
   const { colors } = useTheme();
   const styles = useMemo(() => createStyles(colors), [colors]);
   const [stats, setStats] = useState<UserStats>({
@@ -149,13 +150,19 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
       </TouchableOpacity>
 
       <View style={styles.statItem}>
-        <View style={styles.iconCircle}>
-          <Image source={ofensivaIcon} style={styles.ofensivaIcon} />
-        </View>
-        <View style={styles.statText}>
-          <Text style={styles.value}>{loading ? "--" : stats.ofensiva}</Text>
-          <Text style={styles.label}>Ofensiva</Text>
-        </View>
+        <TouchableOpacity
+          style={{ flexDirection: "row", alignItems: "center", gap: 10, flex: 1 }}
+          activeOpacity={0.8}
+          onPress={() => router.push("/screens/StreakScreen")}
+        >
+          <View style={styles.iconCircle}>
+            <Image source={ofensivaIcon} style={styles.ofensivaIcon} />
+          </View>
+          <View style={styles.statText}>
+            <Text style={styles.value}>{loading ? "--" : stats.ofensiva}</Text>
+            <Text style={styles.label}>Ofensiva</Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.statItem}>

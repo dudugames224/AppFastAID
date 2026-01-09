@@ -25,7 +25,7 @@ import {
   RemoteCourseMeta,
   RemoteModule,
 } from "../services/lessonService";
-import { getCompletedModules } from "../services/progressService";
+import { getCompletedModules, getModuleStages } from "../services/progressService";
 
 const moduleIconMap: Record<string, React.ComponentType<any>> = {
   FlaskIcon,
@@ -40,6 +40,25 @@ const getModuleIcon = (identifier: unknown) => {
   return null;
 };
 
+type ModuleEntry = {
+  module: RemoteModule;
+  index: number;
+};
+
+const getModuleTopicTitle = (module: RemoteModule): string | undefined => {
+  const rawTopic =
+    typeof module.topic === "string"
+      ? module.topic
+      : typeof (module as any).topico === "string"
+      ? (module as any).topico
+      : typeof (module as any).section === "string"
+      ? (module as any).section
+      : typeof (module as any).group === "string"
+      ? (module as any).group
+      : undefined;
+  return rawTopic?.trim() || undefined;
+};
+
 const CourseScreen: React.FC = () => {
   const LAST_COURSE_KEY = "fastaid:lastCourseId";
   const [courses, setCourses] = useState<RemoteCourseMeta[]>([]);
@@ -48,6 +67,7 @@ const CourseScreen: React.FC = () => {
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState<string[]>([]);
+  const [moduleStages, setModuleStages] = useState<Record<string, number>>({});
   const [rcpIntroHalf, setRcpIntroHalf] = useState(false);
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
@@ -60,6 +80,29 @@ const CourseScreen: React.FC = () => {
     () => courses.find((course) => course.id === selectedCourseId),
     [courses, selectedCourseId]
   );
+  const moduleEntries = useMemo<ModuleEntry[]>(
+    () => modules.map((module, index) => ({ module, index })),
+    [modules]
+  );
+  const moduleSections = useMemo(() => {
+    const sections: { title?: string; entries: ModuleEntry[] }[] = [];
+    moduleEntries.forEach((entry) => {
+      const title = getModuleTopicTitle(entry.module);
+      const current = sections[sections.length - 1];
+      if (title) {
+        if (!current || current.title !== title) {
+          sections.push({ title, entries: [entry] });
+        } else {
+          current.entries.push(entry);
+        }
+      } else if (!current || current.title) {
+        sections.push({ title: undefined, entries: [entry] });
+      } else {
+        current.entries.push(entry);
+      }
+    });
+    return sections;
+  }, [moduleEntries]);
 
   useEffect(() => {
     const checkStreak = async () => {
@@ -109,7 +152,9 @@ const CourseScreen: React.FC = () => {
       const data = await fetchCourseModules(selectedCourseId);
       setModules(data);
       const progress = await getCompletedModules(selectedCourseId);
+      const stageProgress = await getModuleStages(selectedCourseId);
       setCourseProgress(progress);
+      setModuleStages(stageProgress);
       try {
         const userId = auth.currentUser?.uid ?? "anon";
         const halfFlag = await AsyncStorage.getItem(`fastaid:rcpIntroPart1:${userId}`);
@@ -127,7 +172,9 @@ const CourseScreen: React.FC = () => {
       const syncProgress = async () => {
         if (!selectedCourseId) return;
         const progress = await getCompletedModules(selectedCourseId);
+        const stageProgress = await getModuleStages(selectedCourseId);
         setCourseProgress(progress);
+        setModuleStages(stageProgress);
         if (progress.includes("rcp-intro")) {
           try {
             const userId = auth.currentUser?.uid ?? "anon";
@@ -150,7 +197,7 @@ const CourseScreen: React.FC = () => {
     [selectedCourseId]
   );
 
-  function startModule(moduleId: string, index: number) {
+  function startModule(module: RemoteModule, index: number) {
     if (!selectedCourseId) return;
     void AsyncStorage.setItem(LAST_COURSE_KEY, selectedCourseId).catch(() => {});
     if (isFirstAidCourse && index === 0) {
@@ -158,15 +205,19 @@ const CourseScreen: React.FC = () => {
         pathname: "/screens/RCPIntroScreen",
         params: {
           courseId: selectedCourseId,
-          moduleId,
-          nextModuleId: moduleId,
+          moduleId: module.id,
+          nextModuleId: module.id,
         },
       });
       return;
     }
     router.push({
       pathname: "/screens/LessonScreen",
-      params: { courseId: selectedCourseId, moduleId },
+      params: {
+        courseId: selectedCourseId,
+        moduleId: module.id,
+        stageCount: String(module.stageCount ?? 1),
+      },
     });
   }
 
@@ -222,39 +273,61 @@ const CourseScreen: React.FC = () => {
             <ActivityIndicator size="small" color="#5D9CFB" />
           )}
           {!modulesLoading &&
-            modules.map((m, index) => {
-              const isCompleted = courseProgress.includes(m.id);
-              const previousModuleId = modules[index - 1]?.id;
-              const previousCompleted =
-                index === 0 ||
-                (previousModuleId
-                  ? courseProgress.includes(previousModuleId)
-                  : false);
-              const locked = !previousCompleted;
-              const labelColor = locked ? "#777" : colors.text;
-              const circleColor = locked ? colors.circle : m.color || "#3B82F6";
-              const ModuleIcon = getModuleIcon(m.icon);
-              const halfComplete = isFirstAidCourse && index === 0 && rcpIntroHalf && !isCompleted;
+            moduleSections.map((section, sectionIndex) => (
+              <View
+                key={`${section.title ?? "section"}-${sectionIndex}`}
+                style={styles.moduleSectionGroup}
+              >
+                {section.title && (
+                  <View style={styles.moduleSectionHeader}>
+                    <View style={styles.moduleSectionLine} />
+                    <Text style={styles.moduleSectionText}>{section.title}</Text>
+                    <View style={styles.moduleSectionLine} />
+                  </View>
+                )}
+                {section.entries.map((entry, entryIndex) => {
+                  const m = entry.module;
+                  const index = entry.index;
+                  const isCompleted = courseProgress.includes(m.id);
+                  const stageCount = typeof m.stageCount === "number" ? m.stageCount : 1;
+                  const stagesDone = typeof moduleStages[m.id] === "number" ? moduleStages[m.id] : 0;
+                  const progressRatio = Math.max(0, Math.min(1, stagesDone / stageCount));
+                  const previousModuleId = modules[index - 1]?.id;
+                  const previousCompleted =
+                    index === 0 ||
+                    (previousModuleId
+                      ? courseProgress.includes(previousModuleId)
+                      : false);
+                  const locked = !previousCompleted;
+                  const labelColor = locked ? "#777" : colors.text;
+                  const circleColor = locked ? colors.circle : m.color || "#3B82F6";
+                  const ModuleIcon = getModuleIcon(m.icon);
+                  const halfComplete = isFirstAidCourse && index === 0 && rcpIntroHalf && !isCompleted;
 
-              return (
-                <React.Fragment key={m.id}>
-                  <ModuleItem
-                    title={m.title}
-                    labelColor={labelColor}
-                    circleColor={circleColor}
-                    locked={locked}
-                    completed={isCompleted}
-                    halfComplete={halfComplete}
-                    onPress={() => !locked && startModule(m.id, index)}
-                    ModuleIcon={ModuleIcon}
-                    backgroundColor={colors.background}
-                  />
-                  {index < modules.length - 1 && (
-                    <View style={styles.pathConnector} />
-                  )}
-                </React.Fragment>
-              );
-            })}
+                  return (
+                    <React.Fragment key={m.id}>
+                      <ModuleItem
+                        title={m.title}
+                        labelColor={labelColor}
+                        circleColor={circleColor}
+                        locked={locked}
+                        completed={isCompleted}
+                        halfComplete={halfComplete}
+                        progress={
+                          isCompleted ? 1 : halfComplete ? Math.max(0.5, progressRatio) : progressRatio
+                        }
+                        onPress={() => !locked && startModule(m, index)}
+                        ModuleIcon={ModuleIcon}
+                        backgroundColor={colors.background}
+                      />
+                      {entryIndex < section.entries.length - 1 && (
+                        <View style={styles.pathConnector} />
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </View>
+            ))}
 
           
 
@@ -380,6 +453,7 @@ type ModuleItemProps = {
   locked: boolean;
   completed: boolean;
   halfComplete?: boolean;
+  progress?: number;
   ModuleIcon: React.ComponentType<any> | null;
   onPress: () => void;
   backgroundColor: string;
@@ -392,6 +466,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   locked,
   completed,
   halfComplete = false,
+  progress = 0,
   ModuleIcon,
   onPress,
   backgroundColor,
@@ -403,7 +478,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   const innerSize = ringSize - strokeWidth * 2 - gap * 2;
   const radius = ringSize / 2 - strokeWidth;
   const circumference = 2 * Math.PI * radius;
-  const progress = completed ? 1 : halfComplete ? 0.5 : 0;
+  const clampedProgress = Math.max(0, Math.min(1, progress || 0));
 
   React.useEffect(() => {
     if (locked || completed) {
@@ -455,7 +530,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                 fill="none"
                 strokeLinecap="round"
                 strokeDasharray={`${circumference} ${circumference}`}
-                strokeDashoffset={circumference * (1 - progress)}
+                strokeDashoffset={circumference * (1 - clampedProgress)}
                 transform={`rotate(-90 ${ringSize / 2} ${ringSize / 2})`}
               />
             )}

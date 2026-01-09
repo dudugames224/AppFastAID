@@ -67,7 +67,7 @@ const ChestRewardScreen = () => {
     normal: "NORMAL",
     rare: "RARO",
     epic: "EPICO",
-    legendary: "LENDARIO",
+    legendary: "LENDÁRIO",
   };
 
   const rarityBackground: Record<Rarity, string> = {
@@ -276,14 +276,30 @@ const ChestRewardScreen = () => {
   const grantSafirasIfNeeded = async () => {
     if (rewardGranted) return;
     const user = auth.currentUser;
-    if (user && currentUserData) {
+    if (user) {
       const userDocRef = doc(db, "users", user.uid);
+      let resolvedUserData = currentUserData;
+      if (!resolvedUserData) {
+        const snapshot = await getDoc(userDocRef);
+        if (snapshot.exists()) {
+          resolvedUserData = snapshot.data();
+          setCurrentUserData(resolvedUserData);
+        }
+      }
+
       const currentSafiras =
-        typeof currentUserData.safiras === "number" ? currentUserData.safiras : 0;
+        typeof resolvedUserData?.safiras === "number" ? resolvedUserData.safiras : 0;
       const payload: Record<string, any> = { safiras: currentSafiras + safiraReward };
       if (rarity === "legendary") {
-        const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+        const currentUntilMs =
+          typeof resolvedUserData?.tripleXpUntil === "string"
+            ? new Date(resolvedUserData.tripleXpUntil).getTime()
+            : null;
+        const baseMs =
+          currentUntilMs !== null && currentUntilMs > Date.now() ? currentUntilMs : Date.now();
+        const expiresAt = new Date(baseMs + 15 * 60 * 1000).toISOString();
         payload.tripleXpUntil = expiresAt;
+        payload.tripleXpMultiplier = 3;
       }
       await setDoc(
         userDocRef,
@@ -560,7 +576,7 @@ const ChestRewardScreen = () => {
             </Text>
             {rarity === "legendary" && (
               <Text style={[styles.rewardText, { color: rarityAccent[rarity] }]}>
-                Pocao de XP x3 por 15 minutos ativada!
+                Poção de XP x3 por 15 minutos ativada!
               </Text>
             )}
           </>

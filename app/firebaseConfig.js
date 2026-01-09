@@ -1,7 +1,7 @@
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
 
 
 
@@ -33,6 +33,7 @@ function Sair(){
 }
 
 export { addDoc, app, auth, collection, db, deleteDoc, doc, getDoc, getDocs, Sair, setDoc, updateDoc };
+export { onSnapshot };
 export const getUserData = async () => {
   const user = auth.currentUser;
   if (user) {

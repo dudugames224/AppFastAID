@@ -20,7 +20,29 @@ import { applyLifeRegeneration, LIFE_INTERVAL_MINUTES_VALUE, startLifeCountdown 
 const DEFAULT_LIVES = 5;
 const REFILL_COST = 600;
 const POTION_COST = 350;
-const POTION_DOUBLE_XP_CHARGES = 1;
+const POTION_DOUBLE_XP_MINUTES = 15;
+
+const coerceToMs = (value: any): number | null => {
+  if (!value) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : null;
+  if (typeof value === "string") {
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value === "object") {
+    if (typeof (value as any).toDate === "function") {
+      const date = (value as any).toDate();
+      return date instanceof Date && Number.isFinite(date.getTime()) ? date.getTime() : null;
+    }
+    if (typeof (value as any).seconds === "number") return (value as any).seconds * 1000;
+    if (typeof (value as any)._seconds === "number") return (value as any)._seconds * 1000;
+  }
+  return null;
+};
 
 const PotionSvg = () => (
   <Svg width={32} height={32} viewBox="0 0 24 24" fill="none">
@@ -199,15 +221,18 @@ const StoreScreen = () => {
       const newSafiras = safiras - POTION_COST;
       const userDocRef = doc(db, "users", user.uid);
       const snapshot = await getDoc(userDocRef);
-      const charges = snapshot.exists() && typeof snapshot.data()?.doubleXpCharges === "number"
-        ? snapshot.data().doubleXpCharges
-        : 0;
+      const data = snapshot.exists() ? snapshot.data() : null;
+      const currentUntilMs = coerceToMs((data as any)?.doubleXpUntil);
+      const baseMs =
+        currentUntilMs !== null && currentUntilMs > Date.now() ? currentUntilMs : Date.now();
+      const expiresAt = new Date(baseMs + POTION_DOUBLE_XP_MINUTES * 60 * 1000).toISOString();
       await updateDoc(userDocRef, {
         safiras: newSafiras,
-        doubleXpCharges: charges + POTION_DOUBLE_XP_CHARGES,
+        doubleXpUntil: expiresAt,
+        doubleXpMultiplier: 2,
       });
       setSafiras(newSafiras);
-      Alert.alert("Pocao usada", "XP dobrado ativado para a proxima licao.");
+      Alert.alert("Pocao usada", `XP dobrado ativado por ${POTION_DOUBLE_XP_MINUTES} minutos.`);
     } catch (error) {
       console.warn("Nao foi possivel usar a pocao:", error);
       Alert.alert("Ops", "Nao conseguimos usar a pocao agora. Tente novamente.");
@@ -334,12 +359,12 @@ const StoreScreen = () => {
             </View>
             <View>
               <Text style={storeStyles.cardTitle}>Pocao de Energia</Text>
-              <Text style={storeStyles.cardSubtitle}>XP dobrado na proxima licao.</Text>
+              <Text style={storeStyles.cardSubtitle}>XP dobrado por tempo limitado.</Text>
             </View>
           </View>
           <View style={storeStyles.bulletList}>
             <Text style={storeStyles.bullet}>- Custa {POTION_COST} safiras</Text>
-            <Text style={storeStyles.bullet}>- Ativa 1 carga de XP x2</Text>
+            <Text style={storeStyles.bullet}>- Ativa XP x2 por {POTION_DOUBLE_XP_MINUTES} minutos</Text>
           </View>
           <TouchableOpacity
             style={[storeStyles.primaryButton, processingPotion && { opacity: 0.7 }]}

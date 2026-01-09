@@ -181,6 +181,31 @@ const getThemedStyles = (theme = 'light') => {
     paddingBottom: 40,
     width: "100%",
   },
+  moduleSectionGroup: {
+    width: "100%",
+    alignItems: "center",
+  },
+  moduleSectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+    paddingHorizontal: 6,
+    alignSelf: "stretch",
+  },
+  moduleSectionLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: colors.border,
+    opacity: 0.8,
+  },
+  moduleSectionText: {
+    color: colors.text,
+    fontSize: 13,
+    fontWeight: "700",
+    letterSpacing: 1,
+    textTransform: "uppercase",
+    marginHorizontal: 10,
+  },
   unitButton: {
     alignItems: "center",
     marginBottom: 20,
@@ -208,6 +233,7 @@ const getThemedStyles = (theme = 'light') => {
     height: 50,
     backgroundColor: "#2D2D2D",
     marginBottom: 20,
+    alignSelf: "center",
   },
   streakLossContainer: {
     backgroundColor: colors.ofensivaPerdida,
@@ -565,6 +591,7 @@ const lessonstyles = StyleSheet.create({
   header: {
     paddingVertical: 10,
     paddingHorizontal: 20,
+    paddingTop: 0,
     flexDirection: "row",
     alignItems: "center",
     borderBottomWidth: 1,

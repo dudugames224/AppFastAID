@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { HeartIcon, XIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
@@ -19,7 +19,7 @@ import {
   fetchCourseModules,
   fetchModuleLessons,
 } from "../services/lessonService";
-import { markModuleCompleted } from "../services/progressService";
+import { markModuleStage } from "../services/progressService";
 import { LessonCard } from "../types/lesson";
 import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
 
@@ -63,6 +63,9 @@ const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
       const newAnswerIndex = shuffledOptions.indexOf(correctAnswerString);
       return { ...card, options: shuffledOptions, answer: newAnswerIndex };
     }
+    if (card.type === "sequence" && card.orderOptions) {
+      return { ...card, orderOptions: shuffleArray(card.orderOptions) };
+    }
     return card;
   });
 };
@@ -71,6 +74,7 @@ const fallbackCourseId = "burns";
 
 const LessonScreen = () => {
     const {  lessonstyles, colors } = useTheme();
+  const insets = useSafeAreaInsets();
  
   const router = useRouter();
   const {
@@ -78,15 +82,19 @@ const LessonScreen = () => {
     moduleId: paramsModuleId,
     mode,
     introModuleId,
+    stageCount: paramsStageCount,
   } = useLocalSearchParams<{
     courseId?: string;
     moduleId?: string;
     mode?: string;
     introModuleId?: string;
+    stageCount?: string;
   }>();
 
   const isPracticeMode = mode === "practice";
   const courseId = (paramsCourseId as string) || fallbackCourseId;
+  const stageCountParam = paramsStageCount ? Number(paramsStageCount) : 1;
+  const stageCount = Number.isFinite(stageCountParam) && stageCountParam > 0 ? stageCountParam : 1;
 
   const [userXP, setUserXP] = useState(1200);
   const [isPremium, setIsPremium] = useState(false);
@@ -108,6 +116,8 @@ const LessonScreen = () => {
   const [lives, setLives] = useState(5);
   const [lastLifeUpdate, setLastLifeUpdate] = useState<number | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
+  const [sequenceSelection, setSequenceSelection] = useState<string[]>([]);
+  const [revealCorrectOrder, setRevealCorrectOrder] = useState(false);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -156,9 +166,12 @@ const LessonScreen = () => {
           const aggregated = modules.flatMap((module) => module.lessons ?? []);
           const practiceOnly = aggregated.filter(
             (card) =>
-              Array.isArray(card.options) &&
-              card.options.length > 0 &&
-              typeof card.answer === "number"
+              (Array.isArray(card.options) &&
+                card.options.length > 0 &&
+                typeof card.answer === "number") ||
+              (card.type === "sequence" &&
+                Array.isArray((card as any).correctOrder) &&
+                (card as any).correctOrder.length > 0)
           );
           deck = practiceOnly.length ? practiceOnly : aggregated;
         } else if (paramsModuleId) {
@@ -203,6 +216,32 @@ const LessonScreen = () => {
   const feedbackAnim = useRef(new Animated.Value(200)).current;
   const currentCard = questions[currentStep];
   const isInfoCard = currentCard?.type === "info";
+  const isSequenceCard = currentCard?.type === "sequence";
+  const sequenceOptions = useMemo(() => {
+    if (!isSequenceCard || !currentCard) return [];
+    const base =
+      currentCard.orderOptions?.length && currentCard.orderOptions[0]
+        ? currentCard.orderOptions
+        : (currentCard.correctOrder || []).map((item, index) => ({
+            id: String(item ?? index),
+            label: typeof item === "string" ? item : `Passo ${index + 1}`,
+          }));
+    return base.map((opt, index) => ({
+      id:
+        typeof (opt as any)?.id === "string"
+          ? (opt as any).id
+          : typeof (opt as any)?.label === "string"
+          ? (opt as any).label
+          : `seq-${index}`,
+      label:
+        typeof (opt as any)?.label === "string"
+          ? (opt as any).label
+          : typeof (opt as any)?.text === "string"
+          ? (opt as any).text
+          : `Passo ${index + 1}`,
+      image: (opt as any)?.image,
+    }));
+  }, [currentCard, isSequenceCard]);
 
   useEffect(() => {
     if (showFeedback || isInfoCard) {
@@ -248,13 +287,63 @@ const LessonScreen = () => {
     if (!correct) void decrementLive();
   };
 
+  const normalizeIds = (list: any[] | undefined) =>
+    (list || []).map((opt: any, index) =>
+      typeof opt === "string"
+        ? opt
+        : typeof opt?.id === "string"
+        ? opt.id
+        : typeof opt?.label === "string"
+        ? opt.label
+        : `seq-${index}`
+    );
+
+  const toggleSequenceItem = (item: string) => {
+    if (showFeedback || !isSequenceCard || !currentCard) return;
+    const targetOrder =
+      (currentCard as any)?.correctOrder?.length
+        ? normalizeIds((currentCard as any).correctOrder)
+        : normalizeIds((currentCard as any).orderOptions);
+    const limit = Math.min(targetOrder?.length ?? 4, 4);
+    setSequenceSelection((prev) => {
+      const exists = prev.includes(item);
+      if (exists) return prev.filter((i) => i !== item);
+      if (limit && prev.length >= limit) return prev;
+      return [...prev, item];
+    });
+  };
+
+  const handleSequenceCheck = () => {
+    if (!isSequenceCard || !currentCard) return;
+    const rawOrder = currentCard.correctOrder?.length
+      ? normalizeIds(currentCard.correctOrder as any)
+      : sequenceOptions.map((opt) => opt.id);
+    if (!rawOrder || !rawOrder.length) return;
+    const targetOrder = rawOrder.slice(0, 4);
+    if (sequenceSelection.length !== targetOrder.length) return;
+    const isSequenceCorrect = sequenceSelection.every(
+      (item, idx) => item === targetOrder[idx]
+    );
+    setIsCorrect(isSequenceCorrect);
+    setShowFeedback(true);
+    answeredCountRef.current += 1;
+    setAnsweredCount((value) => value + 1);
+    if (isSequenceCorrect) {
+      correctCountRef.current += 1;
+      setCorrectCount((value) => value + 1);
+    } else {
+      void decrementLive();
+    }
+    setRevealCorrectOrder(false);
+  };
+
 
   const goToResults = async () => {
     if (!isPracticeMode && paramsModuleId) {
-      // Evita travar a navega??o no Android aguardando persist?ncia.
-      void markModuleCompleted(courseId, paramsModuleId as string).catch(() => {});
+      // Evita travar a navegacao no Android aguardando persistencia.
+      void markModuleStage(courseId, paramsModuleId as string, stageCount).catch(() => {});
       if (introModuleId) {
-        void markModuleCompleted(courseId, introModuleId as string).catch(() => {});
+        void markModuleStage(courseId, introModuleId as string, 1).catch(() => {});
         try {
           const userId = auth.currentUser?.uid ?? "anon";
           await AsyncStorage.removeItem(`fastaid:rcpIntroPart1:${userId}`);
@@ -295,12 +384,16 @@ const LessonScreen = () => {
       setShowFeedback(false);
       setSelectedOption(null);
       setIsCorrect(null);
+      setRevealCorrectOrder(false);
+      setSequenceSelection([]);
       goToResults();
       return;
     }
     setShowFeedback(false);
     setSelectedOption(null);
     setIsCorrect(null);
+    setRevealCorrectOrder(false);
+    setSequenceSelection([]);
     setCurrentStep((step) => step + 1);
   };
 
@@ -337,9 +430,14 @@ const LessonScreen = () => {
     questions.length > 0 ? (currentStep / questions.length) * 100 : 0;
 
   return (
-    <SafeAreaView style={lessonstyles.safeArea}>
+    <SafeAreaView style={lessonstyles.safeArea} edges={["left", "right", "bottom"]}>
       <View style={lessonstyles.fullScreen}>
-        <View style={lessonstyles.header}>
+        <View
+          style={[
+            lessonstyles.header,
+            { paddingTop: insets.top > 0 ? insets.top : 12 },
+          ]}
+        >
           <TouchableOpacity onPress={confirmExit}>
             <XIcon />
           </TouchableOpacity>
@@ -368,40 +466,198 @@ const LessonScreen = () => {
           )}
           <View style={lessonstyles.card}>
           {isInfoCard ? (
-              <View>
-                <Text style={lessonstyles.title}>{currentCard.title}</Text>
-                <Text style={lessonstyles.infoText}>{currentCard.text}</Text>
-              </View>
-            ) : (
-              <View>
-                <Text style={lessonstyles.question}>{currentCard.question}</Text>
-                {currentCard.options?.map((option, index) => {
-                  let optionStyle: any = [lessonstyles.optionButton];
-                  let textStyle: any = [lessonstyles.optionText];
-                  if (showFeedback) {
-                    if (index === currentCard.answer) {
-                      optionStyle.push(lessonstyles.correctOption);
-                      textStyle.push(lessonstyles.correctOptionText);
-                    } else if (index === selectedOption) {
-                      optionStyle.push(lessonstyles.incorrectOption);
-                      textStyle.push(lessonstyles.incorrectOptionText);
+            <View>
+              <Text style={lessonstyles.title}>{currentCard.title}</Text>
+              <Text style={lessonstyles.infoText}>{currentCard.text}</Text>
+            </View>
+          ) : isSequenceCard ? (
+            <View>
+              <Text style={lessonstyles.question}>{currentCard.question}</Text>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
+                {sequenceOptions.slice(0, 4).map((option, idx) => {
+                  const optionId = option?.id ? String(option.id) : `seq-${idx}`;
+                  const targetOrderList =
+                    (currentCard?.correctOrder?.length
+                      ? normalizeIds(currentCard.correctOrder as any)
+                      : sequenceOptions.map((opt) => opt.id)
+                    ).slice(0, 4);
+                  const selectedIndex = sequenceSelection.indexOf(optionId);
+                  const selected = selectedIndex !== -1;
+                  const correctIndex = targetOrderList.indexOf(optionId);
+                  const isCorrectPosition =
+                    selectedIndex !== -1 && selectedIndex === correctIndex;
+                  const showCorrectPlacement = revealCorrectOrder && correctIndex !== -1;
+
+                  let badgeNumber: number | null = null;
+                  let badgeColor = "#3B82F6";
+                  let borderColor = colors.border;
+
+                  if (showCorrectPlacement) {
+                    badgeNumber = correctIndex + 1;
+                    badgeColor = "#22c55e";
+                    borderColor = "#22c55e";
+                  } else if (showFeedback) {
+                    if (selected) {
+                      badgeNumber = selectedIndex + 1;
+                      if (isCorrectPosition) {
+                        badgeColor = "#22c55e";
+                        borderColor = "#22c55e";
+                      } else {
+                        badgeColor = "#ef4444";
+                        borderColor = "#ef4444";
+                      }
                     } else {
-                      optionStyle.push({ opacity: 0.5 });
+                      borderColor = colors.border;
+                    }
+                  } else {
+                    if (selected) {
+                      badgeNumber = selectedIndex + 1;
+                      badgeColor = "#3B82F6";
+                      borderColor = "#3B82F6";
+                    } else {
+                      borderColor = colors.border;
                     }
                   }
+
                   return (
                     <TouchableOpacity
-                      key={index}
-                      style={optionStyle}
-                      onPress={() => handleOptionSelect(index)}
+                      key={optionId}
+                      style={[
+                        lessonstyles.optionButton,
+                        {
+                          paddingHorizontal: 8,
+                          flexBasis: "48%",
+                          minHeight: 200,
+                          marginVertical: 4,
+                          borderColor,
+                          backgroundColor:
+                            selected || showCorrectPlacement || showFeedback
+                              ? "#0f172a"
+                              : "rgba(255,255,255,0.06)",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: 6,
+                          shadowColor: "#000",
+                          shadowOpacity: 0.2,
+                          shadowRadius: 10,
+                          shadowOffset: { width: 0, height: 4 },
+                          elevation: 4,
+                        },
+                      ]}
+                      onPress={() => toggleSequenceItem(optionId)}
                       disabled={showFeedback}
                     >
-                      <Text style={textStyle}>{option}</Text>
+                      {badgeNumber !== null && (
+                        <View
+                          style={{
+                            position: "absolute",
+                            top: 6,
+                            left: 6,
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            backgroundColor: badgeColor,
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontWeight: "800", fontSize: 12 }}>
+                            {badgeNumber}
+                          </Text>
+                        </View>
+                      )}
+                      {option.image && (
+                        <Image
+                          source={option.image}
+                          style={{ width: "100%", height: 140, resizeMode: "contain" }}
+                        />
+                      )}
+                      <Text
+                        style={[
+                          lessonstyles.optionText,
+                          {
+                            color: selected
+                              ? "#3B82F6"
+                              : showCorrectPlacement
+                              ? "#22c55e"
+                              : colors.text,
+                            textAlign: "center",
+                            paddingTop: option.image ? 4 : 10,
+                          },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {option.label || `Passo ${idx + 1}`}
+                      </Text>
                     </TouchableOpacity>
                   );
                 })}
               </View>
-            )}
+
+              {!showFeedback && (
+                <TouchableOpacity
+                  style={[
+                    lessonstyles.continueButton,
+                    {
+                      marginTop: 18,
+                      opacity:
+                        sequenceSelection.length ===
+                        Math.min(
+                          (currentCard.correctOrder?.length
+                            ? normalizeIds(currentCard.correctOrder as any).length
+                            : sequenceOptions.length),
+                          4
+                        )
+                          ? 1
+                          : 0.5,
+                    },
+                  ]}
+                  onPress={handleSequenceCheck}
+                  disabled={
+                    showFeedback ||
+                    sequenceSelection.length !==
+                      Math.min(
+                        (currentCard.correctOrder?.length
+                          ? normalizeIds(currentCard.correctOrder as any).length
+                          : sequenceOptions.length),
+                        4
+                      )
+                  }
+                >
+                  <Text style={lessonstyles.continueButtonText}>Checar ordem</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          ) : (
+            <View>
+              <Text style={lessonstyles.question}>{currentCard.question}</Text>
+              {currentCard.options?.map((option, index) => {
+                let optionStyle: any = [lessonstyles.optionButton];
+                let textStyle: any = [lessonstyles.optionText];
+                if (showFeedback) {
+                  if (index === currentCard.answer) {
+                    optionStyle.push(lessonstyles.correctOption);
+                    textStyle.push(lessonstyles.correctOptionText);
+                  } else if (index === selectedOption) {
+                    optionStyle.push(lessonstyles.incorrectOption);
+                    textStyle.push(lessonstyles.incorrectOptionText);
+                  } else {
+                    optionStyle.push({ opacity: 0.5 });
+                  }
+                }
+                return (
+                  <TouchableOpacity
+                    key={index}
+                    style={optionStyle}
+                    onPress={() => handleOptionSelect(index)}
+                    disabled={showFeedback}
+                  >
+                    <Text style={textStyle}>{option}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
           </View>
         </ScrollView>
 
@@ -438,23 +694,42 @@ const LessonScreen = () => {
               >
                 {isCorrect ? "Excelente!" : "Resposta Incorreta"}
               </Text>
-              <Text style={lessonstyles.infoText}>
-                {isCorrect
-                  ? currentCard.correctFeedback
-                  : currentCard.incorrectFeedback}
-              </Text>
+              {isCorrect && !!currentCard.correctFeedback && (
+                <Text style={lessonstyles.infoText}>
+                  {currentCard.correctFeedback}
+                </Text>
+              )}
               <TouchableOpacity
                 style={[
                   lessonstyles.continueButton,
-                  { backgroundColor: isCorrect ? "#58CC02" : "#FF4B4B" },
+                  {
+                    backgroundColor:
+                      isSequenceCard && isCorrect === false && !revealCorrectOrder
+                        ? "#2563eb"
+                        : isSequenceCard && isCorrect === false && revealCorrectOrder
+                        ? "#FF4B4B"
+                        : isCorrect
+                        ? "#58CC02"
+                        : "#FF4B4B",
+                  },
                 ]}
-                onPress={handleNext}
+                onPress={() => {
+                  if (isSequenceCard && isCorrect === false && !revealCorrectOrder) {
+                    setRevealCorrectOrder(true);
+                    return;
+                  }
+                  handleNext();
+                }}
                 disabled={isNavigating}
               >
                 <Text style={lessonstyles.continueButtonText}>
-                  {currentStep >= questions.length - 1
-                    ? "Finalizar"
-                    : "Continuar"}
+                  {isSequenceCard && isCorrect === false && !revealCorrectOrder
+                    ? "Mostrar a ordem correta"
+                    : isCorrect
+                    ? currentStep >= questions.length - 1
+                      ? "Finalizar"
+                      : "Continuar"
+                    : "CONTINUAR"}
                 </Text>
               </TouchableOpacity>
             </View>

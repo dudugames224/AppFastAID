@@ -34,6 +34,8 @@ export default function RootLayout() {
         <Stack.Screen name="screens/LessonScreen"/>
         <Stack.Screen name="screens/ChestRewardScreen"/>
         <Stack.Screen name="screens/LessonResultScreen"/>
+        <Stack.Screen name="screens/StreakScreen"/>
+        <Stack.Screen name="screens/StreakCelebrationScreen"/>
         <Stack.Screen name="screens/UserProfileScreen"/>
         <Stack.Screen name="(tabs)" />
       </Stack>

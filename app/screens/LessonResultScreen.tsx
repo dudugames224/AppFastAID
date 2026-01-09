@@ -21,12 +21,36 @@ const parseNumberParam = (value: string | undefined) => {
   return Number.isFinite(parsed) ? parsed : undefined;
 };
 
+const coerceToMs = (value: any): number | null => {
+  if (!value) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : null;
+  if (typeof value === "string") {
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value === "object") {
+    if (typeof (value as any).toDate === "function") {
+      const date = (value as any).toDate();
+      return date instanceof Date && Number.isFinite(date.getTime()) ? date.getTime() : null;
+    }
+    if (typeof (value as any).seconds === "number") return (value as any).seconds * 1000;
+    if (typeof (value as any)._seconds === "number") return (value as any)._seconds * 1000;
+  }
+  return null;
+};
+
 const formatDuration = (seconds: number) => {
   const total = Math.max(0, Math.floor(seconds));
   const minutes = Math.floor(total / 60);
   const remaining = total % 60;
   return `${minutes}:${String(remaining).padStart(2, "0")}`;
 };
+
+const DOUBLE_XP_MINUTES = 15;
 
 const getPerformanceCopy = (params: {
   accuracy: number;
@@ -137,11 +161,26 @@ const LessonResultScreen = ({
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const claimedRef = useRef(false);
   const claimInFlightRef = useRef(false);
+  const lastComputedStreakRef = useRef<number | null>(null);
 
-  const xpMultiplier =
-    typeof currentUserData?.doubleXpCharges === "number" && currentUserData.doubleXpCharges > 0
-      ? 2
+  const doubleXpCharges =
+    typeof currentUserData?.doubleXpCharges === "number" ? currentUserData.doubleXpCharges : 0;
+  const doubleUntilMs = coerceToMs((currentUserData as any)?.doubleXpUntil);
+  const doubleActive = doubleXpCharges > 0 || (doubleUntilMs !== null && doubleUntilMs > Date.now());
+  const doubleXpMultiplier = doubleActive
+    ? typeof (currentUserData as any)?.doubleXpMultiplier === "number"
+      ? (currentUserData as any).doubleXpMultiplier
+      : 2
+    : 1;
+  const tripleXpUntilMs =
+    coerceToMs((currentUserData as any)?.tripleXpUntil);
+  const tripleXpMultiplier =
+    tripleXpUntilMs !== null && tripleXpUntilMs > Date.now()
+      ? typeof currentUserData?.tripleXpMultiplier === "number"
+        ? currentUserData.tripleXpMultiplier
+        : 3
       : 1;
+  const xpMultiplier = doubleXpMultiplier * tripleXpMultiplier;
   const rewardedXp = computedXp * xpMultiplier;
 
   const performanceCopy = getPerformanceCopy({
@@ -341,43 +380,68 @@ const LessonResultScreen = ({
 
   const showNextButton = Boolean(onNext || (!computedIsPractice && nextModule));
 
-  const updateXpAndExit = async () => {
-    if (claimedRef.current || claimInFlightRef.current) return;
+  type UpdateXpResult = { newStreak: number; shouldCelebrateStreak: boolean };
+
+  const updateXpAndExit = async (): Promise<UpdateXpResult | null> => {
+    if (claimedRef.current || claimInFlightRef.current) {
+      const fallbackStreak =
+        lastComputedStreakRef.current ??
+        (typeof currentUserData?.ofensiva === "number" ? currentUserData.ofensiva : 0);
+      return { newStreak: fallbackStreak, shouldCelebrateStreak: false };
+    }
     const user = auth.currentUser;
-    if (!user) return;
+    if (!user) return null;
 
     setIsClaiming(true);
     claimInFlightRef.current = true;
     try {
+      const userDocRef = doc(db, "users", user.uid);
       let resolvedUserData = currentUserData;
-      if (!resolvedUserData) {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists()) resolvedUserData = userDoc.data();
+      const userDoc = await getDoc(userDocRef);
+      if (userDoc.exists()) {
+        resolvedUserData = userDoc.data();
         setCurrentUserData(resolvedUserData);
       }
 
-      if (!resolvedUserData) return;
+      if (!resolvedUserData) return null;
 
-      const userDocRef = doc(db, "users", user.uid);
+      const now = new Date();
+      const nowMs = now.getTime();
+
       const doubleXpCharges =
         typeof resolvedUserData.doubleXpCharges === "number"
           ? resolvedUserData.doubleXpCharges
           : 0;
-      const xpMultiplier = doubleXpCharges > 0 ? 2 : 1;
-      const nextCharges = doubleXpCharges > 0 ? doubleXpCharges - 1 : 0;
+      const doubleUntilMs = coerceToMs((resolvedUserData as any)?.doubleXpUntil);
+      const hasActiveDoubleTime = doubleUntilMs !== null && doubleUntilMs > nowMs;
+      const hasLegacyCharges = doubleXpCharges > 0;
+      const doubleActive = hasLegacyCharges || hasActiveDoubleTime;
+      const doubleXpMultiplier = doubleActive
+        ? typeof (resolvedUserData as any)?.doubleXpMultiplier === "number"
+          ? (resolvedUserData as any).doubleXpMultiplier
+          : 2
+        : 1;
+
+      const tripleUntilMs = coerceToMs((resolvedUserData as any).tripleXpUntil);
+      const tripleMultiplier =
+        tripleUntilMs !== null && tripleUntilMs > nowMs
+          ? typeof (resolvedUserData as any).tripleXpMultiplier === "number"
+            ? (resolvedUserData as any).tripleXpMultiplier
+            : 3
+          : 1;
+
+      const xpMultiplier = doubleXpMultiplier * tripleMultiplier;
       const rewardedXp = computedXp * xpMultiplier;
       const newXp = (resolvedUserData.xp || 0) + rewardedXp;
 
-      const today = new Date();
-      const lastLessonDate = resolvedUserData.lastLessonDate
-        ? new Date(resolvedUserData.lastLessonDate)
-        : null;
+      const lastLessonDate = resolvedUserData.lastLessonDate ? new Date(resolvedUserData.lastLessonDate) : null;
       let newStreak = resolvedUserData.ofensiva || 0;
 
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      let lastLessonStart: Date | null = null;
+
       if (lastLessonDate) {
-        const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const lastLessonStart = new Date(
+        lastLessonStart = new Date(
           lastLessonDate.getFullYear(),
           lastLessonDate.getMonth(),
           lastLessonDate.getDate()
@@ -394,38 +458,52 @@ const LessonResultScreen = ({
         newStreak = 1;
       }
 
-      await setDoc(
-        userDocRef,
-        {
-          xp: newXp,
-          ofensiva: newStreak,
-          lastLessonDate: today.toISOString(),
-          doubleXpCharges: nextCharges,
-        },
-        { merge: true }
-      );
+      const isFirstLessonToday = !lastLessonStart || lastLessonStart.getTime() !== todayStart.getTime();
+      const shouldCelebrateStreak = !computedIsPractice && isFirstLessonToday;
+
+      const payload: Record<string, any> = {
+        xp: newXp,
+        ofensiva: newStreak,
+        lastLessonDate: now.toISOString(),
+      };
+
+      if (hasLegacyCharges) {
+        const baseMs = hasActiveDoubleTime && doubleUntilMs !== null ? doubleUntilMs : nowMs;
+        const newUntilMs = baseMs + doubleXpCharges * DOUBLE_XP_MINUTES * 60 * 1000;
+        payload.doubleXpUntil = new Date(newUntilMs).toISOString();
+        payload.doubleXpMultiplier = 2;
+        payload.doubleXpCharges = 0;
+      } else {
+        payload.doubleXpCharges = doubleXpCharges;
+      }
+
+      if (doubleActive) payload.lastDoubleXpAppliedAt = now.toISOString();
+
+      await setDoc(userDocRef, payload, { merge: true });
       claimedRef.current = true;
+      lastComputedStreakRef.current = newStreak;
+      return { newStreak, shouldCelebrateStreak };
     } finally {
       claimInFlightRef.current = false;
       setIsClaiming(false);
     }
   };
+  type NavigationIntent = { pathname: string; params?: Record<string, string> } | null;
 
-  const handleBackPress = async () => {
-    await updateXpAndExit();
-    if (onBack) {
-      onBack();
-      return;
+  const buildNavigationIntent = async (action: "next" | "back"): Promise<NavigationIntent> => {
+    if (action === "back") {
+      if (onBack) {
+        onBack();
+        return null;
+      }
+      return { pathname: exitTarget };
     }
-    router.replace(exitTarget);
-  };
 
-  const handleNextPress = async () => {
-    await updateXpAndExit();
     if (onNext) {
       onNext();
-      return;
+      return null;
     }
+
     if (!computedIsPractice && courseId) {
       let resolvedNext = nextModule;
       if (!resolvedNext && moduleId) {
@@ -437,15 +515,42 @@ const LessonResultScreen = ({
       }
 
       if (resolvedNext) {
-        router.replace({
+        return {
           pathname: "/screens/LessonScreen",
           params: { courseId: courseId as string, moduleId: resolvedNext.id },
-        });
-        return;
+        };
       }
     }
-    router.replace(exitTarget);
+
+    return { pathname: exitTarget };
   };
+
+  const handleExitAction = async (action: "next" | "back") => {
+    const intent = await buildNavigationIntent(action);
+    const result = await updateXpAndExit();
+    if (!intent) return;
+
+    if (result?.shouldCelebrateStreak && typeof result.newStreak === "number") {
+      router.replace({
+        pathname: "/screens/StreakCelebrationScreen",
+        params: {
+          streak: String(result.newStreak),
+          targetPathname: intent.pathname,
+          ...(intent.params || {}),
+        },
+      });
+      return;
+    }
+
+    if (intent.params) {
+      router.replace({ pathname: intent.pathname, params: intent.params });
+    } else {
+      router.replace(intent.pathname);
+    }
+  };
+
+  const handleBackPress = () => handleExitAction("back");
+  const handleNextPress = () => handleExitAction("next");
 
   const primaryButtonLabel =
     showNextButton && !computedIsPractice ? "RESGATAR XP E CONTINUAR" : "RESGATAR XP";
@@ -491,7 +596,7 @@ const LessonResultScreen = ({
               <Text style={styles.statValue}>{rewardedXp}</Text>
             </View>
             <Text style={styles.statSub}>
-              {xpMultiplier > 1 ? "XP x2 aplicado" : "Recompensa do módulo"}
+              {xpMultiplier > 1 ? `XP x${xpMultiplier} aplicado` : "Recompensa do módulo"}
             </Text>
           </View>
 

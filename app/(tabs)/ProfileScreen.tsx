@@ -15,7 +15,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { auth, getUserData, Sair, updateUserAvatar } from "../firebaseConfig";
+import { auth, db, doc, getUserData, onSnapshot, Sair, updateUserAvatar } from "../firebaseConfig";
 import {
   cancelReminder,
   getRandomReminderMessage,
@@ -27,10 +27,42 @@ import { getUserAchievements } from "../services/progressService";
 const AVATAR_OPTIONS = ["😀", "😎", "🤔", "😂", "🥳", "🤯", "😇", "😴", "🤩"];
 const REMINDER_IDENTIFIER = "lesson-demo-reminder";
 
+const coerceToMs = (value: any): number | null => {
+  if (!value) return null;
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    return value < 1e12 ? value * 1000 : value;
+  }
+  if (value instanceof Date) return Number.isFinite(value.getTime()) ? value.getTime() : null;
+  if (typeof value === "string") {
+    const ms = new Date(value).getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value === "object") {
+    if (typeof (value as any).toDate === "function") {
+      const date = (value as any).toDate();
+      return date instanceof Date && Number.isFinite(date.getTime()) ? date.getTime() : null;
+    }
+    if (typeof (value as any).seconds === "number") return (value as any).seconds * 1000;
+    if (typeof (value as any)._seconds === "number") return (value as any)._seconds * 1000;
+  }
+  return null;
+};
+
+const formatRemainingTime = (msRemaining: number) => {
+  const totalSeconds = Math.max(0, Math.floor(msRemaining / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  if (hours > 0) return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+};
+
 
 const ProfileScreen = () => {
   const { width } = Dimensions.get("window");
   const [userData, setUserData] = useState<any>(null);
+  const [nowMs, setNowMs] = useState(() => Date.now());
   const [achievementData, setAchievementData] = useState<any>({
     achievements: {},
     courses: [],
@@ -49,6 +81,18 @@ const ProfileScreen = () => {
 
   useFocusEffect(
     useCallback(() => {
+      let unsubscribe: null | (() => void) = null;
+
+      const user = auth.currentUser;
+      if (user) {
+        const userDocRef = doc(db, "users", user.uid);
+        unsubscribe = onSnapshot(userDocRef, (snapshot) => {
+          if (snapshot.exists()) {
+            setUserData(snapshot.data());
+          }
+        });
+      }
+
       const fetchData = async () => {
         const currentUserData = await getUserData();
         if (currentUserData) {
@@ -63,8 +107,39 @@ const ProfileScreen = () => {
       };
   
       fetchData();
+
+      return () => {
+        if (unsubscribe) unsubscribe();
+      };
     }, [])
   );
+
+  const tripleXpUntilKey = (userData as any)?.tripleXpUntil ?? null;
+  const doubleXpUntilKey = (userData as any)?.doubleXpUntil ?? null;
+  const lastDoubleAppliedKey = (userData as any)?.lastDoubleXpAppliedAt ?? null;
+
+  useEffect(() => {
+    const tripleUntilMs = coerceToMs(userData?.tripleXpUntil);
+    const doubleUntilMs = coerceToMs((userData as any)?.doubleXpUntil);
+    const lastDoubleMs = coerceToMs((userData as any)?.lastDoubleXpAppliedAt);
+    const now = Date.now();
+    const shouldTick =
+      (tripleUntilMs !== null && tripleUntilMs > now) ||
+      (doubleUntilMs !== null && doubleUntilMs > now) ||
+      (lastDoubleMs !== null && now - lastDoubleMs < 10 * 60 * 1000);
+
+    if (!shouldTick) return;
+
+    const interval = setInterval(() => {
+      const tickNow = Date.now();
+      setNowMs(tickNow);
+      const tripleExpired = tripleUntilMs !== null ? tickNow >= tripleUntilMs : true;
+      const doubleExpired = doubleUntilMs !== null ? tickNow >= doubleUntilMs : true;
+      const recentExpired = lastDoubleMs !== null ? tickNow - lastDoubleMs >= 10 * 60 * 1000 : true;
+      if (tripleExpired && doubleExpired && recentExpired) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [tripleXpUntilKey, doubleXpUntilKey, lastDoubleAppliedKey]);
 
   useEffect(() => {
     let mounted = true;
@@ -143,6 +218,54 @@ const ProfileScreen = () => {
     setAvatarModalVisible(false);
   };
 
+  const tripleXpUntilMs = coerceToMs(userData?.tripleXpUntil);
+  const tripleActive = tripleXpUntilMs !== null && tripleXpUntilMs > nowMs;
+  const tripleMultiplier =
+    tripleActive && typeof userData?.tripleXpMultiplier === "number" ? userData.tripleXpMultiplier : 3;
+  const tripleRemainingLabel =
+    tripleActive && tripleXpUntilMs !== null ? formatRemainingTime(tripleXpUntilMs - nowMs) : null;
+
+  const doubleUntilMs = coerceToMs((userData as any)?.doubleXpUntil);
+  const doubleTimeActive = doubleUntilMs !== null && doubleUntilMs > nowMs;
+  const doubleTimeRemainingLabel =
+    doubleTimeActive && doubleUntilMs !== null ? formatRemainingTime(doubleUntilMs - nowMs) : null;
+  const doubleMultiplierFromDoc =
+    typeof (userData as any)?.doubleXpMultiplier === "number" ? (userData as any).doubleXpMultiplier : 2;
+
+  const doubleXpChargesRaw = (userData as any)?.doubleXpCharges ?? (userData as any)?.doubleXPCharges;
+  const doubleXpChargesNumber = typeof doubleXpChargesRaw === "string" ? Number(doubleXpChargesRaw) : doubleXpChargesRaw;
+  const doubleXpCharges =
+    typeof doubleXpChargesNumber === "number" && Number.isFinite(doubleXpChargesNumber)
+      ? Math.max(0, Math.floor(doubleXpChargesNumber))
+      : 0;
+  const doubleActive = doubleTimeActive || doubleXpCharges > 0;
+
+  const doubleMultiplier = doubleActive ? doubleMultiplierFromDoc : 1;
+  const potionMultiplier = doubleMultiplier * (tripleActive ? tripleMultiplier : 1);
+  const potionValueLabel = potionMultiplier > 1 ? `x${potionMultiplier}` : "--";
+  const lastDoubleAppliedMs = coerceToMs((userData as any)?.lastDoubleXpAppliedAt);
+  const recentDoubleLabel =
+    lastDoubleAppliedMs !== null && nowMs - lastDoubleAppliedMs >= 0 && nowMs - lastDoubleAppliedMs < 10 * 60 * 1000
+      ? `ÚLTIMO x2 • há ${formatRemainingTime(nowMs - lastDoubleAppliedMs)}`
+      : null;
+
+  const potionParts: string[] = [];
+  if (doubleTimeActive && doubleTimeRemainingLabel) {
+    potionParts.push(`x${doubleMultiplier} ${doubleTimeRemainingLabel}`);
+  } else if (doubleXpCharges > 0) {
+    potionParts.push(`x2 ${doubleXpCharges} lição(ões)`);
+  }
+  if (tripleActive && tripleRemainingLabel) {
+    potionParts.push(`x${tripleMultiplier} ${tripleRemainingLabel}`);
+  }
+
+  const potionDetailLabel =
+    potionParts.length > 0 ? `POÇÃO • ${potionParts.join(" • ")}` : recentDoubleLabel ?? "SEM POÇÃO";
+
+  const statBoxSize = Math.min(120, Math.max(88, Math.floor(width * 0.28)));
+  const statValueFontSize = Math.min(28, Math.max(18, Math.floor(width * 0.06)));
+  const statLabelFontSize = Math.min(12, Math.max(10, Math.floor(width * 0.03)));
+
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView>
@@ -159,13 +282,52 @@ const ProfileScreen = () => {
                 <Text style={[styles.titulo]}>{userData ? userData.nome : "Carregando..."}</Text>
           </View>
           <View style={{flexDirection:"row", justifyContent:"space-between", alignItems:"center", width:"100%"}}>
-              <View style={[styles.caixaPerfil,{ alignSelf:"flex-start",width:"47%", height:"100%" }]}>
-                <Text style={[styles.titulo, {  marginBottom:0, fontSize: width*0.101 }]}>{userData ? userData.xp : 0} XP</Text>
-                </View>
+              <View
+                style={[
+                  styles.caixaPerfil,
+                  { width: statBoxSize, height: statBoxSize, justifyContent: "center", alignItems: "center" },
+                ]}
+              >
+                <Text style={[styles.titulo, { marginBottom: 0, fontSize: statValueFontSize }]}>
+                  {userData ? userData.xp : 0}
+                </Text>
+                <Text style={[styles.textoBotao, { color: colors.text, fontSize: statLabelFontSize, marginTop: 2 }]}>
+                  XP
+                </Text>
+              </View>
 
-                <View style={[styles.caixaPerfil,{ alignSelf:"flex-end",width:"47%",height:"100%" }]}>
-                <Text style={[styles.titulo, {  marginBottom:0, fontSize: width*0.101  }]}>{userData ? userData.ofensiva : 0} DIAS</Text>
-                </View>
+              <View
+                style={[
+                  styles.caixaPerfil,
+                  { width: statBoxSize, height: statBoxSize, justifyContent: "center", alignItems: "center" },
+                ]}
+              >
+                <Text style={[styles.titulo, { marginBottom: 0, fontSize: statValueFontSize }]}>
+                  {potionValueLabel}
+                </Text>
+                <Text
+                  style={[
+                    styles.textoBotao,
+                    { color: colors.text, fontSize: statLabelFontSize, marginTop: 2, opacity: 0.9 },
+                  ]}
+                >
+                  {potionDetailLabel}
+                </Text>
+              </View>
+
+              <View
+                style={[
+                  styles.caixaPerfil,
+                  { width: statBoxSize, height: statBoxSize, justifyContent: "center", alignItems: "center" },
+                ]}
+              >
+                <Text style={[styles.titulo, { marginBottom: 0, fontSize: statValueFontSize }]}>
+                  {userData ? userData.ofensiva : 0}
+                </Text>
+                <Text style={[styles.textoBotao, { color: colors.text, fontSize: statLabelFontSize, marginTop: 2 }]}>
+                  DIAS
+                </Text>
+              </View>
 
                 </View>
                 <View style={[styles.caixaPerfil, {height:85}]}>
