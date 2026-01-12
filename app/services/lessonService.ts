@@ -1,4 +1,5 @@
-import { collection, doc, getDoc, getDocs } from "firebase/firestore";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { collection, deleteDoc, doc, getDoc, getDocs, increment, setDoc } from "firebase/firestore";
 import { ImageSourcePropType } from "react-native";
 import { db } from "../firebaseConfig.js";
 import { LessonCard, SequenceOption } from "../types/lesson";
@@ -271,6 +272,17 @@ export const fetchCourseModules = async (
       });
     });
 
+    // Adiciona o módulo de Revisão (Cards) antes do reset
+    sortedModules.push({
+      id: "review-cards",
+      title: "Revisão",
+      color: "#8b5cf6", // Roxo para destaque
+      icon: "book",
+      order: 99998,
+      stageCount: 1,
+      topic: "Extra",
+    });
+
     // Adiciona a opção de reiniciar curso ao final da lista
     sortedModules.push({
       id: "reset-course-action",
@@ -286,6 +298,45 @@ export const fetchCourseModules = async (
   } catch (error) {
     console.error(`Error fetching modules for course ${courseId}:`, error);
     return []; // Return empty array on error
+  }
+};
+
+export const resetCourseProgress = async (userId: string, courseId: string) => {
+  try {
+    const userRef = doc(db, "users", userId);
+
+    // 1. Bônus: 200 XP + 200 Safiras
+    // Usamos setDoc com merge para garantir a atualização mesmo se campos faltarem
+    await setDoc(userRef, {
+      xp: increment(200),
+      safiras: increment(200),
+    }, { merge: true });
+
+    // 2. Resetar progresso local da introdução (Cards)
+    await AsyncStorage.removeItem(`fastaid:rcpIntroPart1:${userId}`);
+
+    // 3. Resetar progresso dos módulos no Firestore (Tentativa em múltiplos locais)
+    
+    // Local A: Coleção raiz 'progress' (Compatível com a regra: match /progress/{progressId})
+    try {
+      const progressRootRef = doc(db, "progress", `${userId}_${courseId}`);
+      await deleteDoc(progressRootRef);
+    } catch (e) {
+      console.log("Info: Não foi possível deletar de 'progress' (pode não existir):", e);
+    }
+
+    // Local B: Subcoleção 'course_progress' dentro de users
+    try {
+      const progressSubRef = doc(db, "users", userId, "course_progress", courseId);
+      await deleteDoc(progressSubRef);
+    } catch (e) {
+      console.log("Info: Não foi possível deletar de 'users/.../course_progress' (provável falta de permissão delete):", e);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error resetting course:", error);
+    return false;
   }
 };
 

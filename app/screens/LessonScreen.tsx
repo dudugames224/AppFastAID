@@ -18,6 +18,7 @@ import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
 import {
   fetchCourseModules,
   fetchModuleLessons,
+  resetCourseProgress,
 } from "../services/lessonService";
 import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
 import { getModuleStages, markModuleStage } from "../services/progressService";
@@ -224,6 +225,38 @@ const LessonScreen = () => {
     const loadLessons = async () => {
       setIsLoadingLessons(true);
       try {
+        // Lógica para o botão de Reiniciar Curso
+        if (paramsModuleId === "reset-course-action") {
+          const user = auth.currentUser;
+          if (user) {
+            const success = await resetCourseProgress(user.uid, courseId);
+            if (success) {
+              Alert.alert("Curso Reiniciado", "O progresso foi zerado e você ganhou 200 XP e 200 Safiras!", [
+                { text: "OK", onPress: () => router.back() }
+              ]);
+            } else {
+              Alert.alert("Erro", "Não foi possível reiniciar o curso. Verifique suas permissões ou conexão.");
+              router.back();
+            }
+          } else {
+            router.back();
+          }
+          setIsLoadingLessons(false);
+          return;
+        }
+
+        // Lógica para o módulo de Revisão (Cards)
+        if (paramsModuleId === "review-cards") {
+          // Marca como concluído para liberar o próximo (Reset)
+          await markModuleStage(courseId, "review-cards", 1);
+
+          router.replace({
+            pathname: "/screens/RCPIntroScreen",
+            params: { courseId, moduleId: "review-cards" }
+          });
+          return;
+        }
+
         let deck: any[] = [];
         if (isPracticeMode) {
           const modules = await fetchCourseModules(courseId);
