@@ -1,8 +1,9 @@
 import { collection, doc, getDoc, getDocs } from "firebase/firestore";
 import { ImageSourcePropType } from "react-native";
-import { offlineCourseModules } from "../data/offlineModules";
 import { db } from "../firebaseConfig.js";
 import { LessonCard, SequenceOption } from "../types/lesson";
+
+// --- HELPERS ----------------
 
 const courseCollectionMap: Record<string, string> = {
   burns: "queimaduras",
@@ -48,56 +49,27 @@ const iconMap: Record<string, ImageSourcePropType> = {
   choking: require("../../assets/images/engasgo.png"),
 };
 
-const rcpImageMap: Record<number, ImageSourcePropType> = {
-  1: require("../../assets/RCP/1.png"),
-  2: require("../../assets/RCP/2.png"),
-  3: require("../../assets/RCP/3.png"),
-  4: require("../../assets/RCP/4.png"),
-  5: require("../../assets/RCP/5.png"),
-  6: require("../../assets/RCP/6.png"),
-  7: require("../../assets/RCP/7.png"),
-  8: require("../../assets/RCP/8.png"),
-  9: require("../../assets/RCP/9.png"),
-  10: require("../../assets/RCP/10.png"),
-  11: require("../../assets/RCP/11.png"),
-  12: require("../../assets/RCP/12.png"),
-  13: require("../../assets/RCP/13.png"),
-  14: require("../../assets/RCP/14.png"),
-  15: require("../../assets/RCP/15.png"),
-  16: require("../../assets/RCP/16.png"),
-  17: require("../../assets/RCP/17.png"),
-  18: require("../../assets/RCP/18.png"),
-  19: require("../../assets/RCP/19.png"),
-  20: require("../../assets/RCP/20.png"),
-  21: require("../../assets/RCP/21.png"),
-};
+// --- TYPES -------------------
 
-const resolveSequenceImage = (
-  value: unknown
-): ImageSourcePropType | undefined => {
-  if (!value) return undefined;
-  if (typeof value === "number") {
-    return value;
-  }
-  if (typeof value === "object" && value !== null && "uri" in value) {
-    return value as ImageSourcePropType;
-  }
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return undefined;
-    if (/^https?:\/\//i.test(trimmed)) {
-      return { uri: trimmed };
-    }
-    const rcpMatch =
-      trimmed.match(/(?:^|[\\/])RCP[\\/](\d+)(?:\.\w+)?$/i) ??
-      trimmed.match(/(?:^|[\\/])(\d+)(?:\.\w+)?$/i);
-    if (rcpMatch) {
-      const index = Number(rcpMatch[1]);
-      return rcpImageMap[index];
-    }
-  }
-  return undefined;
-};
+export interface RemoteCourseMeta {
+  id: string;
+  title: string;
+  color: string;
+  iconSource: ImageSourcePropType;
+}
+
+export interface RemoteModule {
+  id: string;
+  title: string;
+  color?: string;
+  icon?: string;
+  lessons?: any; // Raw lessons from DB
+  order?: number | string;
+  stageCount?: number;
+  topic?: string;
+}
+
+// --- NORMALIZATION ----------------
 
 const normalizeSequenceOptions = (raw: any[] = []): SequenceOption[] => {
   return raw.map((opt, index) => {
@@ -116,22 +88,56 @@ const normalizeSequenceOptions = (raw: any[] = []): SequenceOption[] => {
         : typeof opt?.text === "string"
         ? opt.text
         : `Passo ${index + 1}`;
-    return { id, label, image: resolveSequenceImage(opt?.image) };
+    return { id, label };
   });
 };
 
-const normalizeLessonPayload = (payload: unknown): LessonCard[] => {
-  if (!Array.isArray(payload)) {
+// Takes a flat array of question-like objects and returns LessonCard[]
+const normalizeLessonPayload = (
+  questions: unknown,
+  lessonType?: string,
+): LessonCard[] => {
+  if (!Array.isArray(questions)) {
     return [];
   }
 
-  return payload
-    .flatMap((entry) => (Array.isArray(entry) ? entry : [entry]))
+  const mappedQuestions: any[] = questions.map((q: any) => {
+    // Each question object from the DB needs a `type`.
+    // If it doesn't have one, we use the parent lesson's type.
+    // We also convert the DB's "quiz" type to our internal "mcq" type.
+    let cardType = q.type;
+    if (!cardType) {
+      cardType = lessonType === "quiz" ? "mcq" : lessonType;
+    }
+    
+    if (cardType === "quiz") {
+      cardType = "mcq";
+    }
+
+    // Fallback: Tenta inferir o tipo se ainda estiver indefinido
+    if (!cardType) {
+      if (Array.isArray(q.options) && (q.question || q.pergunta)) {
+        cardType = "mcq";
+      } else if (q.title && q.text) {
+        cardType = "info";
+      }
+    }
+
+    return {
+      ...q,
+      type: cardType,
+      correctFeedback: q.FeedbackCorreto || q.correctFeedback || q.feedbackCorreto,
+      incorrectFeedback: q.FeedbackIncorreto || q.incorrectFeedback || q.feedbackIncorreto,
+      question: q.question || q.pergunta,
+    };
+  });
+
+  return mappedQuestions
     .filter(
       (card): card is LessonCard =>
         !!card &&
         typeof card === "object" &&
-        (card as LessonCard).type !== undefined
+        (card as LessonCard).type !== undefined,
     )
     .map((card: any) => {
       if (card.type === "sequence") {
@@ -148,35 +154,23 @@ const normalizeLessonPayload = (payload: unknown): LessonCard[] => {
           if (typeof item === "string") return item;
           return orderOptions[index]?.id ?? `seq-${index}`;
         });
-        return {
-          ...card,
-          orderOptions,
-          correctOrder,
-        };
+        return { ...card, orderOptions, correctOrder };
       }
-
-      const safeOptions = Array.isArray(card.options) ? card.options : undefined;
       return {
         ...card,
-        options: safeOptions,
+        options: Array.isArray(card.options) ? card.options : undefined,
       };
     });
 };
 
-const getOfflineModules = (collectionName: string): RemoteModule[] => {
-  const offline = offlineCourseModules[collectionName] || [];
-  return offline.map((module) => ({
-    ...module,
-    lessons: normalizeLessonPayload(module.lessons),
-  }));
-};
+// --- DATA FETCHING -----------------
 
 const resolveCourseCollection = (courseId: string) =>
   courseCollectionMap[courseId] ?? courseId;
 
 const resolveIconSource = (
   iconValue: unknown,
-  courseId?: string
+  courseId?: string,
 ): ImageSourcePropType => {
   if (typeof iconValue === "number") {
     return iconValue;
@@ -199,24 +193,6 @@ const resolveIconSource = (
   return require("../../assets/images/band.png");
 };
 
-export interface RemoteCourseMeta {
-  id: string;
-  title: string;
-  color: string;
-  iconSource: ImageSourcePropType;
-}
-
-export interface RemoteModule {
-  id: string;
-  title: string;
-  color?: string;
-  icon?: string;
-  lessons?: LessonCard[];
-  order?: number;
-  stageCount?: number;
-  topic?: string;
-}
-
 export const fetchCoursesMeta = async (): Promise<RemoteCourseMeta[]> => {
   try {
     const snapshot = await getDocs(collection(db, "DadosCurso"));
@@ -230,13 +206,13 @@ export const fetchCoursesMeta = async (): Promise<RemoteCourseMeta[]> => {
       };
     });
   } catch (error) {
-    console.warn("Não foi possível carregar os cursos:", error);
+    console.error("Failed to load courses:", error);
     return [];
   }
 };
 
 export const fetchCourseModules = async (
-  courseId: string
+  courseId: string,
 ): Promise<RemoteModule[]> => {
   const collectionName = resolveCourseCollection(courseId);
   try {
@@ -244,12 +220,20 @@ export const fetchCourseModules = async (
     const modules = modulesSnapshot.docs.map((docSnap) => {
       const data = docSnap.data() || {};
       const baseColor = courseColorMap[collectionName] ?? "#5D9CFB";
-      const defaultStageCount =
-        typeof data.stageCount === "number"
-          ? data.stageCount
-          : collectionName === "primeirosSocorros"
-          ? 3
-          : 1;
+
+      let lessons = data.lessons || data.questions;
+      // Garante que lessons seja um array (caso venha como objeto do Firestore)
+      if (lessons && !Array.isArray(lessons) && typeof lessons === "object") {
+        lessons = Object.values(lessons);
+      }
+
+      let stageCount = typeof data.stageCount === "number" ? data.stageCount : 1;
+      
+      // Se for estrutura de volumes (array onde o primeiro item tem 'questions')
+      if (Array.isArray(lessons) && lessons.length > 0 && lessons[0]?.questions) {
+        stageCount = lessons.length;
+      }
+
       const topic = pickFirstString(
         data.topic,
         data.topico,
@@ -259,99 +243,152 @@ export const fetchCourseModules = async (
         data.group,
         data.groupTitle,
         data.unit,
-        data.unitTitle
+        data.unitTitle,
       );
+
       return {
         id: docSnap.id,
         title: data.title || docSnap.id,
         color: baseColor,
         icon: data.icon,
         order: data.order ?? docSnap.id,
-        lessons: normalizeLessonPayload(data.lessons),
-        stageCount: defaultStageCount,
+        stageCount,
         topic,
       };
     });
 
-    const offline = getOfflineModules(collectionName);
-    const merged: RemoteModule[] = [...modules];
-
-    offline.forEach((offlineModule) => {
-      const existingIndex = merged.findIndex((m) => m.id === offlineModule.id);
-      if (existingIndex === -1) {
-        merged.push({
-          ...offlineModule,
-          stageCount:
-            typeof offlineModule.stageCount === "number"
-              ? offlineModule.stageCount
-              : collectionName === "primeirosSocorros"
-              ? 3
-              : 1,
-        });
-        return;
+    const sortedModules = modules.sort((a, b) => {
+      const orderA = a.order ?? a.id;
+      const orderB = b.order ?? b.id;
+      if (typeof orderA === "string" && typeof orderB === "string") {
+        return orderA.localeCompare(orderB, undefined, { numeric: true });
       }
-      const existing = merged[existingIndex];
-      merged[existingIndex] = {
-        ...offlineModule,
-        ...existing,
-        lessons: existing.lessons?.length ? existing.lessons : offlineModule.lessons,
-        stageCount:
-          typeof existing.stageCount === "number"
-            ? existing.stageCount
-            : typeof offlineModule.stageCount === "number"
-            ? offlineModule.stageCount
-            : collectionName === "primeirosSocorros"
-            ? 3
-            : 1,
-      };
+      if (typeof orderA === "number" && typeof orderB === "number") {
+        return orderA - orderB;
+      }
+      return String(orderA).localeCompare(String(orderB), undefined, {
+        numeric: true,
+      });
     });
 
-    return merged.sort((a, b) => {
-      const orderA = a.order ?? a.id;
-      const orderB = b.order ?? b.id;
-      return orderA > orderB ? 1 : orderA < orderB ? -1 : 0;
+    // Adiciona a opção de reiniciar curso ao final da lista
+    sortedModules.push({
+      id: "reset-course-action",
+      title: "Reiniciar Curso",
+      color: "#64748b", // Cinza para diferenciar dos módulos normais
+      icon: "refresh",
+      order: 99999,
+      stageCount: 0,
+      topic: "Gerenciar",
     });
+
+    return sortedModules;
   } catch (error) {
-    console.warn(
-      `Não foi possível carregar os módulos do curso ${courseId}:`,
-      error
-    );
-    const offline = getOfflineModules(collectionName);
-    return offline.sort((a, b) => {
-      const orderA = a.order ?? a.id;
-      const orderB = b.order ?? b.id;
-      return orderA > orderB ? 1 : orderA < orderB ? -1 : 0;
-    });
+    console.error(`Error fetching modules for course ${courseId}:`, error);
+    return []; // Return empty array on error
   }
 };
 
 export const fetchModuleLessons = async (
   courseId: string,
-  moduleId: string
+  moduleId: string,
+  stageIndex: number | string = 0,
 ): Promise<LessonCard[]> => {
-  const collectionName = resolveCourseCollection(courseId);
+  let collectionName = resolveCourseCollection(courseId);
   try {
-    const moduleRef = doc(db, collectionName, moduleId);
-    const snapshot = await getDoc(moduleRef);
-    if (!snapshot.exists()) {
-      const offline = getOfflineModules(collectionName);
-      const offlineModule = offline?.find((m) => m.id === moduleId);
-      return offlineModule?.lessons ?? [];
-    }
-    const data = snapshot.data();
-    const normalized = normalizeLessonPayload(data.lessons);
-    if (normalized.length) return normalized;
+    let moduleRef = doc(db, collectionName, moduleId);
+    let snapshot = await getDoc(moduleRef);
 
-    const offline = getOfflineModules(collectionName);
-    const offlineModule = offline?.find((m) => m.id === moduleId);
-    return offlineModule?.lessons ?? [];
-  } catch (error) {
+    // Fallback: Se não encontrar na coleção mapeada, tenta na coleção com o ID do curso original
+    if (!snapshot.exists() && collectionName !== courseId) {
+      collectionName = courseId;
+      moduleRef = doc(db, collectionName, moduleId);
+      snapshot = await getDoc(moduleRef);
+    }
+
+    if (snapshot.exists()) {
+      const data = snapshot.data();
+      console.log(`[FastAid] Módulo carregado: ${moduleId}`, data); // Log para debug
+
+      // Garante leitura de 'lessons' ou 'questions' (caso a estrutura esteja plana na raiz)
+      let lessons = data.lessons || data.questions;
+
+      // Converte objeto para array se necessário (correção para importações do Firestore)
+      if (lessons && !Array.isArray(lessons) && typeof lessons === "object") {
+        lessons = Object.values(lessons);
+      }
+
+      if (!Array.isArray(lessons)) {
+        console.warn(`[FastAid] 'lessons' não é um array no módulo ${moduleId}`);
+        return [];
+      }
+
+      // Verifica se é estrutura de volumes (baseado no primeiro item)
+      const isVolumeStructure = lessons.length > 0 && Array.isArray(lessons[0]?.questions);
+
+      if (isVolumeStructure) {
+        // Ordena volumes para garantir sequência (volume1, volume2...) caso venha desordenado
+        lessons.sort((a: any, b: any) => {
+          const valA = a.order ?? a.id ?? "";
+          const valB = b.order ?? b.id ?? "";
+          if (typeof valA === "number" && typeof valB === "number") return valA - valB;
+          return String(valA).localeCompare(String(valB), undefined, { numeric: true });
+        });
+      }
+
+      let idx = 0;
+      if (typeof stageIndex === "number") {
+        idx = stageIndex;
+      } else if (typeof stageIndex === "string") {
+        if (!isNaN(Number(stageIndex))) {
+          idx = Number(stageIndex);
+        } else {
+          // Tenta encontrar pelo ID (ex: "volume2")
+          const found = lessons.findIndex((l: any) => l.id === stageIndex);
+          if (found !== -1) idx = found;
+        }
+      }
+
+      console.log(`[FastAid] Carregando estágio índice: ${idx} (Original: ${stageIndex})`);
+
+      if (isVolumeStructure) {
+        // Proteção: Se o índice for maior que a quantidade de volumes, volta para o primeiro (0)
+        // Garante que ao "refazer" (índice >= total), o usuário comece do primeiro volume.
+        if (idx < 0 || idx >= lessons.length) {
+          console.log(`[FastAid] Índice ${idx} excede total de volumes. Reiniciando do Volume 1 (Refazer).`);
+          idx = 0;
+        }
+
+        if (idx >= 0 && idx < lessons.length) {
+          const targetStage = lessons[idx];
+          if (targetStage && Array.isArray(targetStage.questions)) {
+            const cards = normalizeLessonPayload(targetStage.questions, targetStage.type);
+            // Adiciona tela de introdução com o título do volume
+            if (targetStage.title) {
+              const introCard: any = {
+                id: `intro-${targetStage.id || idx}`,
+                type: "info",
+                title: targetStage.title,
+                text: "Prepare-se para começar este volume.",
+              };
+              return [introCard, ...cards];
+            }
+            return cards;
+          }
+        }
+      }
+
+      // 3. Fallback: Estrutura Plana (array direto de perguntas)
+      console.log(`[FastAid] Assumindo estrutura plana de perguntas.`);
+      return normalizeLessonPayload(lessons, data.type);
+    }
+
     console.warn(
-      `Não foi possível buscar as lições do módulo ${moduleId}:`,
-      error
+      `Module '${moduleId}' not found in course '${collectionName}' (or '${courseId}').`,
     );
-    const offline = getOfflineModules(collectionName);
-    const offlineModule = offline?.find((m) => m.id === moduleId);
-    return offlineModule?.lessons ?? [];
+    return []; // Nothing found
+  } catch (error) {
+    console.error(`Error fetching lessons for module ${moduleId}:`, error);
+    return []; // Return empty array on error
   }
 };

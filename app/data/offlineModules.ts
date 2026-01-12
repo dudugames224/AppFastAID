@@ -942,22 +942,22 @@ export const offlineCourseModules: OfflineModulesMap = {
             {
               id: "rcp-posiciona-maos",
               label: "Posicione as mãos no centro",
-              image: require("../../assets/RCP/5.png"),
+              image: require("../../assets/rcp/cards/5.png"),
             },
             {
               id: "rcp-30-compressao",
               label: "30 compressões 100-120/min",
-              image: require("../../assets/RCP/7.png"),
+              image: require("../../assets/rcp/cards/7.png"),
             },
             {
               id: "rcp-abrir-via-aerea",
               label: "Abra vias aéreas",
-              image: require("../../assets/RCP/9.png"),
+              image: require("../../assets/rcp/cards/9.png"),
             },
             {
               id: "rcp-2-ventilacao",
               label: "2 ventilações eficazes",
-              image: require("../../assets/RCP/10.png"),
+              image: require("../../assets/rcp/cards/10.png"),
             },
           ],
           correctOrder: [

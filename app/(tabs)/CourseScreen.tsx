@@ -200,7 +200,7 @@ const CourseScreen: React.FC = () => {
   function startModule(module: RemoteModule, index: number) {
     if (!selectedCourseId) return;
     void AsyncStorage.setItem(LAST_COURSE_KEY, selectedCourseId).catch(() => {});
-    if (isFirstAidCourse && index === 0) {
+        if (isFirstAidCourse && /rcp|pcr/i.test(module.title)) {
       router.push({
         pathname: "/screens/RCPIntroScreen",
         params: {

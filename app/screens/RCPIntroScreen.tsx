@@ -1,4 +1,6 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
+
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
@@ -11,31 +13,30 @@ import {
   View,
 } from "react-native";
 import { useTheme } from "../context/ThemeContext";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { auth } from "../firebaseConfig";
 
 const cardSources = [
-  require("../../assets/RCP/1.png"),
-  require("../../assets/RCP/2.png"),
-  require("../../assets/RCP/3.png"),
-  require("../../assets/RCP/4.png"),
-  require("../../assets/RCP/5.png"),
-  require("../../assets/RCP/6.png"),
-  require("../../assets/RCP/7.png"),
-  require("../../assets/RCP/8.png"),
-  require("../../assets/RCP/9.png"),
-  require("../../assets/RCP/10.png"),
-  require("../../assets/RCP/11.png"),
-  require("../../assets/RCP/12.png"),
-  require("../../assets/RCP/13.png"),
-  require("../../assets/RCP/14.png"),
-  require("../../assets/RCP/15.png"),
-  require("../../assets/RCP/16.png"),
-  require("../../assets/RCP/17.png"),
-  require("../../assets/RCP/18.png"),
-  require("../../assets/RCP/19.png"),
-  require("../../assets/RCP/20.png"),
-  require("../../assets/RCP/21.png"),
+  require("../../assets/rcp/cards/1.png"),
+  require("../../assets/rcp/cards/2.png"),
+  require("../../assets/rcp/cards/3.png"),
+  require("../../assets/rcp/cards/4.png"),
+  require("../../assets/rcp/cards/5.png"),
+  require("../../assets/rcp/cards/6.png"),
+  require("../../assets/rcp/cards/7.png"),
+  require("../../assets/rcp/cards/8.png"),
+  require("../../assets/rcp/cards/9.png"),
+  require("../../assets/rcp/cards/10.png"),
+  require("../../assets/rcp/cards/11.png"),
+  require("../../assets/rcp/cards/12.png"),
+  require("../../assets/rcp/cards/13.png"),
+  require("../../assets/rcp/cards/14.png"),
+  require("../../assets/rcp/cards/15.png"),
+  require("../../assets/rcp/cards/16.png"),
+  require("../../assets/rcp/cards/17.png"),
+  require("../../assets/rcp/cards/18.png"),
+  require("../../assets/rcp/cards/19.png"),
+  require("../../assets/rcp/cards/20.png"),
+  require("../../assets/rcp/cards/21.png"),
 ];
 
 const RCPIntroScreen = () => {

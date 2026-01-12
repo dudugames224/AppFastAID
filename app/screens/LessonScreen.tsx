@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -14,14 +15,13 @@ import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context"
 import { HeartIcon, XIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   fetchCourseModules,
   fetchModuleLessons,
 } from "../services/lessonService";
-import { markModuleStage } from "../services/progressService";
-import { LessonCard } from "../types/lesson";
 import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
+import { getModuleStages, markModuleStage } from "../services/progressService";
+import { LessonCard } from "../types/lesson";
 
 const demoLesson: LessonCard[] = [
   {
@@ -71,6 +71,70 @@ const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
 };
 
 const fallbackCourseId = "burns";
+
+const lessonImages: Record<string, any> = {
+  "respirar_fundo.png": require("../../assets/rcp/icons/respirar_fundo.png"),
+  "seguranca_cena.png": require("../../assets/rcp/icons/seguranca_cena.png"),
+  "checar_consciencia.png": require("../../assets/rcp/icons/checar_consciencia.png"),
+  "afastar_curiosos.png": require("../../assets/rcp/icons/afastar_curiosos.png"),
+  "sinalizacao_transito.png": require("../../assets/rcp/icons/sinalizacao_transito.png"),
+  // Descomente as linhas abaixo conforme for adicionando as imagens na pasta assets/rcp/icons/
+  // "ligar_192.png": require("../../assets/rcp/icons/ligar_192.png"),
+  // "pedir_ajuda_terceiro.png": require("../../assets/rcp/icons/pedir_ajuda_terceiro.png"),
+  // "informacoes_192.png": require("../../assets/rcp/icons/informacoes_192.png"),
+  // "telefone_emergencia.png": require("../../assets/rcp/icons/telefone_emergencia.png"),
+  // "buscar_dea.png": require("../../assets/rcp/icons/buscar_dea.png"),
+  // "olhar_torax.png": require("../../assets/rcp/icons/olhar_torax.png"),
+  // "gasping.png": require("../../assets/rcp/icons/gasping.png"),
+  // "sinal_pcr.png": require("../../assets/rcp/icons/sinal_pcr.png"),
+  // "movimento_gasping.png": require("../../assets/rcp/icons/movimento_gasping.png"),
+  // "inicio_rcp.png": require("../../assets/rcp/icons/inicio_rcp.png"),
+  // "superficie_plana.png": require("../../assets/rcp/icons/superficie_plana.png"),
+  // "posicao_maos_centro.png": require("../../assets/rcp/icons/posicao_maos_centro.png"),
+  // "dedos_entrelacados.png": require("../../assets/rcp/icons/dedos_entrelacados.png"),
+  // "calcanhar_mao.png": require("../../assets/rcp/icons/calcanhar_mao.png"),
+  // "posicao_socorrista.png": require("../../assets/rcp/icons/posicao_socorrista.png"),
+  // "bracos_esticados.png": require("../../assets/rcp/icons/bracos_esticados.png"),
+  // "forca_tronco.png": require("../../assets/rcp/icons/forca_tronco.png"),
+  // "profundidade_compressao.png": require("../../assets/rcp/icons/profundidade_compressao.png"),
+  // "retorno_torax.png": require("../../assets/rcp/icons/retorno_torax.png"),
+  // "economia_energia.png": require("../../assets/rcp/icons/economia_energia.png"),
+  // "ritmo_compressao.png": require("../../assets/rcp/icons/ritmo_compressao.png"),
+  // "stayin_alive.png": require("../../assets/rcp/icons/stayin_alive.png"),
+  // "fluxo_sanguineo.png": require("../../assets/rcp/icons/fluxo_sanguineo.png"),
+  // "revezamento_socorristas.png": require("../../assets/rcp/icons/revezamento_socorristas.png"),
+  // "oxigenio_residual.png": require("../../assets/rcp/icons/oxigenio_residual.png"),
+  // "chegada_dea.png": require("../../assets/rcp/icons/chegada_dea.png"),
+  // "secar_torax.png": require("../../assets/rcp/icons/secar_torax.png"),
+  // "depilacao_torax.png": require("../../assets/rcp/icons/depilacao_torax.png"),
+  // "preparacao_dea.png": require("../../assets/rcp/icons/preparacao_dea.png"),
+  // "pas_adulto.png": require("../../assets/rcp/icons/pas_adulto.png"),
+  // "posicao_pas.png": require("../../assets/rcp/icons/posicao_pas.png"),
+  // "conectar_cabos.png": require("../../assets/rcp/icons/conectar_cabos.png"),
+  // "analise_ritmo.png": require("../../assets/rcp/icons/analise_ritmo.png"),
+  // "nao_tocar_vitima.png": require("../../assets/rcp/icons/nao_tocar_vitima.png"),
+  // "afastamento_seguro.png": require("../../assets/rcp/icons/afastamento_seguro.png"),
+  // "verificar_seguranca_choque.png": require("../../assets/rcp/icons/verificar_seguranca_choque.png"),
+  // "botao_choque.png": require("../../assets/rcp/icons/botao_choque.png"),
+  // "instrucoes_dea.png": require("../../assets/rcp/icons/instrucoes_dea.png"),
+  // "desfibrilacao.png": require("../../assets/rcp/icons/desfibrilacao.png"),
+  // "operador_dea.png": require("../../assets/rcp/icons/operador_dea.png"),
+  // "sinais_vida.png": require("../../assets/rcp/icons/sinais_vida.png"),
+  // "parar_compressoes.png": require("../../assets/rcp/icons/parar_compressoes.png"),
+  // "manter_dea_ligado.png": require("../../assets/rcp/icons/manter_dea_ligado.png"),
+  // "risco_aspiracao.png": require("../../assets/rcp/icons/risco_aspiracao.png"),
+  // "significado_psl.png": require("../../assets/rcp/icons/significado_psl.png"),
+  // "posicao_braco_90.png": require("../../assets/rcp/icons/posicao_braco_90.png"),
+  // "posicao_braco_cruzado.png": require("../../assets/rcp/icons/posicao_braco_cruzado.png"),
+  // "dobrar_joelho.png": require("../../assets/rcp/icons/dobrar_joelho.png"),
+  // "virar_vitima.png": require("../../assets/rcp/icons/virar_vitima.png"),
+  // "indicacao_psl.png": require("../../assets/rcp/icons/indicacao_psl.png"),
+  // "posicao_pescoco.png": require("../../assets/rcp/icons/posicao_pescoco.png"),
+  // "monitoramento_continuo.png": require("../../assets/rcp/icons/monitoramento_continuo.png"),
+  // "relato_socorrista.png": require("../../assets/rcp/icons/relato_socorrista.png"),
+  // "instrucoes_profissionais.png": require("../../assets/rcp/icons/instrucoes_profissionais.png"),
+  // "atitude_socorrista.png": require("../../assets/rcp/icons/atitude_socorrista.png"),
+};
 
 const LessonScreen = () => {
     const {  lessonstyles, colors } = useTheme();
@@ -175,15 +239,11 @@ const LessonScreen = () => {
           );
           deck = practiceOnly.length ? practiceOnly : aggregated;
         } else if (paramsModuleId) {
-          deck = await fetchModuleLessons(courseId, paramsModuleId as string);
+          const allStages = await getModuleStages(courseId);
+          const currentStageIndex = allStages[paramsModuleId] ?? 0;
+          deck = await fetchModuleLessons(courseId, paramsModuleId as string, currentStageIndex);
         }
-        const mappedDeck = deck.map(card => ({
-          ...card,
-          correctFeedback: card.FeedbackCorreto || card.correctFeedback,
-          incorrectFeedback: card.FeedbackIncorreto || card.incorrectFeedback,
-        }));
-
-        const finalDeck = mappedDeck.length ? mappedDeck : demoLesson;
+        const finalDeck = deck.length ? deck : demoLesson;
 
         const randomizedDeck = shuffleLessonCards(finalDeck);
         correctCountRef.current = 0;
@@ -215,6 +275,16 @@ const LessonScreen = () => {
 
   const feedbackAnim = useRef(new Animated.Value(200)).current;
   const currentCard = questions[currentStep];
+
+  const activeImage = useMemo(() => {
+    const img = (currentCard as any)?.image;
+    if (typeof img === "string") {
+      return lessonImages[img] || null;
+    }
+    // Se já for um require (number) ou objeto, retorna ele mesmo
+    return img || null;
+  }, [currentCard]);
+
   const isInfoCard = currentCard?.type === "info";
   const isSequenceCard = currentCard?.type === "sequence";
   const sequenceOptions = useMemo(() => {
@@ -226,21 +296,30 @@ const LessonScreen = () => {
             id: String(item ?? index),
             label: typeof item === "string" ? item : `Passo ${index + 1}`,
           }));
-    return base.map((opt, index) => ({
-      id:
-        typeof (opt as any)?.id === "string"
-          ? (opt as any).id
-          : typeof (opt as any)?.label === "string"
-          ? (opt as any).label
-          : `seq-${index}`,
-      label:
-        typeof (opt as any)?.label === "string"
-          ? (opt as any).label
-          : typeof (opt as any)?.text === "string"
-          ? (opt as any).text
-          : `Passo ${index + 1}`,
-      image: (opt as any)?.image,
-    }));
+    return base.map((opt, index) => {
+      const rawImg = (opt as any)?.image;
+      let resolvedImg = rawImg;
+      // Se for string, tenta buscar no mapa de imagens. Se não achar, retorna null para não dar erro.
+      if (typeof rawImg === "string") {
+        resolvedImg = lessonImages[rawImg] || null;
+      }
+
+      return {
+        id:
+          typeof (opt as any)?.id === "string"
+            ? (opt as any).id
+            : typeof (opt as any)?.label === "string"
+            ? (opt as any).label
+            : `seq-${index}`,
+        label:
+          typeof (opt as any)?.label === "string"
+            ? (opt as any).label
+            : typeof (opt as any)?.text === "string"
+            ? (opt as any).text
+            : `Passo ${index + 1}`,
+        image: resolvedImg,
+      };
+    });
   }, [currentCard, isSequenceCard]);
 
   useEffect(() => {
@@ -408,7 +487,7 @@ const LessonScreen = () => {
     ]);
   };
 
-  if ((lives <= 0 && !isPremium) || !currentCard) {
+  if (lives <= 0 && !isPremium) {
     return (
       <View style={lessonstyles.completionContainer}>
         <Image
@@ -422,6 +501,34 @@ const LessonScreen = () => {
         <TouchableOpacity style={lessonstyles.restartButton} onPress={handleExit}>
           <Text style={lessonstyles.restartButtonText}>Voltar</Text>
         </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!currentCard && !isLoadingLessons) {
+    return (
+      <View style={lessonstyles.completionContainer}>
+        <Image
+          source={require("../../assets/images/band_chorando.png")}
+          style={{ width: 160, height: 160 }}
+        />
+        <Text style={[lessonstyles.completionTitle, { color: "#FF4B4B" }]}>
+          Oh não!
+        </Text>
+        <Text style={lessonstyles.completionText}>
+          Não foi possível carregar as perguntas.
+        </Text>
+        <TouchableOpacity style={lessonstyles.restartButton} onPress={handleExit}>
+          <Text style={lessonstyles.restartButtonText}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  if (!currentCard) {
+    return (
+      <View style={lessonstyles.completionContainer}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
   }
@@ -467,11 +574,23 @@ const LessonScreen = () => {
           <View style={lessonstyles.card}>
           {isInfoCard ? (
             <View>
+              {activeImage && (
+                <Image
+                  source={activeImage}
+                  style={{ width: "100%", height: 150, resizeMode: "contain", marginBottom: 16 }}
+                />
+              )}
               <Text style={lessonstyles.title}>{currentCard.title}</Text>
               <Text style={lessonstyles.infoText}>{currentCard.text}</Text>
             </View>
           ) : isSequenceCard ? (
             <View>
+              {activeImage && (
+                <Image
+                  source={activeImage}
+                  style={{ width: "100%", height: 150, resizeMode: "contain", marginBottom: 16 }}
+                />
+              )}
               <Text style={lessonstyles.question}>{currentCard.question}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
                 {sequenceOptions.slice(0, 4).map((option, idx) => {
@@ -630,6 +749,12 @@ const LessonScreen = () => {
             </View>
           ) : (
             <View>
+              {activeImage && (
+                <Image
+                  source={activeImage}
+                  style={{ width: "100%", height: 150, resizeMode: "contain", marginBottom: 16 }}
+                />
+              )}
               <Text style={lessonstyles.question}>{currentCard.question}</Text>
               {currentCard.options?.map((option, index) => {
                 let optionStyle: any = [lessonstyles.optionButton];
@@ -697,6 +822,11 @@ const LessonScreen = () => {
               {isCorrect && !!currentCard.correctFeedback && (
                 <Text style={lessonstyles.infoText}>
                   {currentCard.correctFeedback}
+                </Text>
+              )}
+              {!isCorrect && !!currentCard.incorrectFeedback && (
+                <Text style={lessonstyles.infoText}>
+                  {currentCard.incorrectFeedback}
                 </Text>
               )}
               <TouchableOpacity
