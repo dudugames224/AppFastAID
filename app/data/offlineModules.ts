@@ -1349,4 +1349,206 @@ export const offlineCourseModules: OfflineModulesMap = {
       ],
     },
   ],
+  suporteBasico: [
+    {
+      id: "basicSupport-1",
+      title: "PROTOCOLO DE EMERGÊNCIA",
+      color: "#FF4B4B",
+      icon: "HeartIcon",
+      order: 1,
+      lessons: [
+        {
+          id: "volume1",
+          type: "quiz",
+          title: "Protocolo de Emergência",
+          questions: [
+            {
+              id: "lesson1_q1",
+              question: "Antes de atender a vítima, o que você deve verificar obrigatoriamente?",
+              image: "seguranca_cena.png",
+              options: [
+                "Se ela tem cartão de cidadão/identidade.",
+                "Se o local é seguro para você agir.",
+                "Se há curiosos atrapalhando.",
+                "A temperatura da pele dela."
+              ],
+              answer: 1,
+              correctFeedback: "Correto! A regra é: certifique-se de que o local é seguro para você agir e não fornece novos perigos.",
+              incorrectFeedback: "Errado. Sua segurança vem primeiro. Se você se ferir, não haverá ninguém para salvar a vítima e haverá duas pessoas precisando de ajuda."
+            },
+            {
+              id: "lesson1_q2",
+              question: "Como verificar se a vítima está responsiva (consciente)?",
+              image: "checar_consciencia.png",
+              options: [
+                "Jogando água nela.",
+                "Tocando no ombro e perguntando \"Está tudo bem?\".",
+                "Dando estalos no rosto.",
+                "Verificando o pulso."
+              ],
+              answer: 1,
+              correctFeedback: "Correto! O teste padrão é tocar seu ombro e perguntar se está tudo bem. Caso ela não responda, devemos chamar ajuda.",
+              incorrectFeedback: "Errado. Estímulos dolorosos, agressivos (tapas) ou jogar água não são indicados e podem machucar a vítima."
+            },
+            {
+              id: "lesson1_q3",
+              question: "Se está SOZINHO e a vítima não responde, o que fazer imediatamente?",
+              image: "ligar_192.png",
+              options: [
+                "Começar a massagem cardíaca.",
+                "Ligar para a emergência imediatamente.",
+                "Ir buscar um médico na rua.",
+                "Tentar acordá-la de novo."
+              ],
+              answer: 1,
+              correctFeedback: "✅ Correto! Se estiver sozinha, chame imediatamente o serviço de emergências antes de tocar na vítima novamente, a fim de que uma ambulância possa chegar o mais rápido possível.",
+              incorrectFeedback: "❌ Errado. Fazer RCP sem chamar ajuda antes (estando sozinho) impede a chegada do suporte avançado e do DEA, diminuindo a chance de sobrevivência."
+            },
+            {
+              id: "lesson1_q4",
+              question: "Qual o número da ambulância que atende esse tipo de emergência?",
+              image: "ligar.png",
+              options: [
+                "SAMU - 911.",
+                "SIATE - 193.",
+                "SAMU - 192.",
+                "SIATE - 190."
+              ],
+              answer: 2,
+              correctFeedback: "Correto! Ao encontrar uma pessoa desacordada que não responde ao chamado, devemos acionar o SAMU, ambulância responsável por emergências clínicas, por meio do número 192.",
+              incorrectFeedback: "Errado. O número do SAMU, ambulância responsável por emergências clínicas como é o caso de uma pessoa desacordada, é o 192. O número 193 é do SIATE, ambulância responsável por atender casos de acidentes ou queimaduras, por exemplo."
+            },
+            {
+              id: "lesson1_q5",
+              question: "O que fazer com observadores curiosos que se aproximam?",
+              image: "afastar_curiosos.png",
+              options: [
+                "Pedir para filmarem.",
+                "Ignorá-los.",
+                "Afastá-los para ter espaço.",
+                "Pedir dinheiro."
+              ],
+              answer: 2,
+              correctFeedback: "Correto! Observadores costumam ser curiosos e isso não te dará espaço para agir.",
+              incorrectFeedback: "Errado. A aglomeração atrapalha fisicamente a execução das manobras de socorro e pode colocar os curiosos em risco."
+            },
+            {
+              id: "lesson1_q6",
+              question: "Após chamar a ambulância, você quer ter certeza de que a vítima está em parada cardíaca antes de começar a fazer massagem cardíaca. O que é um sinal sugestivo de uma parada cardíaca?",
+              image: "inicio_rcp.png",
+              options: [
+                "Quando a vítima não está respirando, o que é identificado por seu tórax não estar subindo e descendo.",
+                "Quando a vítima está se mexendo e resmungando de dor.",
+                "Quando você não consegue sentir o coração da vítima batendo ao colocar os dedos no punho ou pescoço dela.",
+                "Quando você chamou a vítima de novo, ela abriu os olhos, mas logo fechou."
+              ],
+              answer: 0,
+              correctFeedback: "✅ Correto! Quando uma pessoa está desacordada e não responde ao chamado, é necessário verificar se ela está respirando antes de agir. Se essa pessoa não move seu tórax para cima e para baixo, isso significa que ela não está respirando e precisa ser tratada com reanimação cardiorrespiratória.",
+              incorrectFeedback: "❌ Errado. Se a pessoa estiver se mexendo e resmungando ou conseguir abrir e fechar os olhos, ela não está em parada cardíaca, então não podemos fazer massagem cardíaca nela. Palpar o pulso para sentir o coração de uma pessoa é uma tarefa difícil para algumas pessoas que não são da área da saúde, por isso não é recomendado."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      id: "basicSupport-2",
+      title: "TÉCNICA DE RCP E DEA",
+      color: "#FF4B4B",
+      icon: "HeartIcon",
+      order: 2,
+      lessons: [
+        {
+          id: "volume1",
+          type: "quiz",
+          title: "Técnica de RCP e DEA",
+          questions: [
+            {
+              id: "lesson2_q1",
+              question: "Onde colocar as mãos para realizar a massagem cardíaca?",
+              image: "posicao_maos_centro.png",
+              options: [
+                "No lado esquerdo (onde fica o coração).",
+                "Na região do estômago.",
+                "No centro do tórax, entre os mamilos.",
+                "Na barriga."
+              ],
+              answer: 2,
+              correctFeedback: "✅ Correto! O local exato é o \"centro do tórax da vítima, entre os mamilos dela\".",
+              incorrectFeedback: "❌ Errado. Comprimir fora do centro do tórax não vai bombeiar o sangue corretamente e aumenta o risco de quebrar alguma costela."
+            },
+            {
+              id: "lesson2_q2",
+              question: "Qual a superfície correta para fazer a reanimação cardiopulmonar (massagens cardíacas)?",
+              image: "superficie_plana.png",
+              options: [
+                "Colchão macio.",
+                "Superfície firme e plana (chão).",
+                "Sofá.",
+                "Cadeira reclinável."
+              ],
+              answer: 1,
+              correctFeedback: "✅ Correto! \"Certifique-se de que a vítima está deitada em uma superfície firme e plana\".",
+              incorrectFeedback: "❌ Errado. Superfícies macias absorvem a força da compressão, impedindo que o coração seja pressionado contra a coluna."
+            },
+            {
+              id: "lesson2_q3",
+              question: "Como devem ficar os seus braços para as massagens?",
+              image: "bracos_esticados.png",
+              options: [
+                "Levemente dobrados.",
+                "Totalmente esticados e firmes, formando um ângulo reto com o tronco da vítima.",
+                "Eles devem flexionar um pouco a cada empurrão.",
+                "Na diagonal do tronco da vítima, em direção ao coração."
+              ],
+              answer: 1,
+              correctFeedback: "✅ Correto! Mantenha seus braços firmes e esticados, formando um ângulo reto com o tronco da vítima, pois assim você vai demorar mais pra cansar.",
+              incorrectFeedback: "❌ Errado. Dobrar cotovelos transfere o esforço para o tríceps, cansando o socorrista em segundos. Para serem mais eficientes, as compressões devem ir em direção ao chão, formando um ângulo reto com o tronco da vítima."
+            },
+            {
+              id: "lesson2_q4",
+              question: "O que é crucial fazer logo após empurrar o peito?",
+              image: "retorno_torax.png",
+              options: [
+                "Manter pressionado por alguns segundos.",
+                "Permitir o retorno completo do tórax.",
+                "Tirar as mãos.",
+                "Pausar para descansar."
+              ],
+              answer: 1,
+              correctFeedback: "✅ Correto! Permita o retorno completo do tórax, a fim de que o coração possa se encher de sangue.",
+              incorrectFeedback: "❌ Errado. Se o tórax não voltar à posição original, o coração permanece comprimido e não enche para a próxima bombeada. Não pare para descansar, cada minuto é fundamental para alguém em parada cardíaca!"
+            },
+            {
+              id: "lesson2_q5",
+              question: "Qual o ritmo e profundidade mais adequados para realizar a ressuscitação cardiopulmonar?",
+              image: "stayin_alive.png",
+              options: [
+                "Empurrar o mais fundo possível, de forma bem devagar e pausada.",
+                "Com uma profundidade de menos da metade do tórax da vítima, no ritmo da música “Baby Shark”.",
+                "O mais rápido possível, com profundidade de menos de metade do tórax da vítima.",
+                "No ritmo da música “Baby Shark”, sem colocar força para não abaixar o tórax da vítima."
+              ],
+              answer: 1,
+              correctFeedback: "✅ Correto! O ideal é fazer 100-120 compressões por minuto, como a música “Baby Shark”. É necessário aplicar uma força para afundar 5-6cm do tórax da vítima, que equivale a menos da metade dele.",
+              incorrectFeedback: "❌ Errado. É necessário seguir uma técnica com ritmo e profundidade adequados. O ritmo ideal é de 100-120 compressões por minuto, como na música “Baby Shark”. As compressões devem afundar de 5-6cm do tórax da vítima, portanto não devem ser nem muito fortes nem muito fracas."
+            },
+            {
+              id: "lesson2_q6",
+              question: "Você já ouviu falar sobre o DEA (desfibrilador externo automático)? Marque a alternativa mais correta para você:",
+              image: "DEA.png",
+              options: [
+                "O DEA é um equipamento que dá um choque no coração da pessoa em parada cardiorrespiratória para que ele voltar a bater.",
+                "O DEA só pode ser usado por profissionais da área da saúde, pois é difícil de ser operado.",
+                "O DEA não apresenta nenhum risco, por isso qualquer pessoa pode usá-lo durante os primeiros socorros sem se preocupar com as pessoas a sua volta.",
+                "Nunca ouvi falar sobre esse dispositivo."
+              ],
+              answer: 0,
+              correctFeedback: "✅ Correto! O DEA é um equipamento que dá um choque no coração da pessoa em parada cardiorrespiratória e ajuda ele a voltar a bater, portanto é importante em primeiros socorros.",
+              incorrectFeedback: "❌ Errado. Esse equipamento foi criado para ser simples e poder ser operado por pessoas que não sejam da área da saúde, mas são necessários alguns cuidados antes de usá-lo (ninguém pode estar tocando na vítima no momento em que será administrado o choque, por exemplo)."
+            }
+          ]
+        }
+      ]
+    }
+  ],
 };

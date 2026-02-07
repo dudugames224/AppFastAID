@@ -12,6 +12,9 @@ export default function CadastrarScreen() {
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
+  const [idade, setIdade] = useState("");
+  const [turma, setTurma] = useState("");
+  const [sexo, setSexo] = useState("");
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
   
   const { styles, colors, currentTheme, setCurrentTheme } = useTheme();
@@ -23,7 +26,13 @@ export default function CadastrarScreen() {
     try {
       if (!aceiteDeTermos) {
         alert("É necessário aceitar os termos e condições para continuar.");
+        return;
       }
+      if (!nome || !idade || !turma || !sexo || !email || !senha) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+      }
+
       const temCaractereEspecial = /[^A-Za-z0-9]/.test(senha);
       if (!temCaractereEspecial) {
         alert("Insira um caracter especial!");
@@ -40,6 +49,9 @@ export default function CadastrarScreen() {
       await setDoc(userDocRef, {
         uid: userCredential.user.uid,
         nome: nome,
+        idade: idade,
+        turma: turma,
+        sexo: sexo,
         email: email,
         aceiteDeTermos: aceiteDeTermos,
         xp: 0,
@@ -75,6 +87,57 @@ export default function CadastrarScreen() {
               onChangeText={setNome}
               placeholderTextColor="#aaa"
             />
+            <TextInput
+              style={styles.caixaInsercao}
+              placeholder="Idade"
+              value={idade}
+              onChangeText={setIdade}
+              keyboardType="numeric"
+              placeholderTextColor="#aaa"
+            />
+            <TextInput
+              style={styles.caixaInsercao}
+              placeholder="Turma"
+              value={turma}
+              onChangeText={setTurma}
+              placeholderTextColor="#aaa"
+            />
+            <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+              <TouchableOpacity
+                style={[
+                  styles.caixaInsercao,
+                  {
+                    width: "48%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingLeft: 0,
+                    backgroundColor: sexo === "F" ? "#FF4B4B" : undefined,
+                    borderWidth: 1,
+                    borderColor: sexo === "F" ? "#FF4B4B" : "#aaa",
+                  },
+                ]}
+                onPress={() => setSexo("F")}
+              >
+                <Text style={{ color: sexo === "F" ? "#fff" : "#aaa", fontWeight: "bold" }}>Feminino</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.caixaInsercao,
+                  {
+                    width: "48%",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    paddingLeft: 0,
+                    backgroundColor: sexo === "M" ? "#2F80ED" : undefined,
+                    borderWidth: 1,
+                    borderColor: sexo === "M" ? "#2F80ED" : "#aaa",
+                  },
+                ]}
+                onPress={() => setSexo("M")}
+              >
+                <Text style={{ color: sexo === "M" ? "#fff" : "#aaa", fontWeight: "bold" }}>Masculino</Text>
+              </TouchableOpacity>
+            </View>
             <TextInput
               style={styles.caixaInsercao}
               placeholder="Email"

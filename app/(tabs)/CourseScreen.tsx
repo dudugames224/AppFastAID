@@ -1,19 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Image,
   Modal,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
-  Animated,
-  Easing,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
 import { CircleIcon, FlaskIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
@@ -104,7 +104,8 @@ const CourseScreen: React.FC = () => {
     return sections;
   }, [moduleEntries]);
 
-  useEffect(() => {
+  useFocusEffect(
+    useCallback(() => {
     const checkStreak = async () => {
       const userData = await getUserData();
       if (userData && userData.lastLessonDate) {
@@ -131,15 +132,24 @@ const CourseScreen: React.FC = () => {
       try {
         const stored = await AsyncStorage.getItem(LAST_COURSE_KEY);
         const validStored = stored && data.find((c) => c.id === stored);
-        setSelectedCourseId((prev) => prev ?? validStored?.id ?? data[0]?.id ?? null);
+        
+        setSelectedCourseId((prev) => {
+          // Verifica se o curso selecionado anteriormente ainda existe na lista (pode ter sido ocultado)
+          if (prev && data.find(c => c.id === prev)) return prev;
+          return validStored?.id ?? data[0]?.id ?? null;
+        });
       } catch {
-        setSelectedCourseId((prev) => prev ?? data[0]?.id ?? null);
+        setSelectedCourseId((prev) => {
+          if (prev && data.find(c => c.id === prev)) return prev;
+          return data[0]?.id ?? null;
+        });
       }
       setCoursesLoading(false);
     };
     checkStreak();
     loadCourses();
-  }, []);
+  }, [])
+  );
 
   useEffect(() => {
     const loadModules = async () => {
@@ -234,8 +244,8 @@ const CourseScreen: React.FC = () => {
         contentContainerStyle={{ alignItems: "center" }}
       >
         <Image
-          source={require("../../assets/images/band.png")}
-          style={[styles.character, { marginBottom:0,paddingEnd:0}]}
+          source={require("../../assets/images/band_incio.png")}
+          style={[styles.character, { marginBottom:0,paddingEnd:0, height: 250}]}
         />
         <Text style={[styles.titulo, {paddingBottom:15,marginTop:0}]}>FASTAID</Text>
 

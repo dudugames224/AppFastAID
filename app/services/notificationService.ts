@@ -2,14 +2,14 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import cancelScheduledNotificationAsync from "expo-notifications/build/cancelScheduledNotificationAsync";
 import getAllScheduledNotificationsAsync from "expo-notifications/build/getAllScheduledNotificationsAsync";
 import { AndroidImportance } from "expo-notifications/build/NotificationChannelManager.types";
-import { IosAuthorizationStatus } from "expo-notifications/build/NotificationPermissions.types";
 import {
   getPermissionsAsync,
   requestPermissionsAsync,
 } from "expo-notifications/build/NotificationPermissions";
+import { IosAuthorizationStatus } from "expo-notifications/build/NotificationPermissions.types";
+import { setNotificationHandler } from "expo-notifications/build/NotificationsHandler";
 import scheduleNotificationAsync from "expo-notifications/build/scheduleNotificationAsync";
 import setNotificationChannelAsync from "expo-notifications/build/setNotificationChannelAsync";
-import { setNotificationHandler } from "expo-notifications/build/NotificationsHandler";
 import { Platform } from "react-native";
 
 const STORAGE_PREFIX = "fastaid:scheduled-notification:";
@@ -20,11 +20,13 @@ const INACTIVITY_INTERVAL_IN_HOURS = 24;
 
 setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
+    shouldShowBanner: true, // Substitui shouldShowAlert
+    shouldPlaySound: false,
     shouldSetBadge: false,
+    shouldShowList: true,   // Opcional: mostra na central de notificações
   }),
 });
+
 
 const ensureAndroidChannel = async () => {
   if (Platform.OS !== "android") {

@@ -1,15 +1,16 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Dimensions, Text, View, Image } from "react-native";
+import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { getUserData } from "../firebaseConfig";
-import { HeartIcon } from "./Icons";
 import { applyLifeRegeneration } from "../services/lifeService";
+import { HeartIcon } from "./Icons";
 const safiraIcon = require("../../assets/images/torneios.png");
 
 export const GlobalHeader = () => {
   const { width, height } = Dimensions.get("window");
+  const router = useRouter();
   const { colors, styles } = useTheme();
   const [userData, setUserData] = useState({
     ofensiva: 0,
@@ -64,12 +65,15 @@ export const GlobalHeader = () => {
         borderBottomColor: colors.border,
       }}
     >
-      <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+      <TouchableOpacity
+        onPress={() => router.push("/screens/StreakScreen")}
+        style={{ flexDirection: "row", alignItems: "center", gap: 8 }}
+      >
         <Ionicons name="flame" size={22} color={colors.primary} />
         <Text style={{ color: colors.text, fontWeight: "bold", fontSize: 15 }}>
           {userData.ofensiva}
         </Text>
-      </View>
+      </TouchableOpacity>
 
       <Text style={[styles.titulo, { fontSize: 24 }]}>FASTAID</Text>
 

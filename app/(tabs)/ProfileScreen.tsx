@@ -2,7 +2,6 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Dimensions,
   Image,
@@ -11,7 +10,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
@@ -268,13 +267,21 @@ const ProfileScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView>
-
-      
-        <Image source={require("../../assets/images/band_no_celular.png")} style={{ width: 140, height: 140, alignSelf: "center" }} />
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: '3%', paddingTop: 10 }}>
+        <View style={{width: 24}} />
         <Text style={styles.titulo}>PERFIL</Text>
+        {userData?.admin === true ? (
+            <TouchableOpacity onPress={() => router.push('/screens/DailyReportScreen')}>
+                <Ionicons name="settings-outline" size={24} color={colors.primary} />
+            </TouchableOpacity>
+        ) : (
+            <View style={{width: 24}} />
+        )}
+    </View>
+      <ScrollView>
+        <Image source={require("../../assets/images/band_no_celular.png")} style={{ width: 140, height: 140, alignSelf: "center" }} />
         <ScrollView contentContainerStyle={[styles.containerPerfil, { marginHorizontal: '3%', paddingBottom: 30 }]}>
-             
+
             <View style={[styles.caixaPerfil, { height: 85, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20 }]}>
                 <TouchableOpacity onPress={() => setAvatarModalVisible(true)}>
                   <Text style={{ fontSize: 40 }}>{userData?.avatar || "🙂"}</Text>
@@ -315,11 +322,12 @@ const ProfileScreen = () => {
                 </Text>
               </View>
 
-              <View
+              <TouchableOpacity
                 style={[
                   styles.caixaPerfil,
                   { width: statBoxSize, height: statBoxSize, justifyContent: "center", alignItems: "center" },
                 ]}
+                onPress={() => router.push("/screens/StreakScreen")}
               >
                 <Text style={[styles.titulo, { marginBottom: 0, fontSize: statValueFontSize }]}>
                   {userData ? userData.ofensiva : 0}
@@ -327,7 +335,7 @@ const ProfileScreen = () => {
                 <Text style={[styles.textoBotao, { color: colors.text, fontSize: statLabelFontSize, marginTop: 2 }]}>
                   DIAS
                 </Text>
-              </View>
+              </TouchableOpacity>
 
                 </View>
                 <View style={[styles.caixaPerfil, {height:85}]}>

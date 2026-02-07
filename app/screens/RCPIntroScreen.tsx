@@ -6,12 +6,12 @@ import {
   Animated,
   Easing,
   Image,
-  SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { auth } from "../firebaseConfig";
 

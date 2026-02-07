@@ -464,13 +464,16 @@ const ChestRewardScreen = () => {
     }
     setChestFrame("openAlt");
     continueTimer.current = setTimeout(() => {
+      // Garante que o XP seja passado corretamente (evita arrays ou undefined)
+      const xpParam = Array.isArray(xp) ? xp[0] : xp;
+
       router.replace({
         pathname: "/screens/LessonResultScreen",
         params: {
           courseId: (courseId as string) || "",
           moduleId: (moduleId as string) || "",
           mode,
-          xp,
+          xp: xpParam,
           accuracy,
           mistakes,
           answered,

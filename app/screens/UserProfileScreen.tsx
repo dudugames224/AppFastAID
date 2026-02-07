@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { doc, getDoc } from "firebase/firestore";
 import React, { useEffect, useState } from "react";
@@ -12,7 +13,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { db } from "../firebaseConfig";
+import { auth, db } from "../firebaseConfig";
 import { getUserAchievements } from "../services/progressService.js";
 
 const UserProfileScreen = () => {
@@ -21,14 +22,21 @@ const UserProfileScreen = () => {
   const router = useRouter();
 
   const [loading, setLoading] = useState(true);
-  const [userData, setUserData] = useState<any>(null);
+  const [userData, setUserData] = useState<any>({
+    nome: "Carregando...",
+    xp: 0,
+    ofensiva: 0,
+    avatar: "👤",
+  });
   const [achievementData, setAchievementData] = useState<any>({
     achievements: {},
     courses: [],
   });
 
   useEffect(() => {
-    if (!userId) {
+    const targetId = userId || auth.currentUser?.uid;
+
+    if (!targetId) {
       router.back();
       return;
     }
@@ -36,13 +44,13 @@ const UserProfileScreen = () => {
     const fetchData = async () => {
       setLoading(true);
 
-      const userDocRef = doc(db, "users", userId);
+      const userDocRef = doc(db, "users", targetId);
       const userDoc = await getDoc(userDocRef);
       if (userDoc.exists()) {
         setUserData(userDoc.data());
       }
 
-      const achievements = await getUserAchievements(userId);
+      const achievements = await getUserAchievements(targetId);
       setAchievementData(achievements);
 
       setLoading(false);
@@ -54,7 +62,7 @@ const UserProfileScreen = () => {
   if (loading) {
     return (
       <SafeAreaView style={styles.safe}>
-        <ActivityIndicator style={{ flex: 1 }} size="large" />
+        <ActivityIndicator style={{ flex: 1 }} size="large" color={colors.primary} />
       </SafeAreaView>
     );
   }
@@ -62,7 +70,7 @@ const UserProfileScreen = () => {
   if (!userData) {
     return (
       <SafeAreaView style={styles.safe}>
-        <Text style={styles.titulo}>Usuário não encontrado</Text>
+        <Text style={[styles.titulo, { color: colors.text }]}>Usuário não encontrado</Text>
       </SafeAreaView>
     );
   }
@@ -70,10 +78,20 @@ const UserProfileScreen = () => {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={{ flex: 1 }}>
-        <TouchableOpacity onPress={() => router.back()} style={{ padding: 10, alignSelf: 'flex-start', marginLeft: 10 }}>
-          <Text style={{ color: colors.primary, fontSize: 16 }}>Voltar</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingRight: 16 }}>
+          <TouchableOpacity onPress={() => router.back()} style={{ padding: 10, alignSelf: 'flex-start', marginLeft: 10 }}>
+            <Text style={{ color: colors.primary, fontSize: 16 }}>Voltar</Text>
+          </TouchableOpacity>
+
+          {/* Botão visível apenas para Admins */}
+          {userData.admin === true && (
+            <TouchableOpacity onPress={() => router.push('/screens/DailyReportScreen')}>
+              <Ionicons name="settings-outline" size={24} color={colors.primary} />
+            </TouchableOpacity>
+          )}
+        </View>
         <ScrollView contentContainerStyle={{ alignItems: "center", padding: 20, paddingBottom: 40 }}>
+          
           <Text style={{ fontSize: 60 }}>{userData.avatar || "👤"}</Text>
           <Text style={[styles.titulo, { marginTop: 10 }]}>{userData.nome}</Text>
 
@@ -106,7 +124,7 @@ const UserProfileScreen = () => {
 
 const EstiloImagem = StyleSheet.create({
   achievement: { width: 61, height: 62, borderRadius: 10, marginHorizontal: 10 },
-  grayscale: { tintColor: "#238bccff" },
+  grayscale: { opacity: 0.5 },
 });
 
 export default UserProfileScreen;

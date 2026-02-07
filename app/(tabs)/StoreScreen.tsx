@@ -10,11 +10,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import Svg, { Path, Rect } from "react-native-svg";
 import { SafeAreaView } from "react-native-safe-area-context";
+import Svg, { Path, Rect } from "react-native-svg";
 import { HeartIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
+import { fetchAppSettings } from "../services/lessonService";
 import { applyLifeRegeneration, LIFE_INTERVAL_MINUTES_VALUE, startLifeCountdown } from "../services/lifeService";
 
 const DEFAULT_LIVES = 5;
@@ -70,6 +71,8 @@ const StoreScreen = () => {
   const [processingPremium, setProcessingPremium] = useState(false);
   const [processingPotion, setProcessingPotion] = useState(false);
   const [lastLifeUpdate, setLastLifeUpdate] = useState<number | null>(null);
+  const [isStoreEnabled, setIsStoreEnabled] = useState(true);
+  const [globalInfiniteLives, setGlobalInfiniteLives] = useState(false);
 
   const parseLives = (data: any) => {
     if (typeof data?.lives === "number") return data.lives;
@@ -80,6 +83,11 @@ const StoreScreen = () => {
   const loadUserStatus = useCallback(async () => {
     try {
       setLoading(true);
+      
+      const settings = await fetchAppSettings();
+      setIsStoreEnabled(settings.isStoreEnabled !== false);
+      setGlobalInfiniteLives(settings.globalInfiniteLives === true);
+
       const user = auth.currentUser;
       if (!user) {
         setUserLives(DEFAULT_LIVES);
@@ -138,7 +146,7 @@ const StoreScreen = () => {
 
   const handleRefillLives = async () => {
     if (processingLives) return;
-    if (isPremium) {
+    if (isPremium || globalInfiniteLives) {
       Alert.alert("Premium ativo", "Vidas infinitas nao precisam de recarga.");
       return;
     }
@@ -250,6 +258,20 @@ const StoreScreen = () => {
     return minutes;
   };
 
+  if (!isStoreEnabled) {
+    return (
+      <SafeAreaView style={globalStyles.safe}>
+        <View style={[storeStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
+          <Image source={require("../../assets/images/band_chorando.png")} style={{ width: 150, height: 150, marginBottom: 20 }} />
+          <Text style={[storeStyles.heroTitle, { textAlign: 'center' }]}>Loja Fechada</Text>
+          <Text style={[storeStyles.heroSubtitle, { textAlign: 'center', marginTop: 10 }]}>
+            A loja de itens está temporariamente indisponível. Tente novamente mais tarde.
+          </Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={globalStyles.safe}>
       <ScrollView contentContainerStyle={storeStyles.container}>
@@ -266,7 +288,7 @@ const StoreScreen = () => {
                 </Text>
               </View>
               <View style={storeStyles.badge}>
-                <Text style={storeStyles.badgeText}>Vidas: {isPremium ? "∞" : userLives}</Text>
+                <Text style={storeStyles.badgeText}>Vidas: {isPremium || globalInfiniteLives ? "∞" : userLives}</Text>
               </View>
               <View style={storeStyles.badge}>
                 <Text style={storeStyles.badgeText}>Safiras: {safiras}</Text>
@@ -283,7 +305,9 @@ const StoreScreen = () => {
             </View>
             <View>
               <Text style={storeStyles.cardTitle}>Recarga de vidas</Text>
-              <Text style={storeStyles.cardSubtitle}>Volte para 5 vidas em um toque.</Text>
+              <Text style={storeStyles.cardSubtitle}>
+                {globalInfiniteLives ? "Evento de Vidas Infinitas Ativo!" : "Volte para 5 vidas em um toque."}
+              </Text>
             </View>
           </View>
           <View style={storeStyles.bulletList}>
@@ -292,13 +316,15 @@ const StoreScreen = () => {
             <Text style={storeStyles.bullet}>- Ideal para manter a ofensiva</Text>
           </View>
           <TouchableOpacity
-            style={[storeStyles.primaryButton, processingLives && { opacity: 0.7 }]}
+            style={[storeStyles.primaryButton, (processingLives || globalInfiniteLives) && { opacity: 0.7 }]}
             activeOpacity={0.85}
             onPress={handleRefillLives}
-            disabled={processingLives || loading}
+            disabled={processingLives || loading || globalInfiniteLives}
           >
             {processingLives ? (
               <ActivityIndicator color="#fff" />
+            ) : globalInfiniteLives ? (
+              <Text style={storeStyles.primaryButtonText}>Vidas Infinitas Ativas</Text>
             ) : (
               <Text style={storeStyles.primaryButtonText}>Recarregar 5 vidas (600 safiras)</Text>
             )}

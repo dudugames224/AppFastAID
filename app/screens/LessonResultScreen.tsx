@@ -1,6 +1,6 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { Ionicons } from "@expo/vector-icons";
 import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 import { fetchCourseModules, RemoteModule } from "../services/lessonService";
@@ -116,44 +116,54 @@ const LessonResultScreen = ({
   safeAreaBottom,
 }: LessonResultProps = {}) => {
   const router = useRouter();
-  const { courseId, moduleId, mode, xp, accuracy, mistakes, answered, durationSeconds } = useLocalSearchParams<{
-    courseId?: string;
-    moduleId?: string;
-    mode?: string;
-    xp?: string;
-    accuracy?: string;
-    mistakes?: string;
-    answered?: string;
-    durationSeconds?: string;
-  }>();
+  const params = useLocalSearchParams();
+
+  // Helper para garantir que pegamos apenas o primeiro valor se vier como array
+  const getSingleParam = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value;
+
+  const courseId = getSingleParam(params.courseId as string | string[]);
+  const moduleId = getSingleParam(params.moduleId as string | string[]);
+  const mode = getSingleParam(params.mode as string | string[]);
+  const xpParam = getSingleParam(params.xp as string | string[]);
+  const accuracyParam = getSingleParam(params.accuracy as string | string[]);
+  const mistakesParam = getSingleParam(params.mistakes as string | string[]);
+  const answeredParam = getSingleParam(params.answered as string | string[]);
+  const durationParam = getSingleParam(params.durationSeconds as string | string[]);
+  const stageIndexParam = getSingleParam(params.stageIndex as string | string[]);
+  const stageCountParam = getSingleParam(params.stageCount as string | string[]);
 
   const [nextModule, setNextModule] = useState<RemoteModule | null>(null);
   const [currentUserData, setCurrentUserData] = useState<any>(null);
   const [isClaiming, setIsClaiming] = useState(false);
 
-  const parsedXp = xp !== undefined ? Number(xp) : undefined;
+  const parsedXp = xpParam !== undefined ? Number(xpParam) : undefined;
   const computedXp =
     parsedXp !== undefined && !Number.isNaN(parsedXp)
       ? parsedXp
       : xpFromProps ?? 20;
 
-  const computedMistakes = Math.max(0, Math.floor(parseNumberParam(mistakes) ?? 0));
-  const computedAnswered = Math.max(0, Math.floor(parseNumberParam(answered) ?? 0));
+  const computedMistakes = Math.max(0, Math.floor(Number(mistakesParam) || 0));
+  const computedAnswered = Math.max(0, Math.floor(Number(answeredParam) || 0));
   const computedDurationSeconds = Math.max(
     0,
-    Math.floor(parseNumberParam(durationSeconds) ?? 0)
+    Math.floor(Number(durationParam) || 0)
   );
   const derivedAccuracy =
     computedAnswered > 0
       ? Math.round(((computedAnswered - computedMistakes) / computedAnswered) * 100)
       : 0;
   const computedAccuracy = clampNumber(
-    parseNumberParam(accuracy) ?? derivedAccuracy,
+    Number(accuracyParam) ?? derivedAccuracy,
     0,
     100
   );
   const secondsPerAnswer =
     computedAnswered > 0 ? computedDurationSeconds / computedAnswered : null;
+
+  const currentStageIndex = stageIndexParam !== undefined ? parseInt(stageIndexParam, 10) : 0;
+  const totalStages = stageCountParam !== undefined ? parseInt(stageCountParam, 10) : 1;
+  const hasNextStage = currentStageIndex + 1 < totalStages;
 
   const computedIsPractice =
     mode === "practice" ? true : isPracticeFromProps ?? false;
@@ -356,7 +366,13 @@ const LessonResultScreen = ({
       const modules = await fetchCourseModules(courseId as string);
       const index = modules.findIndex((module) => module.id === moduleId);
       if (index !== -1 && index + 1 < modules.length) {
-        setNextModule(modules[index + 1]);
+        const next = modules[index + 1];
+        // Se o próximo módulo for a ação de reiniciar, ignoramos (fim do curso real)
+        if (next.id === "reset-course-action") {
+          setNextModule(null);
+        } else {
+          setNextModule(next);
+        }
       } else {
         setNextModule(null);
       }
@@ -378,7 +394,7 @@ const LessonResultScreen = ({
     fetchUserData();
   }, []);
 
-  const showNextButton = Boolean(onNext || (!computedIsPractice && nextModule));
+  const showNextButton = Boolean(onNext || (!computedIsPractice && (hasNextStage || nextModule)));
 
   type UpdateXpResult = { newStreak: number; shouldCelebrateStreak: boolean };
 
@@ -505,12 +521,29 @@ const LessonResultScreen = ({
     }
 
     if (!computedIsPractice && courseId) {
+      // Se houver próxima etapa (lição) no mesmo módulo, prioriza ela
+      if (hasNextStage && moduleId) {
+        return {
+          pathname: "/screens/LessonScreen",
+          params: {
+            courseId: courseId as string,
+            moduleId: moduleId as string,
+            stageIndex: String(currentStageIndex + 1),
+            stageCount: String(totalStages),
+          },
+        };
+      }
+
       let resolvedNext = nextModule;
       if (!resolvedNext && moduleId) {
         const modules = await fetchCourseModules(courseId as string);
         const index = modules.findIndex((module) => module.id === moduleId);
         if (index !== -1 && index + 1 < modules.length) {
-          resolvedNext = modules[index + 1];
+          const candidate = modules[index + 1];
+          // Garante que não redirecione para o reset no fallback também
+          if (candidate.id !== "reset-course-action") {
+            resolvedNext = candidate;
+          }
         }
       }
 
@@ -584,6 +617,7 @@ const LessonResultScreen = ({
 
         <Text style={styles.kicker}>
           {computedIsPractice ? "PRÁTICA CONCLUÍDA" : "MÓDULO CONCLUÍDO"}
+          {computedIsPractice ? "PRÁTICA CONCLUÍDA" : hasNextStage ? "LIÇÃO CONCLUÍDA" : "MÓDULO CONCLUÍDO"}
         </Text>
         <Text style={styles.headline}>{performanceCopy.headline}</Text>
         <Text style={styles.subheadline}>{performanceCopy.sub}</Text>
