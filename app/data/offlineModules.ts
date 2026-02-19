@@ -84,7 +84,7 @@ export const offlineCourseModules: OfflineModulesMap = {
           options: [
             "Use apenas compressões abdominais",
             "Tapas + compressões, mas com menor força e joelhos flexionados",
-            "Somente tapas ate sair",
+            "Somente tapas até sair",
             "Deite a criança antes de agir",
           ],
           answer: 1,
@@ -96,8 +96,8 @@ export const offlineCourseModules: OfflineModulesMap = {
           question: "Bebê (<1 ano): qual sequência correta?",
           options: [
             "Tapas nas costas e compressões toracicas (2 dedos) alternadas",
-            "Compressões abdominais com forca",
-            "Chacoalhar ate tossir",
+            "Compressões abdominais com força",
+            "Chacoalhar até tossir",
             "Dar água para empurrar",
           ],
           answer: 0,
@@ -164,7 +164,7 @@ export const offlineCourseModules: OfflineModulesMap = {
           options: [
             "Continuar tapas",
             "Chamar por ajuda, deitar no chão, abrir vias aéreas e checar respiração",
-            "Dar água com acucar",
+            "Dar água com açúcar",
             "Levantar a cabeça",
           ],
           answer: 1,
@@ -1108,7 +1108,7 @@ export const offlineCourseModules: OfflineModulesMap = {
           ...buildSequence([
             "Retire fonte de calor em segurança",
             "Resfrie com água corrente fria por 20 min",
-            "Retire aneis/relogios sem forcar a pele",
+            "Retire anéis/relógios sem forçar a pele",
             "Cubra com pano limpo ou gaze",
           ]),
         },
@@ -1129,7 +1129,7 @@ export const offlineCourseModules: OfflineModulesMap = {
           type: "mcq",
           question: "Queimadura eletrica: por que chamar 192?",
           options: [
-            "Porque e mais rapido",
+            "Porque é mais rápido",
             "Risco de arritmia e queimadura interna",
             "Não é necessário",
             "Para ganhar atestado",
@@ -1262,9 +1262,9 @@ export const offlineCourseModules: OfflineModulesMap = {
           type: "mcq",
           question: "Após a crise, qual posição?",
           options: [
-            "De brucos",
+            "De bruços",
             "Decubito lateral de segurança",
-            "Em pe",
+            "Em pé",
             "Sentado em cadeira",
           ],
           answer: 1,

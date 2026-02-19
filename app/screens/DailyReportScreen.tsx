@@ -222,7 +222,7 @@ export default function DailyReportScreen() {
       });
 
       // 3. Salva o arquivo temporariamente
-      const fileName = `Relatorio_FastAid_${new Date().getTime()}.csv`;
+      const fileName = `Relatorio_FastAID_${new Date().getTime()}.csv`;
       const fileUri = (FileSystem.documentDirectory || FileSystem.cacheDirectory) + fileName;
       
       await FileSystem.writeAsStringAsync(fileUri, csvContent, {
@@ -275,7 +275,7 @@ export default function DailyReportScreen() {
             </style>
           </head>
           <body>
-            <h1>Relatório Geral de Desempenho - FastAid</h1>
+            <h1>Relatório Geral de Desempenho - FastAID</h1>
             <p class="meta">Gerado em: ${new Date().toLocaleString()}</p>
 
             <div class="summary-box">
@@ -422,8 +422,8 @@ export default function DailyReportScreen() {
       const count = await wipeAllAssessmentData();
       Alert.alert("Sucesso", `${count} registros apagados. O relatório está vazio.`);
       setReportData(null);
-    } catch (error) {
-      Alert.alert("Erro", "Falha ao apagar dados.");
+    } catch (error: any) {
+      Alert.alert("Erro", `Falha ao apagar dados: ${error?.message || "Erro desconhecido"}`);
     } finally {
       setLoading(false);
     }
@@ -494,8 +494,8 @@ export default function DailyReportScreen() {
     try {
       const count = await resetAllUsersXP();
       Alert.alert("Sucesso", `XP resetado para ${count} usuários.`);
-    } catch (error) {
-      Alert.alert("Erro", "Falha ao resetar XP.");
+    } catch (error: any) {
+      Alert.alert("Erro", `Falha ao resetar XP: ${error?.message || "Erro desconhecido"}`);
     } finally {
       setLoading(false);
     }
@@ -525,28 +525,6 @@ export default function DailyReportScreen() {
         <View style={styles.center}>
         <ActivityIndicator size="large" color="#dc2626" />
         <Text style={{ marginTop: 10, color: colors.text }}>Gerando relatório...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if ((!reportData || reportData.courses.length === 0) && !loading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.headerRow}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={styles.headerTitle}>Relatório</Text>
-          <TouchableOpacity onPress={loadData}>
-            <Ionicons name="refresh" size={24} color={colors.text} />
-          </TouchableOpacity>
-        </View>
-        <View style={styles.center}>
-          <Text style={{ color: colors.text }}>Nenhum dado de avaliação encontrado.</Text>
-          <TouchableOpacity style={[styles.exportButton, { backgroundColor: '#333', marginTop: 20 }]} onPress={() => router.back()}>
-           <Text style={styles.exportButtonText}>Voltar</Text>
-          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -639,6 +617,11 @@ export default function DailyReportScreen() {
       </TouchableOpacity>
 
       {expandReport && (
+        (!reportData || reportData.courses.length === 0) ? (
+          <View style={{ padding: 20, alignItems: 'center' }}>
+            <Text style={{ color: colors.text }}>Nenhum dado de avaliação encontrado.</Text>
+          </View>
+        ) : (
         <>
           <TouchableOpacity style={[styles.exportButton, { backgroundColor: '#7f1d1d', marginBottom: 15 }]} onPress={handleWipeData}>
             <Text style={styles.exportButtonText}>⚠️ LIMPAR DADOS (RESET) ⚠️</Text>
@@ -684,6 +667,7 @@ export default function DailyReportScreen() {
             );
           })}
         </>
+        )
       )}
     </ScrollView>
 
@@ -709,7 +693,7 @@ export default function DailyReportScreen() {
             placeholder="Digite APAGAR"
             placeholderTextColor="#999"
             value={wipeConfirmationText}
-            onChangeText={setWipeConfirmationText}
+            onChangeText={(text) => setWipeConfirmationText(text.toUpperCase())}
             autoCapitalize="characters"
           />
 
@@ -809,7 +793,7 @@ export default function DailyReportScreen() {
             placeholder="Digite ZERAR"
             placeholderTextColor="#999"
             value={resetXPConfirmation}
-            onChangeText={setResetXPConfirmation}
+            onChangeText={(text) => setResetXPConfirmation(text.toUpperCase())}
             autoCapitalize="characters"
           />
 

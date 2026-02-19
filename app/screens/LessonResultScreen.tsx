@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 import { fetchCourseModules, RemoteModule } from "../services/lessonService";
 
@@ -117,6 +118,7 @@ const LessonResultScreen = ({
 }: LessonResultProps = {}) => {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
 
   // Helper para garantir que pegamos apenas o primeiro valor se vier como array
   const getSingleParam = (value: string | string[] | undefined) =>
@@ -351,8 +353,8 @@ const LessonResultScreen = ({
     ]).start();
   }, [fadeAnim, scaleAnim]);
 
-  const paddingTop = (safeAreaTop || 0) + 20;
-  const paddingBottom = (safeAreaBottom || 0) + 20;
+  const paddingTop = (safeAreaTop ?? insets.top) + 20;
+  const paddingBottom = (safeAreaBottom ?? insets.bottom) + 20;
   const exitTarget = computedIsPractice
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";

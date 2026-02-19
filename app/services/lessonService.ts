@@ -508,7 +508,7 @@ export const fetchCourseModules = async (
     }
 
     if (offlineModules.length > 0) {
-      console.log(`[FastAid] Usando módulos offline para: ${courseId}`);
+      console.log(`[FastAID] Usando módulos offline para: ${courseId}`);
       const processedModules = [...offlineModules];
 
       // Adiciona itens de UI padrão (Intro, Revisão, Reset)
@@ -573,7 +573,7 @@ export const savePostTestResult = async (
       ...resultData,
       completedAt: new Date().toISOString(),
     });
-    console.log(`[FastAid] Pós-teste salvo para ${courseId}`);
+    console.log(`[FastAID] Pós-teste salvo para ${courseId}`);
   } catch (error) {
     console.error("Erro ao salvar pós-teste:", error);
   }
@@ -627,7 +627,7 @@ export const fetchModuleLessons = async (
     return [
       {
         type: "info",
-        title: "Bem-vindo ao FastAid",
+        title: "Bem-vindo ao FastAID",
         text: "Prepare-se para dominar técnicas essenciais de primeiros socorros e salvar vidas.",
      
       },
@@ -695,7 +695,7 @@ export const fetchModuleLessons = async (
 
     if (snapshot.exists()) {
       const data = snapshot.data();
-      console.log(`[FastAid] Módulo carregado: ${effectiveModuleId} (solicitado: ${moduleId})`, data); // Log para debug
+      console.log(`[FastAID] Módulo carregado: ${effectiveModuleId} (solicitado: ${moduleId})`, data); // Log para debug
 
       // Garante leitura de 'lessons' ou 'questions' (caso a estrutura esteja plana na raiz)
       let lessons = data.lessons || data.questions;
@@ -706,7 +706,7 @@ export const fetchModuleLessons = async (
       }
 
       if (!Array.isArray(lessons)) {
-        console.warn(`[FastAid] 'lessons' não é um array no módulo ${effectiveModuleId}`);
+        console.warn(`[FastAID] 'lessons' não é um array no módulo ${effectiveModuleId}`);
         return [];
       }
 
@@ -735,12 +735,12 @@ export const fetchModuleLessons = async (
           }
         }
 
-        console.log(`[FastAid] Carregando estágio índice: ${idx} (Original: ${stageIndex})`);
+      console.log(`[FastAID] Carregando estágio índice: ${idx} (Original: ${stageIndex})`);
 
         // Proteção: Se o índice for maior que a quantidade de volumes, volta para o primeiro (0)
         // Garante que ao "refazer" (índice >= total), o usuário comece do primeiro volume.
         if (idx < 0 || idx >= lessons.length) {
-          console.log(`[FastAid] Índice ${idx} excede total de volumes. Reiniciando do Volume 1 (Refazer).`);
+        console.log(`[FastAID] Índice ${idx} excede total de volumes. Reiniciando do Volume 1 (Refazer).`);
           idx = 0;
         }
 
@@ -764,7 +764,7 @@ export const fetchModuleLessons = async (
       }
 
       // 3. Fallback: Estrutura Plana (array direto de perguntas)
-      console.log(`[FastAid] Assumindo estrutura plana de perguntas.`);
+      console.log(`[FastAID] Assumindo estrutura plana de perguntas.`);
       return normalizeLessonPayload(lessons, data.type);
     }
 
@@ -786,7 +786,7 @@ export const fetchModuleLessons = async (
     if (offlineModules) {
       const mod = offlineModules.find(m => m.id === effectiveModuleId);
       if (mod && mod.lessons) {
-        console.log(`[FastAid] Carregando lição offline: ${effectiveModuleId}`);
+        console.log(`[FastAID] Carregando lição offline: ${effectiveModuleId}`);
         return normalizeLessonPayload(mod.lessons, "mcq");
       }
     }

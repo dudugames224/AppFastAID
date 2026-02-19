@@ -1,4 +1,4 @@
-import { collection, collectionGroup, deleteDoc, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
+import { collection, collectionGroup, getDocs, orderBy, query, where, writeBatch } from "firebase/firestore";
 import { db } from "../firebaseConfig";
 
 // --- TIPAGEM DOS DADOS ---
@@ -301,14 +301,30 @@ export const fetchClassPerformanceReport = async (classFilter?: string | null): 
  */
 export const wipeAllAssessmentData = async () => {
   console.log("Iniciando limpeza completa de avaliações...");
-  const attemptsQuery = query(collectionGroup(db, 'attempts'));
-  const snapshot = await getDocs(attemptsQuery);
-  
-  const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
-  await Promise.all(deletePromises);
-  
-  console.log(`Limpeza concluída. ${snapshot.size} registros apagados.`);
-  return snapshot.size;
+  try {
+    const attemptsQuery = query(collectionGroup(db, 'attempts'));
+    const snapshot = await getDocs(attemptsQuery);
+    
+    const BATCH_SIZE = 450;
+    const chunks = [];
+    for (let i = 0; i < snapshot.docs.length; i += BATCH_SIZE) {
+      chunks.push(snapshot.docs.slice(i, i + BATCH_SIZE));
+    }
+
+    for (const chunk of chunks) {
+      const batch = writeBatch(db);
+      chunk.forEach((docSnap) => {
+        batch.delete(docSnap.ref);
+      });
+      await batch.commit();
+    }
+    
+    console.log(`Limpeza concluída. ${snapshot.size} registros apagados.`);
+    return snapshot.size;
+  } catch (error) {
+    console.error("Erro ao limpar avaliações:", error);
+    throw error;
+  }
 };
 
 /**
@@ -338,15 +354,29 @@ export const fetchLeaderboard = async (classFilter?: string | null): Promise<Lea
  */
 export const resetAllUsersXP = async () => {
   console.log("Iniciando reset de XP de todos os usuários...");
-  const usersRef = collection(db, "users");
-  const snapshot = await getDocs(usersRef);
-  const batch = writeBatch(db);
+  try {
+    const usersRef = collection(db, "users");
+    const snapshot = await getDocs(usersRef);
+    
+    const BATCH_SIZE = 450; // Limite do Firestore é 500, usamos margem de segurança
+    const chunks = [];
+    for (let i = 0; i < snapshot.docs.length; i += BATCH_SIZE) {
+      chunks.push(snapshot.docs.slice(i, i + BATCH_SIZE));
+    }
 
-  snapshot.docs.forEach((docSnap) => {
-    batch.update(docSnap.ref, { xp: 0, ofensiva: 0 }); // Reseta XP e Ofensiva (opcional, mas recomendado para reset total)
-  });
+    for (const chunk of chunks) {
+      const batch = writeBatch(db);
+      chunk.forEach((docSnap) => {
+        // Usamos set com merge: true para ser mais robusto que update
+        batch.set(docSnap.ref, { xp: 0, ofensiva: 0 }, { merge: true });
+      });
+      await batch.commit();
+    }
 
-  await batch.commit();
-  console.log(`XP resetado para ${snapshot.size} usuários.`);
-  return snapshot.size;
+    console.log(`XP resetado para ${snapshot.size} usuários.`);
+    return snapshot.size;
+  } catch (error) {
+    console.error("Erro ao resetar XP:", error);
+    throw error;
+  }
 };

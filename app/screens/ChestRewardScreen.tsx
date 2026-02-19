@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 
@@ -19,6 +20,7 @@ const ChestRewardScreen = () => {
     durationSeconds?: string;
   }>();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [currentUserData, setCurrentUserData] = useState<any>(null);
   const [{ safiraReward, rarity }] = useState(() => {
@@ -523,7 +525,7 @@ const ChestRewardScreen = () => {
   }, []);
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <Text style={styles.header}>{rarityLabel[rarity]}</Text>
 
       <View style={styles.chestWrapper}>
