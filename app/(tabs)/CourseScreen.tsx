@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Svg, { Circle } from "react-native-svg";
-import { CircleIcon, FlaskIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
+import { FlaskIcon, HeartIcon, ThermometerIcon, ZapIcon } from "../components/Icons";
 import { useTheme } from "../context/ThemeContext";
 import { auth, getUserData } from "../firebaseConfig";
 import {
@@ -31,6 +31,16 @@ const moduleIconMap: Record<string, React.ComponentType<any>> = {
   FlaskIcon,
   ThermometerIcon,
   ZapIcon,
+  HeartIcon,
+  star: ({ size = 30, color = "#fff" }) => (
+    <Ionicons name="star" size={size} color={color} />
+  ),
+  book: ({ size = 30, color = "#fff" }) => (
+    <Ionicons name="book" size={size} color={color} />
+  ),
+  refresh: ({ size = 30, color = "#fff" }) => (
+    <Ionicons name="refresh" size={size} color={color} />
+  ),
 };
 
 const getModuleIcon = (identifier: unknown) => {
@@ -489,6 +499,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   const radius = ringSize / 2 - strokeWidth;
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.max(0, Math.min(1, progress || 0));
+  const activeIconColor = "#fff";
 
   React.useEffect(() => {
     if (locked || completed) {
@@ -562,9 +573,9 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
             ) : locked ? (
               <FontAwesome name="lock" size={30} color="black" />
             ) : ModuleIcon ? (
-              <ModuleIcon color={backgroundColor} size={30} />
+              <ModuleIcon color={activeIconColor} size={30} />
             ) : (
-              <CircleIcon color={backgroundColor} size={30} />
+              <Ionicons name="play" size={28} color={activeIconColor} />
             )}
           </View>
           </View>

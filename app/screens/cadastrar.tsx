@@ -1,5 +1,5 @@
 import { router } from "expo-router";
-import { createUserWithEmailAndPassword, User } from "firebase/auth";
+import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -8,19 +8,58 @@ import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, setDoc } from "../firebaseConfig.js";
 
 export default function CadastrarScreen() {
-  const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [nome, setNome] = useState("");
-  const [idade, setIdade] = useState("");
+  const [dataNascimento, setDataNascimento] = useState("");
   const [turma, setTurma] = useState("");
   const [sexo, setSexo] = useState("");
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
   
-  const { styles, colors, currentTheme, setCurrentTheme } = useTheme();
+  const { styles } = useTheme();
 
-   
+  const formatBirthDate = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 8);
+    if (digits.length <= 2) return digits;
+    if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`;
+    return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`;
+  };
 
+  const parseBirthDate = (value: string): Date | null => {
+    const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+    if (!match) return null;
+    const day = Number(match[1]);
+    const month = Number(match[2]);
+    const year = Number(match[3]);
+    const parsed = new Date(year, month - 1, day);
+
+    if (
+      parsed.getFullYear() !== year ||
+      parsed.getMonth() !== month - 1 ||
+      parsed.getDate() !== day
+    ) {
+      return null;
+    }
+    return parsed;
+  };
+
+  const getAgeFromBirthDate = (birthDate: Date) => {
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const hasNotHadBirthdayYet =
+      today.getMonth() < birthDate.getMonth() ||
+      (today.getMonth() === birthDate.getMonth() &&
+        today.getDate() < birthDate.getDate());
+    if (hasNotHadBirthdayYet) age -= 1;
+    return age;
+  };
+
+  const isValidBirthDate = (value: string) => {
+    const parsed = parseBirthDate(value);
+    if (!parsed) return false;
+    const age = getAgeFromBirthDate(parsed);
+    return age >= 0 && age <= 120;
+  };
 
   const cadastrar = async () => {
     try {
@@ -28,8 +67,13 @@ export default function CadastrarScreen() {
         alert("É necessário aceitar os termos e condições para continuar.");
         return;
       }
-      if (!nome || !idade || !turma || !sexo || !email || !senha) {
+      if (!nome || !dataNascimento || !turma || !sexo || !email || !senha) {
         alert("Por favor, preencha todos os campos.");
+        return;
+      }
+
+      if (!isValidBirthDate(dataNascimento)) {
+        alert("Informe uma data de nascimento valida no formato DD/MM/AAAA.");
         return;
       }
 
@@ -44,12 +88,11 @@ export default function CadastrarScreen() {
         email,
         senha
       );
-      setUser(userCredential.user);
       const userDocRef = doc(db, "users", userCredential.user.uid);
       await setDoc(userDocRef, {
         uid: userCredential.user.uid,
         nome: nome,
-        idade: idade,
+        dataNascimento: dataNascimento,
         turma: turma,
         sexo: sexo,
         email: email,
@@ -89,10 +132,11 @@ export default function CadastrarScreen() {
             />
             <TextInput
               style={styles.caixaInsercao}
-              placeholder="Idade"
-              value={idade}
-              onChangeText={setIdade}
-              keyboardType="numeric"
+              placeholder="Data de nascimento (DD/MM/AAAA)"
+              value={dataNascimento}
+              onChangeText={(text) => setDataNascimento(formatBirthDate(text))}
+              keyboardType="number-pad"
+              maxLength={10}
               placeholderTextColor="#aaa"
             />
             <TextInput

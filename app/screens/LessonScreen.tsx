@@ -17,12 +17,13 @@ import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, getDoc, updateDoc } from "../firebaseConfig";
 import {
   fetchAppSettings,
+  fetchCourseModules,
   fetchModuleLessons,
   resetCourseProgress,
   savePostTestResult
 } from "../services/lessonService";
 import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
-import { markModuleStage } from "../services/progressService";
+import { getReviewCards, markModuleStage, saveWrongReviewCard } from "../services/progressService";
 import { LessonCard } from "../types/lesson";
 
 const demoLesson: LessonCard[] = [
@@ -96,6 +97,8 @@ const LessonScreen = () => {
   }>();
 
   const isPracticeMode = mode === "practice";
+  const isReviewMode = mode === "review";
+  const isTrainingMode = isPracticeMode || isReviewMode;
   const courseId = (paramsCourseId as string) || fallbackCourseId;
   const stageCountParam = paramsStageCount ? Number(paramsStageCount) : 1;
   const stageCount = Number.isFinite(stageCountParam) && stageCountParam > 0 ? stageCountParam : 1;
@@ -216,7 +219,7 @@ const LessonScreen = () => {
         const normalizedId = courseId.toLowerCase();
         const isRcp = normalizedId === 'rcp' || normalizedId === 'reanimacao' || normalizedId === 'suportebasico';
 
-        if (isRcp && paramsModuleId === 'review-cards' && !introModuleId && !isPracticeMode) {
+        if (isRcp && paramsModuleId === 'review-cards' && !introModuleId && !isTrainingMode) {
           router.replace({
             pathname: "/screens/RCPIntroScreen",
             params: {
@@ -228,7 +231,59 @@ const LessonScreen = () => {
           return;
         }
 
-        const deck = await fetchModuleLessons(courseId, paramsModuleId as string, currentStageIndex);
+        if (isReviewMode) {
+          const reviewDeck = await getReviewCards(courseId);
+          if (reviewDeck.length === 0) {
+            Alert.alert(
+              "Revisão indisponível",
+              "Você ainda não tem perguntas erradas para revisar neste curso."
+            );
+            router.replace("/(tabs)/PracticeScreen");
+            return;
+          }
+
+          correctCountRef.current = 0;
+          answeredCountRef.current = 0;
+          lessonStartTimeRef.current = Date.now();
+          resultsLog.current = [];
+          setCorrectCount(0);
+          setAnsweredCount(0);
+          setLessonStartTime(lessonStartTimeRef.current);
+          setQuestions(getShuffledLesson(reviewDeck));
+          setCurrentStep(0);
+          setSelectedOption(null);
+          setIsCorrect(null);
+          setShowFeedback(false);
+          return;
+        }
+
+        let effectiveModuleId = paramsModuleId as string | undefined;
+
+        if (isPracticeMode) {
+          const hasProvidedModule = typeof effectiveModuleId === "string" && effectiveModuleId.trim().length > 0;
+          const shouldAutoPick =
+            !hasProvidedModule ||
+            effectiveModuleId === "review-cards" ||
+            effectiveModuleId === "course-intro" ||
+            effectiveModuleId === "reset-course-action";
+
+          if (shouldAutoPick) {
+            const modules = await fetchCourseModules(courseId);
+            const firstPlayableModule = modules.find(
+              (m) =>
+                m.id !== "course-intro" &&
+                m.id !== "review-cards" &&
+                m.id !== "reset-course-action" &&
+                (m.stageCount ?? 1) > 0
+            );
+            effectiveModuleId = firstPlayableModule?.id;
+          }
+        }
+
+        const deck =
+          effectiveModuleId && effectiveModuleId.trim().length > 0
+            ? await fetchModuleLessons(courseId, effectiveModuleId, currentStageIndex)
+            : [];
         const finalDeck = deck.length > 0 ? deck : demoLesson;
 
         const randomizedDeck = finalDeck;
@@ -253,9 +308,9 @@ const LessonScreen = () => {
     };
     loadInitialData(); 
     loadLessons(); 
-  }, [courseId, paramsModuleId, isPracticeMode, currentStageIndex]);
+  }, [courseId, paramsModuleId, isPracticeMode, isReviewMode, isTrainingMode, currentStageIndex, introModuleId, router]);
 
-  const exitTarget = isPracticeMode
+  const exitTarget = isTrainingMode
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";
 
@@ -345,7 +400,12 @@ const LessonScreen = () => {
     if (correct) correctCountRef.current += 1;
     setAnsweredCount((value) => value + 1);
     if (correct) setCorrectCount((value) => value + 1);
-    if (!correct) void decrementLive();
+    if (!correct) {
+      if (!isTrainingMode) {
+        void saveWrongReviewCard(courseId, currentCard, paramsModuleId as string).catch(() => {});
+      }
+      void decrementLive();
+    }
   };
 
   const normalizeIds = (list: any[] | undefined) =>
@@ -399,6 +459,9 @@ const LessonScreen = () => {
       correctCountRef.current += 1;
       setCorrectCount((value) => value + 1);
     } else {
+      if (!isTrainingMode) {
+        void saveWrongReviewCard(courseId, currentCard, paramsModuleId as string).catch(() => {});
+      }
       void decrementLive();
     }
     setRevealCorrectOrder(false);
@@ -406,7 +469,7 @@ const LessonScreen = () => {
 
 
   const goToResults = async () => {
-    if (!isPracticeMode && paramsModuleId) {
+    if (!isTrainingMode && paramsModuleId) {
       // Evita travar a navegacao no Android aguardando persistencia.
       void markModuleStage(courseId, paramsModuleId as string, currentStageIndex + 1).catch(() => {});
       if (introModuleId) {
@@ -417,7 +480,7 @@ const LessonScreen = () => {
         } catch {}
       }
     }
-    const targetPath = isPracticeMode ? "/screens/LessonResultScreen" : "/screens/ChestRewardScreen";
+    const targetPath = isTrainingMode ? "/screens/LessonResultScreen" : "/screens/ChestRewardScreen";
     const finalAnswered = answeredCountRef.current;
     const finalCorrect = correctCountRef.current;
     const startTime = lessonStartTimeRef.current ?? lessonStartTime;
@@ -425,7 +488,7 @@ const LessonScreen = () => {
       finalAnswered > 0 ? Math.round((finalCorrect / finalAnswered) * 100) : 0;
 
     let calculatedXp = 10;
-    if (!isPracticeMode) {
+    if (!isTrainingMode) {
       // Faixa de 20 a 30 XP baseado na precisão
       // Base: 20 XP | Bônus: 0 a 10 XP (proporcional à precisão)
       const bonus = Math.round((accuracy / 100) * 10);
@@ -455,7 +518,7 @@ const LessonScreen = () => {
       params: {
         courseId,
         moduleId: (paramsModuleId as string) || "",
-        mode: isPracticeMode ? "practice" : "course",
+        mode: isTrainingMode ? "practice" : "course",
         xp: String(calculatedXp),
         accuracy: String(accuracy),
         mistakes: String(mistakes),

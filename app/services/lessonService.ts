@@ -176,6 +176,13 @@ const resolveLessonImage = (imageName: unknown): ImageSourcePropType | undefined
   return undefined;
 };
 
+const isMissingPermissionError = (error: unknown): boolean => {
+  const err = error as { code?: unknown; message?: unknown } | null;
+  const code = typeof err?.code === "string" ? err.code.toLowerCase() : "";
+  const message = typeof err?.message === "string" ? err.message.toLowerCase() : "";
+  return code === "permission-denied" || message.includes("missing or insufficient permissions");
+};
+
 const normalizeSequenceOptions = (raw: any[] = []): SequenceOption[] => {
   return raw.map((opt, index) => {
     if (typeof opt === "string") {
@@ -623,6 +630,11 @@ export const fetchModuleLessons = async (
   moduleId: string,
   stageIndex: number | string = 0,
 ): Promise<LessonCard[]> => {
+  if (!moduleId || typeof moduleId !== "string") {
+    console.warn(`[FastAID] Módulo inválido para carregar lições: ${String(moduleId)}`);
+    return [];
+  }
+
   if (moduleId === "course-intro") {
     return [
       {
@@ -773,7 +785,16 @@ export const fetchModuleLessons = async (
     );
     return []; // Nothing found
   } catch (error) {
-    console.error(`Error fetching lessons for module ${moduleId} (effective: ${effectiveModuleId}):`, error);
+    if (isMissingPermissionError(error)) {
+      console.log(
+        `[FastAID] Sem permissao para modulo ${moduleId} (effective: ${effectiveModuleId}). Usando fallback local.`
+      );
+    } else {
+      console.warn(
+        `Error fetching lessons for module ${moduleId} (effective: ${effectiveModuleId}):`,
+        error
+      );
+    }
     
     // FALLBACK: Tenta carregar lição offline
     let offlineModules = offlineCourseModules[normalizedCourseId] || offlineCourseModules[collectionName];

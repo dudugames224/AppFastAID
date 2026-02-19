@@ -60,6 +60,52 @@ export interface LeaderboardEntry {
   avatar: string;
 }
 
+const parseBirthDate = (value: unknown): Date | null => {
+  if (typeof value !== "string") return null;
+  const normalized = value.trim();
+  if (!normalized) return null;
+
+  const brMatch = normalized.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+  if (brMatch) {
+    const day = Number(brMatch[1]);
+    const month = Number(brMatch[2]);
+    const year = Number(brMatch[3]);
+    const parsed = new Date(year, month - 1, day);
+    const isValid =
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day;
+    return isValid ? parsed : null;
+  }
+
+  const iso = new Date(normalized);
+  return Number.isNaN(iso.getTime()) ? null : iso;
+};
+
+const getAgeFromBirthDate = (birthDate: Date): number => {
+  const today = new Date();
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const hasNotHadBirthdayYet =
+    today.getMonth() < birthDate.getMonth() ||
+    (today.getMonth() === birthDate.getMonth() &&
+      today.getDate() < birthDate.getDate());
+  if (hasNotHadBirthdayYet) age -= 1;
+  return age;
+};
+
+const resolveAgeLabel = (profile: any): string => {
+  if (profile?.idade !== undefined && profile?.idade !== null && String(profile.idade).trim() !== "") {
+    return String(profile.idade);
+  }
+
+  const birthDate = parseBirthDate(profile?.dataNascimento);
+  if (!birthDate) return "N/I";
+
+  const age = getAgeFromBirthDate(birthDate);
+  if (age < 0 || age > 120) return "N/I";
+  return String(age);
+};
+
 // --- LÓGICA DE EXTRAÇÃO ---
 
 /**
@@ -193,7 +239,7 @@ export const fetchClassPerformanceReport = async (classFilter?: string | null): 
 
       if (profile) {
         const s = profile.sexo ? String(profile.sexo).toUpperCase() : "N/I";
-        const a = profile.idade ? String(profile.idade) : "N/I";
+        const a = resolveAgeLabel(profile);
         const t = profile.turma ? String(profile.turma).toUpperCase() : "N/I";
 
         demoStats.sex[s] = (demoStats.sex[s] || 0) + 1;
