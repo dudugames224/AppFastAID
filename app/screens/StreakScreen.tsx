@@ -16,7 +16,7 @@ import {
 import { captureRef } from "react-native-view-shot";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
-import { auth, collection, db, doc, getDoc, getDocs, getUserData, setDoc } from "../firebaseConfig";
+import { auth, db, doc, findUserByName, getDoc, getUserData, setDoc } from "../firebaseConfig";
 
 type TabMode = "personal" | "friends";
 
@@ -202,36 +202,27 @@ const StreakScreen = () => {
 
     setFriendActionLoading(true);
     try {
-      const usersSnapshot = await getDocs(collection(db, "users"));
-      const normalizedTyped = typedName.toLowerCase();
-
-      const matchDoc = usersSnapshot.docs.find((snap) => {
-        const username = safeString(snap.data()?.username, "");
-        const nome = safeString(snap.data()?.nome, "");
-        return username.toLowerCase() === normalizedTyped || nome.toLowerCase() === normalizedTyped;
-      });
-
-      if (!matchDoc) {
+      const matchedUser = (await findUserByName(typedName)) as any;
+      if (!matchedUser) {
         Alert.alert("Nao encontrado", "Nenhum usuario com esse nome foi encontrado.");
         return;
       }
 
-      if (matchDoc.id === currentUid) {
+      if (matchedUser.id === currentUid) {
         Alert.alert("Adicionar amigo", "Voce nao pode adicionar a si mesmo.");
         return;
       }
 
-      if (friends.some((friend) => friend.uid === matchDoc.id)) {
+      if (friends.some((friend) => friend.uid === matchedUser.id)) {
         Alert.alert("Adicionar amigo", "Esse usuario ja esta na sua lista.");
         return;
       }
 
-      const friendData = matchDoc.data();
       const nextFriend: FriendProfile = {
-        uid: matchDoc.id,
-        nome: safeString(friendData?.username, safeString(friendData?.nome, typedName)),
-        avatar: safeString(friendData?.avatar, "🙂"),
-        streak: safeStreak(friendData?.ofensiva ?? friendData?.streak),
+        uid: matchedUser.id,
+        nome: safeString(matchedUser.username, safeString(matchedUser.nome, typedName)),
+        avatar: safeString(matchedUser.avatar, ":-)"),
+        streak: safeStreak(matchedUser.ofensiva ?? matchedUser.streak),
         streakTogether: false,
       };
 
@@ -673,3 +664,4 @@ const createStyles = (colors: any) =>
   });
 
 export default StreakScreen;
+

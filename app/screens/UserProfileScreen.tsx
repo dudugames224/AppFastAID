@@ -57,7 +57,7 @@ const UserProfileScreen = () => {
     };
 
     fetchData();
-  }, [userId]);
+  }, [router, userId]);
 
   if (loading) {
     return (

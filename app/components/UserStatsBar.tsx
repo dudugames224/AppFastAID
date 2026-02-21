@@ -1,5 +1,5 @@
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -83,7 +83,12 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
           lives: regenerated.lives,
           ofensiva: normalizedStreak,
           isPremium: Boolean((data as any).isPremium),
-          safiras: typeof (data as any).safiras === "number" ? (data as any).safiras : 0,
+          safiras:
+            typeof (data as any).safiras === "number"
+              ? (data as any).safiras
+              : typeof (data as any).safira === "number"
+              ? (data as any).safira
+              : 0,
         });
       } else {
         setStats({ lives: DEFAULT_LIVES, ofensiva: 0, isPremium: false, safiras: 0 });
@@ -141,7 +146,7 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
         disabled={restoringLives}
       >
         <View style={styles.iconCircle}>
-          <HeartIcon size={24} color="#FF4B4B" />
+          <HeartIcon />
         </View>
         <View style={styles.statText}>
           <Text style={styles.value}>{loading ? "--" : stats.isPremium ? "∞" : stats.lives}</Text>

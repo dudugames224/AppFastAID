@@ -134,7 +134,7 @@ const PracticeScreen = () => {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 30 }}>
+      <ScrollView style={styles.tabContainer} contentContainerStyle={{ paddingBottom: 30 }}>
         <Image
           source={require("../../assets/images/band_halter.png")}
           style={{ width: 140, height: 140, alignSelf: "center" }}
@@ -157,7 +157,7 @@ const PracticeScreen = () => {
               activeOpacity={0.85}
               onPress={() => openModePicker(course)}
             >
-              <Image source={course.iconSource} style={styles.topicIconImage} />
+              <Image source={course.iconSource} style={styles.courseTopicIconImage} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.courseTitle}>{course.title}</Text>
               </View>

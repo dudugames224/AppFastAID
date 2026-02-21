@@ -38,7 +38,7 @@ const TabItem = ({ item, isActive, onNavigate, styles }: TabItemProps) => {
 
       useNativeDriver: true,
     }).start();
-  }, [isActive]);
+  }, [isActive, scaleAnim]);
 
   return (
     <TouchableOpacity

@@ -203,7 +203,7 @@ const StreakCelebrationScreen = () => {
         return;
       }
 
-      router.replace(targetPathname);
+      router.replace(targetPathname as any);
     });
   };
 

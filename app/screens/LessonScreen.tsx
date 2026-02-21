@@ -23,7 +23,13 @@ import {
   savePostTestResult
 } from "../services/lessonService";
 import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
-import { getReviewCards, markModuleStage, saveWrongReviewCard } from "../services/progressService";
+import {
+  getDoctorCompletedModules,
+  getReviewCards,
+  markDoctorModuleCompleted,
+  markModuleStage,
+  saveWrongReviewCard
+} from "../services/progressService";
 import { LessonCard } from "../types/lesson";
 
 const demoLesson: LessonCard[] = [
@@ -51,13 +57,6 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return arr;
 };
 
-const shuffleLessonCards = (data: LessonCard[]): LessonCard[] => {
-  if (data.length <= 2) return data;
-  const firstTwo = data.slice(0, 2);
-  const remaining = data.slice(2);
-  return [...firstTwo, ...shuffleArray(remaining)];
-};
-
 const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
   return data.map((card) => {
     if (card.type === "mcq" && card.options && card.answer !== undefined) {
@@ -73,7 +72,62 @@ const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
   });
 };
 
+const cloneLessonCard = (card: LessonCard): LessonCard => {
+  if (card.type === "mcq") {
+    return {
+      ...card,
+      options: Array.isArray(card.options) ? [...card.options] : [],
+    };
+  }
+  if (card.type === "sequence") {
+    return {
+      ...card,
+      orderOptions: Array.isArray(card.orderOptions)
+        ? card.orderOptions.map((option) => ({ ...option }))
+        : [],
+      correctOrder: Array.isArray(card.correctOrder) ? [...card.correctOrder] : [],
+    };
+  }
+  return { ...card };
+};
+
+const getDoctorDeck = (
+  practiceDeck: LessonCard[],
+  moduleDeck: LessonCard[],
+  questionCount: number = 15,
+): LessonCard[] => {
+  const deduped = new Map<string, LessonCard>();
+  const addCards = (cards: LessonCard[]) => {
+    cards.forEach((card, index) => {
+      if (!card || card.type === "info") return;
+      const baseKey =
+        card.type === "sequence"
+          ? card.question
+          : card.type === "mcq"
+          ? card.question
+          : String(index);
+      const key = baseKey?.trim().toLowerCase();
+      if (!key || deduped.has(key)) return;
+      deduped.set(key, cloneLessonCard(card));
+    });
+  };
+
+  addCards(practiceDeck);
+  addCards(moduleDeck);
+
+  const pool = shuffleArray(Array.from(deduped.values()));
+  if (pool.length === 0) return [];
+
+  const selected: LessonCard[] = [];
+  while (selected.length < questionCount) {
+    const card = pool[selected.length % pool.length];
+    selected.push(cloneLessonCard(card));
+  }
+  return selected;
+};
+
 const fallbackCourseId = "burns";
+const SPECIAL_MODULE_IDS = new Set(["course-intro", "review-cards", "reset-course-action"]);
 
 const LessonScreen = () => {
     const {  lessonstyles, colors } = useTheme();
@@ -96,9 +150,14 @@ const LessonScreen = () => {
     stageIndex?: string;
   }>();
 
-  const isPracticeMode = mode === "practice";
-  const isReviewMode = mode === "review";
-  const isTrainingMode = isPracticeMode || isReviewMode;
+  const lessonMode = typeof mode === "string" ? mode : "course";
+  const isPracticeMode = lessonMode === "practice";
+  const isReviewMode = lessonMode === "review";
+  const isModuleReviewMode = lessonMode === "module-review";
+  const isDoctorMode = lessonMode === "doctor";
+  const isTrainingMode =
+    isPracticeMode || isReviewMode || isModuleReviewMode || isDoctorMode;
+  const isPracticeHubMode = isPracticeMode || isReviewMode;
   const courseId = (paramsCourseId as string) || fallbackCourseId;
   const stageCountParam = paramsStageCount ? Number(paramsStageCount) : 1;
   const stageCount = Number.isFinite(stageCountParam) && stageCountParam > 0 ? stageCountParam : 1;
@@ -106,15 +165,14 @@ const LessonScreen = () => {
   const stageIndexParam = paramsStageIndex ? Number(paramsStageIndex) : 0;
   const currentStageIndex = Number.isFinite(stageIndexParam) && stageIndexParam >= 0 ? stageIndexParam : 0;
 
-  const [userXP, setUserXP] = useState(1200);
   const [isPremium, setIsPremium] = useState(false);
 
   const [currentStep, setCurrentStep] = useState(0);
   const [questions, setQuestions] = useState<LessonCard[]>(
     getShuffledLesson(demoLesson)
   );
-  const [correctCount, setCorrectCount] = useState(0);
-  const [answeredCount, setAnsweredCount] = useState(0);
+  const [, setCorrectCount] = useState(0);
+  const [, setAnsweredCount] = useState(0);
   const [lessonStartTime, setLessonStartTime] = useState<number | null>(null);
   const correctCountRef = useRef(0);
   const answeredCountRef = useRef(0);
@@ -124,13 +182,13 @@ const LessonScreen = () => {
   const [showFeedback, setShowFeedback] = useState(false);
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
   const [lives, setLives] = useState(5);
-  const [lastLifeUpdate, setLastLifeUpdate] = useState<number | null>(null);
+  const [, setLastLifeUpdate] = useState<number | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [sequenceSelection, setSequenceSelection] = useState<string[]>([]);
   const [revealCorrectOrder, setRevealCorrectOrder] = useState(false);
   
   // Ref para armazenar o detalhamento das respostas (Pós-Teste)
-  const resultsLog = useRef<Array<{ question: string; isCorrect: boolean }>>([]);
+  const resultsLog = useRef<{ question: string; isCorrect: boolean }[]>([]);
 
   useEffect(() => {
     setIsNavigating(false);
@@ -259,7 +317,7 @@ const LessonScreen = () => {
 
         let effectiveModuleId = paramsModuleId as string | undefined;
 
-        if (isPracticeMode) {
+        if (isPracticeMode || isModuleReviewMode || isDoctorMode) {
           const hasProvidedModule = typeof effectiveModuleId === "string" && effectiveModuleId.trim().length > 0;
           const shouldAutoPick =
             !hasProvidedModule ||
@@ -278,6 +336,45 @@ const LessonScreen = () => {
             );
             effectiveModuleId = firstPlayableModule?.id;
           }
+        }
+
+        if (isDoctorMode) {
+          if (effectiveModuleId && !SPECIAL_MODULE_IDS.has(effectiveModuleId)) {
+            const doctorCompleted = await getDoctorCompletedModules(courseId);
+            if (doctorCompleted.includes(effectiveModuleId)) {
+              Alert.alert(
+                "Modo Doutor concluido",
+                "Voce ja concluiu o modo Doutor neste modulo. Agora ele fica disponivel apenas para revisao."
+              );
+              router.replace("/(tabs)/CourseScreen");
+              return;
+            }
+          }
+
+          const [practiceDeck, moduleDeck] = await Promise.all([
+            fetchModuleLessons(courseId, "review-cards", 0),
+            effectiveModuleId && effectiveModuleId.trim().length > 0
+              ? fetchModuleLessons(courseId, effectiveModuleId, 0)
+              : Promise.resolve([]),
+          ]);
+
+          const doctorDeck = getDoctorDeck(practiceDeck, moduleDeck, 15);
+          const fallbackDoctorDeck = getDoctorDeck([], demoLesson, 15);
+          const finalDoctorDeck = doctorDeck.length > 0 ? doctorDeck : fallbackDoctorDeck;
+
+          correctCountRef.current = 0;
+          answeredCountRef.current = 0;
+          lessonStartTimeRef.current = Date.now();
+          resultsLog.current = [];
+          setCorrectCount(0);
+          setAnsweredCount(0);
+          setLessonStartTime(lessonStartTimeRef.current);
+          setQuestions(getShuffledLesson(finalDoctorDeck));
+          setCurrentStep(0);
+          setSelectedOption(null);
+          setIsCorrect(null);
+          setShowFeedback(false);
+          return;
         }
 
         const deck =
@@ -308,9 +405,20 @@ const LessonScreen = () => {
     };
     loadInitialData(); 
     loadLessons(); 
-  }, [courseId, paramsModuleId, isPracticeMode, isReviewMode, isTrainingMode, currentStageIndex, introModuleId, router]);
+  }, [
+    courseId,
+    paramsModuleId,
+    isPracticeMode,
+    isReviewMode,
+    isModuleReviewMode,
+    isDoctorMode,
+    isTrainingMode,
+    currentStageIndex,
+    introModuleId,
+    router,
+  ]);
 
-  const exitTarget = isTrainingMode
+  const exitTarget = isPracticeHubMode
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";
 
@@ -365,7 +473,7 @@ const LessonScreen = () => {
         useNativeDriver: true,
       }).start();
     }
-  }, [showFeedback, currentStep, isInfoCard]);
+  }, [showFeedback, currentStep, isInfoCard, feedbackAnim]);
 
   const decrementLive = () => {
     const user = auth.currentUser;
@@ -383,14 +491,20 @@ const LessonScreen = () => {
   };
 
   const handleOptionSelect = (index: number) => {
-    if (showFeedback || !currentCard || currentCard.answer === undefined)
+    if (showFeedback || !currentCard)
       return;
-    setSelectedOption(index);
-    const correct = index === currentCard.answer;
+    const cardData = currentCard as any;
+    const options = Array.isArray(cardData.options) ? cardData.options : null;
+    const answer = typeof cardData.answer === "number" ? cardData.answer : null;
+    if (!options || answer === null) return;
 
-    if (currentCard.question) {
-      resultsLog.current.push({ question: currentCard.question, isCorrect: correct });
-    }
+    setSelectedOption(index);
+    const correct = index === answer;
+    const questionText =
+      typeof cardData.question === "string" && cardData.question.trim().length > 0
+        ? cardData.question
+        : `Pergunta ${currentStep + 1}`;
+    resultsLog.current.push({ question: questionText, isCorrect: correct });
 
     setIsCorrect(correct);
     setShowFeedback(true);
@@ -480,6 +594,9 @@ const LessonScreen = () => {
         } catch {}
       }
     }
+    if (isDoctorMode && paramsModuleId && !SPECIAL_MODULE_IDS.has(paramsModuleId as string)) {
+      void markDoctorModuleCompleted(courseId, paramsModuleId as string).catch(() => {});
+    }
     const targetPath = isTrainingMode ? "/screens/LessonResultScreen" : "/screens/ChestRewardScreen";
     const finalAnswered = answeredCountRef.current;
     const finalCorrect = correctCountRef.current;
@@ -488,7 +605,12 @@ const LessonScreen = () => {
       finalAnswered > 0 ? Math.round((finalCorrect / finalAnswered) * 100) : 0;
 
     let calculatedXp = 10;
-    if (!isTrainingMode) {
+    if (isModuleReviewMode) {
+      calculatedXp = 5;
+    } else if (isDoctorMode) {
+      const bonus = Math.round((accuracy / 100) * 10);
+      calculatedXp = (20 + bonus) * 2;
+    } else if (!isTrainingMode) {
       // Faixa de 20 a 30 XP baseado na precisão
       // Base: 20 XP | Bônus: 0 a 10 XP (proporcional à precisão)
       const bonus = Math.round((accuracy / 100) * 10);
@@ -518,7 +640,7 @@ const LessonScreen = () => {
       params: {
         courseId,
         moduleId: (paramsModuleId as string) || "",
-        mode: isTrainingMode ? "practice" : "course",
+        mode: lessonMode,
         xp: String(calculatedXp),
         accuracy: String(accuracy),
         mistakes: String(mistakes),

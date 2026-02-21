@@ -7,6 +7,7 @@ import {
   requestPermissionsAsync,
 } from "expo-notifications/build/NotificationPermissions";
 import { IosAuthorizationStatus } from "expo-notifications/build/NotificationPermissions.types";
+import { SchedulableTriggerInputTypes } from "expo-notifications/build/Notifications.types";
 import { setNotificationHandler } from "expo-notifications/build/NotificationsHandler";
 import scheduleNotificationAsync from "expo-notifications/build/scheduleNotificationAsync";
 import setNotificationChannelAsync from "expo-notifications/build/setNotificationChannelAsync";
@@ -16,11 +17,11 @@ const STORAGE_PREFIX = "fastaid:scheduled-notification:";
 const REMINDER_CHANNEL_ID = "fastaid-reminders";
 const INACTIVITY_REMINDER_IDENTIFIER = "daily-inactivity-reminder";
 const LAST_ACTIVITY_STORAGE_KEY = `${STORAGE_PREFIX}last-activity`;
-const INACTIVITY_INTERVAL_IN_HOURS = 2;
+const INACTIVITY_INTERVAL_IN_HOURS = 8;
 const INACTIVITY_IDS_KEY = `${STORAGE_PREFIX}inactivity-ids`;
 const NAG_START_HOUR = 9; // 9:00 AM
-const NAG_COUNT = 5; // Notificações às 9, 11, 13, 15, 17
-const NAG_DAYS = 3; // Insiste por 3 dias seguidos se não abrir
+const NAG_COUNT = 2; // Notificações às 9, 11, 13, 15, 17
+const NAG_DAYS = 2; // Insiste por 3 dias seguidos se não abrir
 
 setNotificationHandler({
   handleNotification: async () => ({
@@ -61,6 +62,9 @@ export const ensureNotificationPermissions = async (): Promise<boolean> => {
     requestResult.granted ||
     requestResult.ios?.status === IosAuthorizationStatus.PROVISIONAL;
 
+  if (granted) {
+    await ensureAndroidChannel();
+  }
 
   return granted;
 };
@@ -121,7 +125,7 @@ export const scheduleRepeatingReminder = async ({
   identifier,
   message,
   data,
-  intervalInMinutes = 1,
+  intervalInMinutes = 24 * 60,
 }: ScheduleReminderParams): Promise<string> => {
   const hasPermission = await ensureNotificationPermissions();
   if (!hasPermission) {
@@ -137,7 +141,7 @@ export const scheduleRepeatingReminder = async ({
   }
 
   const reminderMessage = message ?? getRandomReminderMessage();
-  const secondsInterval = Math.max(60, Math.round(intervalInMinutes * 60));
+  const secondsInterval = Math.max(60 * 60, Math.round(intervalInMinutes * 60));
 
   const newId = await scheduleNotificationAsync({
     content: {
@@ -147,6 +151,7 @@ export const scheduleRepeatingReminder = async ({
       data,
     },
     trigger: {
+      type: SchedulableTriggerInputTypes.TIME_INTERVAL,
       seconds: secondsInterval,
       repeats: true,
       channelId: Platform.OS === "android" ? REMINDER_CHANNEL_ID : undefined,
@@ -243,6 +248,7 @@ export const refreshInactivityReminder = async (): Promise<void> => {
             data: { type: "inactivity-reminder" },
           },
           trigger: {
+            type: SchedulableTriggerInputTypes.TIME_INTERVAL,
             seconds: secondsUntil,
             repeats: false, // Dispara uma vez naquele horário específico
             channelId: Platform.OS === "android" ? REMINDER_CHANNEL_ID : undefined,
@@ -252,3 +258,6 @@ export const refreshInactivityReminder = async (): Promise<void> => {
     }
   }
 };
+
+
+

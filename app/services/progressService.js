@@ -115,6 +115,14 @@ export const getModuleStages = async (courseId) => {
   return docSnap.exists() ? docSnap.data().moduleStages || {} : {};
 };
 
+export const getDoctorCompletedModules = async (courseId) => {
+  const user = auth.currentUser;
+  if (!user || !courseId) return [];
+  const progressDocRef = getProgressRef(user.uid, courseId);
+  const docSnap = await getDoc(progressDocRef);
+  return docSnap.exists() ? docSnap.data().doctorCompletedModules || [] : [];
+};
+
 /**
  * @param {string} userId 
  * @param {string} courseId 
@@ -162,6 +170,20 @@ export const markModuleStage = async (courseId, moduleId, stageCount = 1) => {
     { completedModules: [...new Set(completedModules)], moduleStages },
     { merge: true }
   );
+};
+
+export const markDoctorModuleCompleted = async (courseId, moduleId) => {
+  const user = auth.currentUser;
+  if (!user || !courseId || !moduleId) return;
+
+  const progressDocRef = getProgressRef(user.uid, courseId);
+  const docSnap = await getDoc(progressDocRef);
+  const data = docSnap.exists() ? docSnap.data() || {} : {};
+  const current = Array.isArray(data.doctorCompletedModules)
+    ? data.doctorCompletedModules
+    : [];
+  const next = [...new Set([...current, moduleId])];
+  await setDoc(progressDocRef, { doctorCompletedModules: next }, { merge: true });
 };
 
 export const hasUnlockedReviewForCourse = async (courseId) => {

@@ -10,7 +10,7 @@ export interface AssessmentAttempt {
   correctCount: number;
   mistakes: number;
   completedAt: string;
-  details?: Array<{ question: string; isCorrect: boolean }>;
+  details?: { question: string; isCorrect: boolean }[];
   moduleId?: string;
 }
 
@@ -205,7 +205,7 @@ export const fetchClassPerformanceReport = async (classFilter?: string | null): 
         userMap.set(userId, []);
       }
       // Adiciona a tentativa na lista do usuário
-      userMap.get(userId)!.push({ id: docSnap.id, ...data });
+      userMap.get(userId)!.push({ ...data, id: docSnap.id });
     }
   });
 

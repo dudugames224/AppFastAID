@@ -351,19 +351,28 @@ export const fetchCoursesMeta = async (includeHidden: boolean = false): Promise<
 export interface AppSettings {
   isStoreEnabled: boolean;
   globalInfiniteLives: boolean;
+  isPremiumModeEnabled: boolean;
 }
 
 export const fetchAppSettings = async (): Promise<AppSettings> => {
+  const defaults: AppSettings = {
+    isStoreEnabled: true,
+    globalInfiniteLives: false,
+    isPremiumModeEnabled: true,
+  };
   try {
     const docRef = doc(db, "AppSettings", "global");
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
-      return docSnap.data() as AppSettings;
+      return {
+        ...defaults,
+        ...(docSnap.data() as Partial<AppSettings>),
+      };
     }
-    return { isStoreEnabled: true, globalInfiniteLives: false };
+    return defaults;
   } catch (error) {
     console.error("Error fetching app settings:", error);
-    return { isStoreEnabled: true, globalInfiniteLives: false };
+    return defaults;
   }
 };
 
@@ -568,7 +577,7 @@ export const savePostTestResult = async (
     totalQuestions: number;
     correctCount: number;
     mistakes: number;
-    details: Array<{ question: string; isCorrect: boolean }>;
+    details: { question: string; isCorrect: boolean }[];
     moduleId?: string;
   }
 ) => {

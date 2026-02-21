@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Linking,
   Animated,
@@ -14,6 +14,10 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
+import {
+  emergencyMedicalReviewedAt,
+  emergencyMedicalSource,
+} from "../data/emergencyData";
 
 type Step = {
   title: string;
@@ -86,7 +90,7 @@ const RCP: React.FC = () => {
   const loopRef = useRef<Animated.CompositeAnimation | null>(null);
   const beatTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const startPulse = () => {
+  const startPulse = useCallback(() => {
     const beatMs = 550; 
     loopRef.current = Animated.loop(
       Animated.sequence([
@@ -106,8 +110,8 @@ const RCP: React.FC = () => {
     beatTimer.current = setInterval(() => {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }, beatMs);
-  };
-  const stopPulse = () => {
+  }, [opacity, scale]);
+  const stopPulse = useCallback(() => {
     loopRef.current?.stop();
     scale.setValue(1);
     opacity.setValue(0.35);
@@ -115,13 +119,13 @@ const RCP: React.FC = () => {
       clearInterval(beatTimer.current);
       beatTimer.current = null;
     }
-  };
+  }, [opacity, scale]);
 
   useEffect(() => {
     if (playing && (index === 2 || index === 4) && mode === "guide") startPulse();
     else stopPulse();
     return () => stopPulse();
-  }, [index, playing, mode]);
+  }, [index, mode, playing, startPulse, stopPulse]);
 
   const StepCard = ({ i, step }: { i: number; step: Step }) => {
     const isOpen = (mode === "guide" && i === index) || expanded === i;
@@ -185,6 +189,9 @@ const RCP: React.FC = () => {
         {mode === "guide" && (
           <Text style={s.subtitle}>Passo {index + 1} de {total}</Text>
         )}
+        <Text style={s.medicalNotice}>Guia educativo. Em emergencia real, ligue 192.</Text>
+        <Text style={s.medicalNotice}>{emergencyMedicalSource}</Text>
+        <Text style={s.medicalNotice}>Revisado em: {emergencyMedicalReviewedAt}</Text>
         <TouchableOpacity style={s.close} onPress={() => router.back()}>
           <Ionicons name="close" size={20} color="#fff" />
         </TouchableOpacity>
@@ -261,6 +268,13 @@ const s = StyleSheet.create({
     color: "#fff",
     opacity: 0.9,
     marginTop: 4,
+  },
+  medicalNotice: {
+    color: "#FFE3E3",
+    fontSize: 11,
+    textAlign: "center",
+    marginTop: 2,
+    opacity: 0.9,
   },
   close: {
     position: "absolute",

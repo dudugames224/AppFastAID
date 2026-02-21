@@ -1,5 +1,5 @@
 import { Dimensions, StyleSheet } from "react-native";
-const { width, height } = Dimensions.get('window');
+const { height } = Dimensions.get('window');
 
 const lightColors = {
   background: "#F0F2F5",
@@ -131,8 +131,8 @@ const getThemedStyles = (theme = 'light') => {
   container: {
     flex: 1,
     backgroundColor: colors.background,
-    padding: 20,
-    paddingEnd:50,
+    paddingHorizontal: 20,
+    paddingVertical: 20,
   },
   character: {
     width: 200,
@@ -385,7 +385,7 @@ const getThemedStyles = (theme = 'light') => {
     alignItems: "center",
     justifyContent: "center",
   },
-  container: { flex: 1, backgroundColor: colors.background, padding: 20 },
+  tabContainer: { flex: 1, backgroundColor: colors.background, padding: 20 },
   title: { fontSize: 28, fontWeight: "bold", color: colors.text, marginBottom: 10, textAlign: "center" },
   subtitle: { fontSize: 16, color: colors.text, marginBottom: 30, textAlign: "center" },
   leaderboard: { gap: 10 },
@@ -423,8 +423,8 @@ const getThemedStyles = (theme = 'light') => {
     backgroundColor: colors.background,
     marginBottom: 15,
   },
-  topicIcon: { width: 50, height: 50, borderRadius: 12, alignItems: "center", justifyContent: "center" },
-  topicIconImage: { width: 50, height: 50, resizeMode: "contain" },
+  courseTopicIcon: { width: 50, height: 50, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  courseTopicIconImage: { width: 50, height: 50, resizeMode: "contain" },
   arrow: { color: "#A9A9A9", fontSize: 24 },
 
   containerPerfil:{
@@ -560,7 +560,7 @@ const getThemedStyles = (theme = 'light') => {
     borderRadius: 16,
     padding: 6,
   },
-  option: {
+  sheetOption: {
     backgroundColor: "#FFD5D5",
     borderRadius: 14,
     paddingVertical: 14,
@@ -569,7 +569,7 @@ const getThemedStyles = (theme = 'light') => {
     alignItems: "center",
     gap: 12,
   },
-  optionIconCircle: {
+  sheetOptionIconCircle: {
     width: 36,
     height: 36,
     borderRadius: 18,
@@ -577,7 +577,7 @@ const getThemedStyles = (theme = 'light') => {
     alignItems: "center",
     justifyContent: "center",
   },
-  optionLabel: {
+  sheetOptionLabel: {
     fontSize: 16,
     fontWeight: "700",
     color: "#000",

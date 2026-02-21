@@ -7,6 +7,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  emergencyMedicalDisclaimer,
+  emergencyMedicalReviewedAt,
+  emergencyMedicalSource,
+} from "../data/emergencyData";
 
 interface Step {
   title: string;
@@ -60,6 +65,11 @@ const emergenciaStepsModal = ({
           <TouchableOpacity style={styles.closeButton} onPress={onClose}>
             <Text style={styles.closeButtonText}>Fechar</Text>
           </TouchableOpacity>
+          <View style={styles.medicalNotice}>
+            <Text style={styles.medicalNoticeText}>{emergencyMedicalDisclaimer}</Text>
+            <Text style={styles.medicalNoticeText}>{emergencyMedicalSource}</Text>
+            <Text style={styles.medicalNoticeText}>Revisado em: {emergencyMedicalReviewedAt}</Text>
+          </View>
         </View>
       </TouchableOpacity>
     </Modal>
@@ -122,6 +132,19 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  medicalNotice: {
+    width: "100%",
+    borderTopWidth: 1,
+    borderTopColor: "#2D2D2D",
+    marginTop: 14,
+    paddingTop: 10,
+    gap: 4,
+  },
+  medicalNoticeText: {
+    color: "#A9A9A9",
+    fontSize: 12,
+    lineHeight: 16,
   },
 });
 

@@ -73,6 +73,7 @@ const StoreScreen = () => {
   const [lastLifeUpdate, setLastLifeUpdate] = useState<number | null>(null);
   const [isStoreEnabled, setIsStoreEnabled] = useState(true);
   const [globalInfiniteLives, setGlobalInfiniteLives] = useState(false);
+  const [isPremiumModeEnabled, setIsPremiumModeEnabled] = useState(true);
 
   const parseLives = (data: any) => {
     if (typeof data?.lives === "number") return data.lives;
@@ -87,6 +88,7 @@ const StoreScreen = () => {
       const settings = await fetchAppSettings();
       setIsStoreEnabled(settings.isStoreEnabled !== false);
       setGlobalInfiniteLives(settings.globalInfiniteLives === true);
+      setIsPremiumModeEnabled(settings.isPremiumModeEnabled !== false);
 
       const user = auth.currentUser;
       if (!user) {
@@ -108,7 +110,13 @@ const StoreScreen = () => {
 
         setUserLives(regenerated.lives);
         setIsPremium(Boolean(data?.isPremium));
-        setSafiras(typeof data?.safiras === "number" ? data.safiras : 0);
+        setSafiras(
+          typeof data?.safiras === "number"
+            ? data.safiras
+            : typeof data?.safira === "number"
+            ? data.safira
+            : 0
+        );
         setLastLifeUpdate(regenerated.lastLifeUpdate);
       } else {
         setUserLives(DEFAULT_LIVES);
@@ -265,7 +273,7 @@ const StoreScreen = () => {
           <Image source={require("../../assets/images/band_chorando.png")} style={{ width: 150, height: 150, marginBottom: 20 }} />
           <Text style={[storeStyles.heroTitle, { textAlign: 'center' }]}>Loja Fechada</Text>
           <Text style={[storeStyles.heroSubtitle, { textAlign: 'center', marginTop: 10 }]}>
-            A loja de itens está temporariamente indisponível. Tente novamente mais tarde.
+            A loja de itens estÃ¡ temporariamente indisponÃ­vel. Tente novamente mais tarde.
           </Text>
         </View>
       </SafeAreaView>
@@ -279,16 +287,20 @@ const StoreScreen = () => {
           <View style={storeStyles.heroTextArea}>
             <Text style={storeStyles.heroTitle}>Loja FastAid</Text>
             <Text style={storeStyles.heroSubtitle}>
-              Use safiras para vidas e poçoes, ou ative o modo Premium.
+              {isPremiumModeEnabled
+                ? "Use safiras para vidas e poÃ§oes, ou ative o modo Premium."
+                : "Use safiras para recarregar vidas e usar poÃ§oes de energia."}
             </Text>
             <View style={storeStyles.badgeRow}>
-              <View style={[storeStyles.badge, isPremium ? storeStyles.badgeSuccess : storeStyles.badgeMuted]}>
-                <Text style={[storeStyles.badgeText, isPremium && storeStyles.badgeTextOnPrimary]}>
-                  {isPremium ? "Premium ativo" : "Premium desligado"}
-                </Text>
-              </View>
+              {isPremiumModeEnabled && (
+                <View style={[storeStyles.badge, isPremium ? storeStyles.badgeSuccess : storeStyles.badgeMuted]}>
+                  <Text style={[storeStyles.badgeText, isPremium && storeStyles.badgeTextOnPrimary]}>
+                    {isPremium ? "Premium ativo" : "Premium desligado"}
+                  </Text>
+                </View>
+              )}
               <View style={storeStyles.badge}>
-                <Text style={storeStyles.badgeText}>Vidas: {isPremium || globalInfiniteLives ? "∞" : userLives}</Text>
+                <Text style={storeStyles.badgeText}>Vidas: {isPremium || globalInfiniteLives ? "âˆž" : userLives}</Text>
               </View>
               <View style={storeStyles.badge}>
                 <Text style={storeStyles.badgeText}>Safiras: {safiras}</Text>
@@ -336,47 +348,49 @@ const StoreScreen = () => {
           )}
         </View>
 
-        <View style={[storeStyles.card, storeStyles.premiumCard]}>
-          <View style={storeStyles.cardHeader}>
-            <View style={[storeStyles.iconBubble, storeStyles.iconBubblePremium]}>
-              <Image source={require("../../assets/images/band_feliz.png")} style={storeStyles.premiumIcon} />
+        {isPremiumModeEnabled && (
+          <View style={[storeStyles.card, storeStyles.premiumCard]}>
+            <View style={storeStyles.cardHeader}>
+              <View style={[storeStyles.iconBubble, storeStyles.iconBubblePremium]}>
+                <Image source={require("../../assets/images/band_feliz.png")} style={storeStyles.premiumIcon} />
+              </View>
+              <View>
+                <Text style={storeStyles.cardTitle}>Modo Premium</Text>
+                <Text style={storeStyles.cardSubtitle}>Vidas infinitas e foco total nas licoes.</Text>
+              </View>
             </View>
-            <View>
-              <Text style={storeStyles.cardTitle}>Modo Premium</Text>
-              <Text style={storeStyles.cardSubtitle}>Vidas infinitas e foco total nas licoes.</Text>
+            <View style={storeStyles.bulletList}>
+              <Text style={storeStyles.bullet}>- Vidas infinitas para estudar sem parar</Text>
+              <Text style={storeStyles.bullet}>- Mantem ofensiva sempre segura</Text>
+              <Text style={storeStyles.bullet}>- Ativacao imediata no seu perfil</Text>
             </View>
+            <TouchableOpacity
+              style={[
+                storeStyles.primaryButton,
+                storeStyles.premiumButton,
+                isPremium && storeStyles.premiumButtonActive,
+                processingPremium && { opacity: 0.7 },
+              ]}
+              activeOpacity={0.85}
+              onPress={isPremium ? handleDeactivatePremium : handleActivatePremium}
+              disabled={processingPremium || loading}
+            >
+              {processingPremium ? (
+                <ActivityIndicator color={colors.primary} />
+              ) : (
+                <Text
+                  style={[
+                    storeStyles.primaryButtonText,
+                    storeStyles.premiumButtonText,
+                    isPremium && storeStyles.premiumButtonTextActive,
+                  ]}
+                >
+                  {isPremium ? "Desativar premium" : "Ativar premium"}
+                </Text>
+              )}
+            </TouchableOpacity>
           </View>
-          <View style={storeStyles.bulletList}>
-            <Text style={storeStyles.bullet}>- Vidas infinitas para estudar sem parar</Text>
-            <Text style={storeStyles.bullet}>- Mantem ofensiva sempre segura</Text>
-            <Text style={storeStyles.bullet}>- Ativacao imediata no seu perfil</Text>
-          </View>
-          <TouchableOpacity
-            style={[
-              storeStyles.primaryButton,
-              storeStyles.premiumButton,
-              isPremium && storeStyles.premiumButtonActive,
-              processingPremium && { opacity: 0.7 },
-            ]}
-            activeOpacity={0.85}
-            onPress={isPremium ? handleDeactivatePremium : handleActivatePremium}
-            disabled={processingPremium || loading}
-          >
-            {processingPremium ? (
-              <ActivityIndicator color={colors.primary} />
-            ) : (
-              <Text
-                style={[
-                  storeStyles.primaryButtonText,
-                  storeStyles.premiumButtonText,
-                  isPremium && storeStyles.premiumButtonTextActive,
-                ]}
-              >
-                {isPremium ? "Desativar premium" : "Ativar premium"}
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        )}
 
         <View style={storeStyles.card}>
           <View style={storeStyles.cardHeader}>

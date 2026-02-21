@@ -4,11 +4,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   Animated,
   Easing,
   Image,
   Modal,
+  Pressable,
   ScrollView,
   Text,
   TouchableOpacity,
@@ -25,7 +27,11 @@ import {
   RemoteCourseMeta,
   RemoteModule,
 } from "../services/lessonService";
-import { getCompletedModules, getModuleStages } from "../services/progressService";
+import {
+  getCompletedModules,
+  getDoctorCompletedModules,
+  getModuleStages
+} from "../services/progressService";
 
 const moduleIconMap: Record<string, React.ComponentType<any>> = {
   FlaskIcon,
@@ -55,6 +61,12 @@ type ModuleEntry = {
   index: number;
 };
 
+const SPECIAL_MODULE_IDS = new Set([
+  "course-intro",
+  "review-cards",
+  "reset-course-action",
+]);
+
 const getModuleTopicTitle = (module: RemoteModule): string | undefined => {
   const rawTopic =
     typeof module.topic === "string"
@@ -77,12 +89,14 @@ const CourseScreen: React.FC = () => {
   const [coursesLoading, setCoursesLoading] = useState(true);
   const [modulesLoading, setModulesLoading] = useState(false);
   const [courseProgress, setCourseProgress] = useState<string[]>([]);
+  const [doctorProgress, setDoctorProgress] = useState<string[]>([]);
   const [moduleStages, setModuleStages] = useState<Record<string, number>>({});
   const [rcpIntroHalf, setRcpIntroHalf] = useState(false);
   const router = useRouter();
   const [panicVisible, setPanicVisible] = useState(false);
   const [courseModalVisible, setCourseModalVisible] = useState(false);
   const [streakLost, setStreakLost] = useState(false);
+  const [expandedReplayModuleId, setExpandedReplayModuleId] = useState<string | null>(null);
 
   const { styles, colors, panicStyles } = useTheme();
 
@@ -141,7 +155,7 @@ const CourseScreen: React.FC = () => {
       setCourses(data);
       try {
         const stored = await AsyncStorage.getItem(LAST_COURSE_KEY);
-        const validStored = stored && data.find((c) => c.id === stored);
+        const validStored = stored ? data.find((c) => c.id === stored) : undefined;
         
         setSelectedCourseId((prev) => {
           // Verifica se o curso selecionado anteriormente ainda existe na lista (pode ter sido ocultado)
@@ -166,15 +180,20 @@ const CourseScreen: React.FC = () => {
       if (!selectedCourseId) {
         setModules([]);
         setCourseProgress([]);
+        setDoctorProgress([]);
+        setExpandedReplayModuleId(null);
         return;
       }
       setModulesLoading(true);
       const data = await fetchCourseModules(selectedCourseId);
       setModules(data);
       const progress = await getCompletedModules(selectedCourseId);
+      const doctorCompleted = await getDoctorCompletedModules(selectedCourseId);
       const stageProgress = await getModuleStages(selectedCourseId);
       setCourseProgress(progress);
+      setDoctorProgress(doctorCompleted);
       setModuleStages(stageProgress);
+      setExpandedReplayModuleId(null);
       try {
         const userId = auth.currentUser?.uid ?? "anon";
         const halfFlag = await AsyncStorage.getItem(`fastaid:rcpIntroPart1:${userId}`);
@@ -192,8 +211,10 @@ const CourseScreen: React.FC = () => {
       const syncProgress = async () => {
         if (!selectedCourseId) return;
         const progress = await getCompletedModules(selectedCourseId);
+        const doctorCompleted = await getDoctorCompletedModules(selectedCourseId);
         const stageProgress = await getModuleStages(selectedCourseId);
         setCourseProgress(progress);
+        setDoctorProgress(doctorCompleted);
         setModuleStages(stageProgress);
         if (progress.includes("rcp-intro")) {
           try {
@@ -219,6 +240,7 @@ const CourseScreen: React.FC = () => {
 
   function startModule(module: RemoteModule, index: number) {
     if (!selectedCourseId) return;
+    setExpandedReplayModuleId(null);
     void AsyncStorage.setItem(LAST_COURSE_KEY, selectedCourseId).catch(() => {});
         if (isFirstAidCourse && /rcp|pcr/i.test(module.title)) {
       router.push({
@@ -241,8 +263,36 @@ const CourseScreen: React.FC = () => {
     });
   }
 
+  const handleCompletedModulePress = (entry: ModuleEntry) => {
+    if (SPECIAL_MODULE_IDS.has(entry.module.id)) {
+      startModule(entry.module, entry.index);
+      return;
+    }
+    setExpandedReplayModuleId((prev) => (prev === entry.module.id ? null : entry.module.id));
+  };
+
+  const startCompletedModuleMode = (mode: "module-review" | "doctor", module: RemoteModule) => {
+    if (!selectedCourseId) return;
+    if (mode === "doctor" && doctorProgress.includes(module.id)) {
+      Alert.alert("Modo Doutor concluido", "Neste modulo voce ja concluiu o modo Doutor. Agora ele fica apenas para revisao.");
+      return;
+    }
+    setExpandedReplayModuleId(null);
+    router.push({
+      pathname: "/screens/LessonScreen",
+      params: {
+        courseId: selectedCourseId,
+        moduleId: module.id,
+        mode,
+        stageCount: "1",
+        stageIndex: "0",
+      },
+    });
+  };
+
   const handleCourseSelect = (courseId: string) => {
     setSelectedCourseId(courseId);
+    setExpandedReplayModuleId(null);
     void AsyncStorage.setItem(LAST_COURSE_KEY, courseId).catch(() => {});
     setCourseModalVisible(false);
   };
@@ -250,14 +300,17 @@ const CourseScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { paddingTop: 2, paddingBottom: 20 }]}
         contentContainerStyle={{ alignItems: "center" }}
       >
+        <Pressable
+          style={{ width: "100%", alignItems: "center" }}
+          onPress={() => setExpandedReplayModuleId(null)}
+        >
         <Image
           source={require("../../assets/images/band_incio.png")}
-          style={[styles.character, { marginBottom:0,paddingEnd:0, height: 250}]}
+          style={[styles.character, { marginTop: -10, marginBottom: 8, paddingEnd: 0, height: 250 }]}
         />
-        <Text style={[styles.titulo, {paddingBottom:15,marginTop:0}]}>FASTAID</Text>
 
         {streakLost && (
           <View style={styles.streakLossContainer}>
@@ -323,6 +376,12 @@ const CourseScreen: React.FC = () => {
                   const circleColor = locked ? colors.circle : m.color || "#3B82F6";
                   const ModuleIcon = getModuleIcon(m.icon);
                   const halfComplete = isFirstAidCourse && index === 0 && rcpIntroHalf && !isCompleted;
+                  const doctorCompleted = doctorProgress.includes(m.id);
+                  const replayCardVisible =
+                    expandedReplayModuleId === m.id &&
+                    !locked &&
+                    isCompleted &&
+                    !SPECIAL_MODULE_IDS.has(m.id);
 
                   return (
                     <React.Fragment key={m.id}>
@@ -332,14 +391,33 @@ const CourseScreen: React.FC = () => {
                         circleColor={circleColor}
                         locked={locked}
                         completed={isCompleted}
+                        doctorCompleted={doctorCompleted}
+                        doctorAnimate={replayCardVisible}
                         halfComplete={halfComplete}
                         progress={
                           isCompleted ? 1 : halfComplete ? Math.max(0.5, progressRatio) : progressRatio
                         }
-                        onPress={() => !locked && startModule(m, index)}
+                        onPress={(event) => {
+                          event?.stopPropagation?.();
+                          if (locked) return;
+                          if (isCompleted) {
+                            handleCompletedModulePress(entry);
+                            return;
+                          }
+                          setExpandedReplayModuleId(null);
+                          startModule(m, index);
+                        }}
                         ModuleIcon={ModuleIcon}
                         backgroundColor={colors.background}
                       />
+                      {replayCardVisible && (
+                        <InlineReplayCard
+                          title={m.title}
+                          doctorAvailable={!doctorCompleted}
+                          onReview={() => startCompletedModuleMode("module-review", m)}
+                          onDoctor={() => startCompletedModuleMode("doctor", m)}
+                        />
+                      )}
                       {entryIndex < section.entries.length - 1 && (
                         <View style={styles.pathConnector} />
                       )}
@@ -353,13 +431,17 @@ const CourseScreen: React.FC = () => {
 
           
         </View>
+        </Pressable>
       </ScrollView>
 
       <View style={styles.sosButton} pointerEvents="box-none">
         <TouchableOpacity
           style={styles.sosTouchable}
           activeOpacity={0.9}
-          onPress={() => setPanicVisible(true)}
+          onPress={(event) => {
+            event.stopPropagation();
+            setPanicVisible(true);
+          }}
         >
           <Ionicons name="warning" size={30} color="#fff" />
         </TouchableOpacity>
@@ -466,16 +548,113 @@ const CourseScreen: React.FC = () => {
 
 export default CourseScreen;
 
+type InlineReplayCardProps = {
+  title: string;
+  doctorAvailable: boolean;
+  onReview: () => void;
+  onDoctor: () => void;
+};
+
+const InlineReplayCard: React.FC<InlineReplayCardProps> = ({
+  title,
+  doctorAvailable,
+  onReview,
+  onDoctor,
+}) => {
+  return (
+    <View style={{ width: "86%", maxWidth: 330, alignSelf: "center", marginTop: 6, marginBottom: 10 }}>
+      <View
+        style={{
+          alignSelf: "center",
+          width: 18,
+          height: 18,
+          backgroundColor: "#2E94FF",
+          transform: [{ rotate: "45deg" }],
+          marginBottom: -10,
+          borderTopLeftRadius: 4,
+        }}
+      />
+      <View
+        style={{
+          borderRadius: 20,
+          backgroundColor: "#2E94FF",
+          borderWidth: 2,
+          borderColor: "rgba(255,255,255,0.2)",
+          padding: 14,
+          gap: 10,
+          shadowColor: "#0A4A8C",
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: 6 },
+          elevation: 6,
+        }}
+      >
+        <Text style={{ color: "#D7EEFF", fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
+          MODULO CONCLUIDO
+        </Text>
+        <Text style={{ color: "#FFFFFF", fontSize: 28, fontWeight: "900", marginTop: -6 }} numberOfLines={1}>
+          {title}
+        </Text>
+        <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "600", marginTop: -2 }}>
+          {doctorAvailable ? "Escolha como quer repetir." : "Revise este modulo novamente."}
+        </Text>
+        <TouchableOpacity
+          activeOpacity={0.9}
+          onPress={(event) => {
+            event.stopPropagation();
+            onReview();
+          }}
+          style={{
+            borderRadius: 13,
+            backgroundColor: "#F4F6FA",
+            paddingVertical: 12,
+            alignItems: "center",
+            justifyContent: "center",
+          }}
+        >
+          <Text style={{ color: "#1E293B", fontSize: 20, fontWeight: "900", letterSpacing: 0.8 }}>
+            REVISAR +5 XP
+          </Text>
+        </TouchableOpacity>
+        {doctorAvailable && (
+          <TouchableOpacity
+            activeOpacity={0.9}
+            onPress={(event) => {
+              event.stopPropagation();
+              onDoctor();
+            }}
+            style={{
+              borderRadius: 13,
+              backgroundColor: "#0A66FF",
+              paddingVertical: 12,
+              alignItems: "center",
+              justifyContent: "center",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.32)",
+            }}
+          >
+            <Text style={{ color: "#FFFFFF", fontSize: 20, fontWeight: "900", letterSpacing: 0.8 }}>
+              DOUTOR XP x2
+            </Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    </View>
+  );
+};
+
 type ModuleItemProps = {
   title: string;
   labelColor: string;
   circleColor: string;
   locked: boolean;
   completed: boolean;
+  doctorCompleted?: boolean;
+  doctorAnimate?: boolean;
   halfComplete?: boolean;
   progress?: number;
   ModuleIcon: React.ComponentType<any> | null;
-  onPress: () => void;
+  onPress: (event?: any) => void;
   backgroundColor: string;
 };
 
@@ -485,6 +664,8 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   circleColor,
   locked,
   completed,
+  doctorCompleted = false,
+  doctorAnimate = false,
   halfComplete = false,
   progress = 0,
   ModuleIcon,
@@ -492,6 +673,10 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   backgroundColor,
 }) => {
   const pulse = React.useRef(new Animated.Value(1)).current;
+  const doctorGlow = React.useRef(new Animated.Value(0.35)).current;
+  const doctorSparkleA = React.useRef(new Animated.Value(0.2)).current;
+  const doctorSparkleB = React.useRef(new Animated.Value(0.45)).current;
+  const doctorSparkleC = React.useRef(new Animated.Value(0.6)).current;
   const ringSize = 110;
   const strokeWidth = 8;
   const gap = 8;
@@ -500,9 +685,13 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   const circumference = 2 * Math.PI * radius;
   const clampedProgress = Math.max(0, Math.min(1, progress || 0));
   const activeIconColor = "#fff";
+  const doctorStrokeColor = "#6FE6FF";
+  const doctorFillColor = "#0D63F2";
+  const finalCircleColor = doctorCompleted ? doctorFillColor : circleColor;
+  const finalStrokeColor = doctorCompleted ? doctorStrokeColor : circleColor;
 
   React.useEffect(() => {
-    if (locked || completed) {
+    if (locked || (completed && !(doctorCompleted && doctorAnimate))) {
       pulse.setValue(1);
       return;
     }
@@ -514,7 +703,45 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
     );
     loop.start();
     return () => loop.stop();
-  }, [locked, completed, pulse]);
+  }, [locked, completed, doctorCompleted, doctorAnimate, pulse]);
+
+  React.useEffect(() => {
+    if (!doctorCompleted || locked || !doctorAnimate) {
+      doctorGlow.setValue(0.35);
+      doctorSparkleA.setValue(0.2);
+      doctorSparkleB.setValue(0.45);
+      doctorSparkleC.setValue(0.6);
+      return;
+    }
+    const glowLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(doctorGlow, { toValue: 0.85, duration: 760, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+        Animated.timing(doctorGlow, { toValue: 0.35, duration: 760, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+      ])
+    );
+    const sparkleLoop = Animated.loop(
+      Animated.parallel([
+        Animated.sequence([
+          Animated.timing(doctorSparkleA, { toValue: 1, duration: 520, useNativeDriver: true }),
+          Animated.timing(doctorSparkleA, { toValue: 0.2, duration: 520, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(doctorSparkleB, { toValue: 1, duration: 620, useNativeDriver: true }),
+          Animated.timing(doctorSparkleB, { toValue: 0.25, duration: 620, useNativeDriver: true }),
+        ]),
+        Animated.sequence([
+          Animated.timing(doctorSparkleC, { toValue: 1, duration: 700, useNativeDriver: true }),
+          Animated.timing(doctorSparkleC, { toValue: 0.28, duration: 700, useNativeDriver: true }),
+        ]),
+      ])
+    );
+    glowLoop.start();
+    sparkleLoop.start();
+    return () => {
+      glowLoop.stop();
+      sparkleLoop.stop();
+    };
+  }, [doctorCompleted, locked, doctorAnimate, doctorGlow, doctorSparkleA, doctorSparkleB, doctorSparkleC]);
 
   return (
     <TouchableOpacity
@@ -532,12 +759,63 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
           }}
         >
           <View style={{ width: ringSize, height: ringSize, alignItems: "center", justifyContent: "center" }}>
+          {doctorCompleted && !locked && doctorAnimate && (
+            <>
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  width: ringSize + 16,
+                  height: ringSize + 16,
+                  borderRadius: 999,
+                  backgroundColor: "#36C7FF",
+                  opacity: doctorGlow,
+                  transform: [{ scale: 1.02 }],
+                }}
+              />
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  right: 10,
+                  width: 8,
+                  height: 8,
+                  borderRadius: 4,
+                  backgroundColor: "#D9F6FF",
+                  opacity: doctorSparkleA,
+                }}
+              />
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  top: 16,
+                  left: 6,
+                  width: 6,
+                  height: 6,
+                  borderRadius: 3,
+                  backgroundColor: "#BFF0FF",
+                  opacity: doctorSparkleB,
+                }}
+              />
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  bottom: 10,
+                  right: 8,
+                  width: 7,
+                  height: 7,
+                  borderRadius: 3.5,
+                  backgroundColor: "#E8FBFF",
+                  opacity: doctorSparkleC,
+                }}
+              />
+            </>
+          )}
           <Svg width={ringSize} height={ringSize} style={{ position: "absolute" }}>
             <Circle
               cx={ringSize / 2}
               cy={ringSize / 2}
               r={radius}
-              stroke="rgba(255,255,255,0.25)"
+              stroke={doctorCompleted ? "rgba(111, 230, 255, 0.42)" : "rgba(255,255,255,0.25)"}
               strokeWidth={strokeWidth}
               fill="none"
             />
@@ -546,7 +824,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                 cx={ringSize / 2}
                 cy={ringSize / 2}
                 r={radius}
-                stroke={circleColor}
+                stroke={finalStrokeColor}
                 strokeWidth={strokeWidth}
                 fill="none"
                 strokeLinecap="round"
@@ -564,11 +842,13 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                 borderRadius: 999,
                 alignItems: "center",
                 justifyContent: "center",
-                backgroundColor: circleColor,
+                backgroundColor: finalCircleColor,
               },
             ]}
           >
-            {completed ? (
+            {doctorCompleted && !locked ? (
+              <Ionicons name="medal" size={30} color="#EAF9FF" />
+            ) : completed ? (
               <FontAwesome name="check" size={30} color="#fff" />
             ) : locked ? (
               <FontAwesome name="lock" size={30} color="black" />
@@ -584,6 +864,11 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
       <Text style={[{ marginTop: 6, fontWeight: "700", textAlign: "center" }, { color: labelColor }]}>
         {title}
       </Text>
+      {doctorCompleted && !locked && (
+        <Text style={{ marginTop: 2, color: "#73D9FF", fontWeight: "900", letterSpacing: 1 }}>
+          DOUTOR
+        </Text>
+      )}
     </TouchableOpacity>
   );
 };

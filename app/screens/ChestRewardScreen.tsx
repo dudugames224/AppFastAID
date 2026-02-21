@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { Animated, Easing, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Path } from "react-native-svg";
@@ -7,6 +7,16 @@ import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 
 type ChestFrame = "closed" | "open" | "openAlt";
 type Rarity = "normal" | "rare" | "epic" | "legendary";
+const BURST_VECTORS = [
+  { x: -120, y: -90 },
+  { x: -90, y: -130 },
+  { x: -35, y: -145 },
+  { x: 35, y: -145 },
+  { x: 90, y: -130 },
+  { x: 120, y: -90 },
+  { x: -85, y: -45 },
+  { x: 85, y: -45 },
+];
 
 const ChestRewardScreen = () => {
   const { courseId, moduleId, mode, xp, accuracy, mistakes, answered, durationSeconds } = useLocalSearchParams<{
@@ -46,6 +56,10 @@ const ChestRewardScreen = () => {
   const glowOpacity = useRef(new Animated.Value(0)).current;
   const glowScale = useRef(new Animated.Value(0.9)).current;
   const screenFlashOpacity = useRef(new Animated.Value(0)).current;
+  const rewardOpacity = useRef(new Animated.Value(0)).current;
+  const rewardScale = useRef(new Animated.Value(0.96)).current;
+  const continueOpacity = useRef(new Animated.Value(0)).current;
+  const continueLift = useRef(new Animated.Value(14)).current;
   const starAnims = useRef([
     new Animated.Value(0),
     new Animated.Value(0),
@@ -61,9 +75,11 @@ const ChestRewardScreen = () => {
     new Animated.Value(0),
   ]).current;
   const frameSwapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const framePulseTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const chestIdleLoop = useRef<Animated.CompositeAnimation | null>(null);
   const continueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const arrowAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
+  const burstAnims = useRef(BURST_VECTORS.map(() => new Animated.Value(0))).current;
 
   const rarityLabel: Record<Rarity, string> = {
     normal: "NORMAL",
@@ -216,18 +232,23 @@ const ChestRewardScreen = () => {
       clearTimeout(continueTimer.current);
       continueTimer.current = null;
     }
+    if (framePulseTimers.current.length) {
+      framePulseTimers.current.forEach((timer) => clearTimeout(timer));
+      framePulseTimers.current = [];
+    }
   };
 
   useEffect(() => () => clearTimers(), []);
 
   useEffect(() => {
-    if (mode === "practice") {
+    const resolvedMode = typeof mode === "string" ? mode : "course";
+    if (resolvedMode !== "course") {
       router.replace({
         pathname: "/screens/LessonResultScreen",
         params: {
           courseId: courseId as string,
           moduleId: moduleId as string,
-          mode,
+          mode: resolvedMode,
           xp,
           accuracy,
           mistakes,
@@ -346,8 +367,19 @@ const ChestRewardScreen = () => {
     setIsAnimatingChest(true);
     Animated.parallel([
       Animated.sequence([
-        Animated.timing(chestScale, { toValue: 1 + 0.04 * intensity, duration: 80, useNativeDriver: true }),
-        Animated.spring(chestScale, { toValue: 1, speed: 10, bounciness: 6, useNativeDriver: true }),
+        Animated.timing(chestScale, {
+          toValue: 0.97,
+          duration: 70,
+          easing: Easing.out(Easing.quad),
+          useNativeDriver: true,
+        }),
+        Animated.spring(chestScale, {
+          toValue: 1 + 0.05 * intensity,
+          speed: 18,
+          bounciness: 12,
+          useNativeDriver: true,
+        }),
+        Animated.spring(chestScale, { toValue: 1, speed: 12, bounciness: 7, useNativeDriver: true }),
       ]),
       Animated.sequence([
         Animated.timing(chestLift, { toValue: -6 * intensity, duration: 90, useNativeDriver: true }),
@@ -378,16 +410,36 @@ const ChestRewardScreen = () => {
     setIsAnimatingChest(true);
     setChestOpened(true);
     void grantSafirasIfNeeded();
+    rewardOpacity.setValue(0);
+    rewardScale.setValue(0.96);
+    continueOpacity.setValue(0);
+    continueLift.setValue(14);
+    burstAnims.forEach((anim) => anim.setValue(0));
 
     if (frameSwapTimer.current) {
       clearTimeout(frameSwapTimer.current);
     }
-    frameSwapTimer.current = setTimeout(() => {
-      setChestFrame("open");
-      frameSwapTimer.current = null;
-    }, 220);
+    setChestFrame("open");
+    framePulseTimers.current.forEach((timer) => clearTimeout(timer));
+    framePulseTimers.current = [];
+    framePulseTimers.current.push(
+      setTimeout(() => setChestFrame("openAlt"), 140),
+      setTimeout(() => setChestFrame("open"), 280)
+    );
+    burstAnims.forEach((anim, index) => {
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 440 + index * 30,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }).start(() => anim.setValue(0));
+    });
 
     Animated.sequence([
+      Animated.parallel([
+        Animated.timing(chestScale, { toValue: 0.92, duration: 90, useNativeDriver: true }),
+        Animated.timing(chestLift, { toValue: 8, duration: 90, useNativeDriver: true }),
+      ]),
       Animated.sequence([
         Animated.timing(chestRotate, { toValue: -8, duration: 70, useNativeDriver: true }),
         Animated.timing(chestRotate, { toValue: 8, duration: 90, useNativeDriver: true }),
@@ -421,6 +473,23 @@ const ChestRewardScreen = () => {
     ]).start(() => {
       setIsAnimatingChest(false);
       startIdleAnimation("open");
+      Animated.parallel([
+        Animated.timing(rewardOpacity, {
+          toValue: 1,
+          duration: 260,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(rewardScale, { toValue: 1, speed: 14, bounciness: 8, useNativeDriver: true }),
+        Animated.timing(continueOpacity, {
+          toValue: 1,
+          duration: 260,
+          delay: 100,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.spring(continueLift, { toValue: 0, speed: 14, bounciness: 8, useNativeDriver: true }),
+      ]).start();
     });
   };
 
@@ -485,7 +554,7 @@ const ChestRewardScreen = () => {
     }, 450);
   };
 
-  const startIdleAnimation = (frame: ChestFrame) => {
+  const startIdleAnimation = useCallback((frame: ChestFrame) => {
     if (chestIdleLoop.current) {
       chestIdleLoop.current.stop();
       chestIdleLoop.current = null;
@@ -493,26 +562,29 @@ const ChestRewardScreen = () => {
     const isOpen = frame !== "closed";
     const scaleUp = isOpen ? 1.04 : 1.02;
     const liftUp = isOpen ? -4 : -2;
-    const duration = isOpen ? 1000 : 900;
+    const duration = isOpen ? 900 : 820;
+    const tilt = isOpen ? 1.4 : 0.9;
 
     chestIdleLoop.current = Animated.loop(
       Animated.sequence([
         Animated.parallel([
           Animated.timing(chestScale, { toValue: scaleUp, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
           Animated.timing(chestLift, { toValue: liftUp, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(chestRotate, { toValue: tilt, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
           Animated.timing(glowOpacity, { toValue: isOpen ? 0.3 : 0.18, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
           Animated.timing(glowScale, { toValue: isOpen ? 1.12 : 1.05, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ]),
         Animated.parallel([
           Animated.timing(chestScale, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
           Animated.timing(chestLift, { toValue: 0, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
+          Animated.timing(chestRotate, { toValue: -tilt, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
           Animated.timing(glowOpacity, { toValue: 0.12, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
           Animated.timing(glowScale, { toValue: 1, duration, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
         ]),
       ])
     );
     chestIdleLoop.current.start();
-  };
+  }, [chestLift, chestRotate, chestScale, glowOpacity, glowScale]);
 
   useEffect(() => {
     startIdleAnimation("closed");
@@ -522,7 +594,7 @@ const ChestRewardScreen = () => {
         chestIdleLoop.current = null;
       }
     };
-  }, []);
+  }, [startIdleAnimation]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -536,6 +608,27 @@ const ChestRewardScreen = () => {
           disabled={chestOpened || isAnimatingChest}
         >
           <Animated.View pointerEvents="none" style={[styles.chestGlow, chestGlowStyle]} />
+          {burstAnims.map((anim, idx) => {
+            const vector = BURST_VECTORS[idx];
+            const translateX = anim.interpolate({ inputRange: [0, 1], outputRange: [0, vector.x] });
+            const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, vector.y] });
+            const scale = anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.4, 1.05, 0.6] });
+            const opacity = anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] });
+            return (
+              <Animated.View
+                key={`burst-${idx}`}
+                style={[
+                  styles.star,
+                  {
+                    backgroundColor: rarityAccent[rarity],
+                    transform: [{ translateX }, { translateY }, { scale }],
+                    opacity,
+                  },
+                ]}
+                pointerEvents="none"
+              />
+            );
+          })}
           {starAnims.map((anim, idx) => {
             const translateX = anim.interpolate({
               inputRange: [0, 1],
@@ -575,7 +668,7 @@ const ChestRewardScreen = () => {
         </TouchableOpacity>
 
         {rewardGranted && (
-          <>
+          <Animated.View style={{ opacity: rewardOpacity, transform: [{ scale: rewardScale }] }}>
             <Text style={[styles.rewardText, { color: "#fff" }]}>
               Safiras adicionadas: +{safiraReward}
             </Text>
@@ -584,7 +677,7 @@ const ChestRewardScreen = () => {
                 Poção de XP x3 por 15 minutos ativada!
               </Text>
             )}
-          </>
+          </Animated.View>
         )}
       </View>
 
@@ -617,9 +710,11 @@ const ChestRewardScreen = () => {
       )}
 
       {chestOpened && (
-        <TouchableOpacity style={styles.continueButton} activeOpacity={0.9} onPress={handleContinue}>
-          <Text style={styles.continueButtonText}>CONTINUAR</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ opacity: continueOpacity, transform: [{ translateY: continueLift }] }}>
+          <TouchableOpacity style={styles.continueButton} activeOpacity={0.9} onPress={handleContinue}>
+            <Text style={styles.continueButtonText}>CONTINUAR</Text>
+          </TouchableOpacity>
+        </Animated.View>
       )}
 
       <Animated.View style={[styles.flashOverlay, { opacity: screenFlashOpacity }]} />

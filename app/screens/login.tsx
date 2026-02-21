@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import { sendPasswordResetEmail, signInWithEmailAndPassword, User } from "firebase/auth";
+import { sendPasswordResetEmail, signInWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
 import { Alert, Image, KeyboardAvoidingView, Modal, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -11,13 +11,11 @@ export default function LoginScreen() {
   const { styles, panicStyles } = useTheme(); 
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
-  const [user, setUser] = useState<User | null>(null);
   const [panicVisible, setPanicVisible] = useState(false);
 
   async function login() {
     try{
       const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-      setUser(userCredential.user);
       console.log("Usuário logado:", userCredential.user.email);
     
       router.replace('../(tabs)/CourseScreen');
@@ -36,7 +34,7 @@ export default function LoginScreen() {
     try {
       await sendPasswordResetEmail(auth, email);
       Alert.alert("Redefinir Senha", "Um e-mail foi enviado para você com as instruções para redefinir sua senha. Verifique sua caixa de entrada e spam.");
-    } catch (error: any) {
+    } catch {
       Alert.alert("Erro", "Não foi possível enviar o e-mail de redefinição. Verifique se o e-mail está correto.");
     }
   }
@@ -112,3 +110,4 @@ export default function LoginScreen() {
   
   
 }
+

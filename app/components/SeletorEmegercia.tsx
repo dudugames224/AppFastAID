@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { emergenciaList } from "../data/emergencyData";
+import { emergencyList } from "../data/emergencyData";
 
 interface emergencia {
   id: string;
@@ -44,7 +44,7 @@ const emergenciaSelector = ({
           <Text style={styles.modalTitle}>Qual é a Emergência?</Text>
 
           <FlatList
-            data={emergenciaList}
+            data={emergencyList}
             keyExtractor={(item) => item.id}
             renderItem={({ item }) => (
               <TouchableOpacity

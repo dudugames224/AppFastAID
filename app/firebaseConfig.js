@@ -1,7 +1,7 @@
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 import { getApp, getApps, initializeApp } from "firebase/app";
 import { getReactNativePersistence, initializeAuth } from "firebase/auth";
-import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, onSnapshot, setDoc, updateDoc } from "firebase/firestore";
+import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, getFirestore, limit, onSnapshot, orderBy, query, setDoc, updateDoc, where } from "firebase/firestore";
 
 
 
@@ -32,7 +32,24 @@ function Sair(){
   auth.signOut();
 }
 
-export { addDoc, app, auth, collection, db, deleteDoc, doc, getDoc, getDocs, Sair, setDoc, updateDoc };
+export {
+  addDoc,
+  app,
+  auth,
+  collection,
+  db,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  limit,
+  orderBy,
+  query,
+  Sair,
+  setDoc,
+  updateDoc,
+  where,
+};
 export { onSnapshot };
 export const getUserData = async () => {
   const user = auth.currentUser;
@@ -57,6 +74,34 @@ export const getAllUsers = async () => {
     console.error("Erro ao buscar todos os usuários:", error);
     return [];
   }
+};
+
+export const findUserByName = async (rawName) => {
+  const term = typeof rawName === "string" ? rawName.trim() : "";
+  if (!term) return null;
+
+  const normalized = term
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+
+  const usersRef = collection(db, "users");
+  const candidates = [
+    query(usersRef, where("usernameNormalized", "==", normalized), limit(1)),
+    query(usersRef, where("nomeNormalized", "==", normalized), limit(1)),
+    query(usersRef, where("username", "==", term), limit(1)),
+    query(usersRef, where("nome", "==", term), limit(1)),
+  ];
+
+  for (const q of candidates) {
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const found = snapshot.docs[0];
+      return { id: found.id, ...found.data() };
+    }
+  }
+
+  return null;
 };
 
 export const updateUserAvatar = async (userId, avatar) => {

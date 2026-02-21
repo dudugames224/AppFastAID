@@ -35,7 +35,11 @@ export default function DailyReportScreen() {
   const [courses, setCourses] = useState<RemoteCourseMeta[]>([]);
   const [selectedClass, setSelectedClass] = useState<string | null>(null);
   const [availableClasses, setAvailableClasses] = useState<string[]>([]);
-  const [appSettings, setAppSettings] = useState<AppSettings>({ isStoreEnabled: true, globalInfiniteLives: false });
+  const [appSettings, setAppSettings] = useState<AppSettings>({
+    isStoreEnabled: true,
+    globalInfiniteLives: false,
+    isPremiumModeEnabled: true,
+  });
 
   // Estados para controle das seções colapsáveis
   const [expandVisibility, setExpandVisibility] = useState(false);
@@ -129,7 +133,7 @@ export default function DailyReportScreen() {
     };
   };
 
-  const toggleSection = (section: 'visibility' | 'gamification' | 'report') => {
+  const toggleSection = (section: 'visibility' | 'gamification' | 'report' | 'settings') => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (section === 'visibility') setExpandVisibility(!expandVisibility);
     if (section === 'gamification') setExpandGamification(!expandGamification);
@@ -459,7 +463,7 @@ export default function DailyReportScreen() {
       // Usa a turma selecionada (ou null para todas)
       const data = await fetchLeaderboard(selectedClass);
       setLeaderboard(data);
-    } catch (error) {
+    } catch  {
       Alert.alert("Erro", "Não foi possível carregar o ranking.");
     } finally {
       setRankingLoading(false);
@@ -565,6 +569,14 @@ export default function DailyReportScreen() {
             <Switch
               value={appSettings.globalInfiniteLives === true}
               onValueChange={(val) => handleToggleSetting('globalInfiniteLives', val)}
+              trackColor={{ false: "#767577", true: "#3b82f6" }}
+            />
+          </View>
+          <View style={styles.toggleRow}>
+            <Text style={[styles.toggleLabel, { color: colors.text }]}>Modo Premium na Loja</Text>
+            <Switch
+              value={appSettings.isPremiumModeEnabled !== false}
+              onValueChange={(val) => handleToggleSetting('isPremiumModeEnabled', val)}
               trackColor={{ false: "#767577", true: "#3b82f6" }}
             />
           </View>

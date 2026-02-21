@@ -24,7 +24,7 @@ import {
 import { getUserAchievements } from "../services/progressService";
 
 const AVATAR_OPTIONS = ["😀", "😎", "🤔", "😂", "🥳", "🤯", "😇", "😴", "🤩"];
-const REMINDER_IDENTIFIER = "lesson-demo-reminder";
+const REMINDER_IDENTIFIER = "lesson-daily-reminder";
 
 const coerceToMs = (value: any): number | null => {
   if (!value) return null;
@@ -138,7 +138,7 @@ const ProfileScreen = () => {
       if (tripleExpired && doubleExpired && recentExpired) clearInterval(interval);
     }, 1000);
     return () => clearInterval(interval);
-  }, [tripleXpUntilKey, doubleXpUntilKey, lastDoubleAppliedKey]);
+  }, [tripleXpUntilKey, doubleXpUntilKey, lastDoubleAppliedKey, userData]);
 
   useEffect(() => {
     let mounted = true;
@@ -177,13 +177,13 @@ const ProfileScreen = () => {
         identifier: REMINDER_IDENTIFIER,
         message,
         data: { type: "lesson-reminder" },
-        intervalInMinutes: 1,
+        intervalInMinutes: 24 * 60,
       });
       setReminderActive(true);
       setPreviewMessage(getRandomReminderMessage());
       Alert.alert(
         "Lembrete ativo",
-        `${message.emoji} ${message.title} chega a cada 1 minuto.`
+        `${message.emoji} ${message.title} chega uma vez por dia.`
       );
     } catch (error) {
       handleReminderError(error);
@@ -354,6 +354,27 @@ const ProfileScreen = () => {
                 </View>
 
               <View style={{ width: '100%', gap: 15 }}>
+                <TouchableOpacity
+                  style={styles.caixaPerfil}
+                  onPress={reminderActive ? handleDeactivateReminder : handleActivateReminder}
+                  disabled={reminderLoading}
+                >
+                  <Text style={[styles.textoBotao, { color: colors.text }]}>
+                    {reminderLoading
+                      ? "ATUALIZANDO LEMBRETE..."
+                      : reminderActive
+                      ? "DESATIVAR LEMBRETE DIARIO"
+                      : "ATIVAR LEMBRETE DIARIO"}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.textoBotao,
+                      { color: colors.text, opacity: 0.75, marginTop: 6, fontSize: 12 },
+                    ]}
+                  >
+                    {previewMessage.emoji} {previewMessage.title}
+                  </Text>
+                </TouchableOpacity>
                 <TouchableOpacity style={styles.caixaPerfil} onPress={logout}>
                   <Text style={[styles.textoBotao, { color: colors.text }]}>SAIR DA CONTA</Text>
                 </TouchableOpacity>

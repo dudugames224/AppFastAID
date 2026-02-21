@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { Dimensions, Image, Text, TouchableOpacity, View } from "react-native";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { useTheme } from "../context/ThemeContext";
 import { getUserData } from "../firebaseConfig";
 import { applyLifeRegeneration } from "../services/lifeService";
@@ -9,7 +9,6 @@ import { HeartIcon } from "./Icons";
 const safiraIcon = require("../../assets/images/torneios.png");
 
 export const GlobalHeader = () => {
-  const { width, height } = Dimensions.get("window");
   const router = useRouter();
   const { colors, styles } = useTheme();
   const [userData, setUserData] = useState({
@@ -41,7 +40,12 @@ export const GlobalHeader = () => {
               ofensiva: data.ofensiva || 0,
               lives: (data as any).isPremium ? resolvedLives : regenerated.lives,
               isPremium: Boolean((data as any).isPremium),
-              safiras: typeof (data as any).safiras === "number" ? (data as any).safiras : 0,
+              safiras:
+                typeof (data as any).safiras === "number"
+                  ? (data as any).safiras
+                  : typeof (data as any).safira === "number"
+                  ? (data as any).safira
+                  : 0,
             });
           }
         } catch (error) {

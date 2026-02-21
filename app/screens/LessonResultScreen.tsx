@@ -5,6 +5,7 @@ import { Animated, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View }
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { auth, db, doc, getDoc, setDoc } from "../firebaseConfig.js";
 import { fetchCourseModules, RemoteModule } from "../services/lessonService";
+import { addWeeklyXp } from "../services/tournamentService";
 
 const CharacterImg = ({ size = 180 }: { size?: number }) => (
   <Image
@@ -15,12 +16,6 @@ const CharacterImg = ({ size = 180 }: { size?: number }) => (
 
 const clampNumber = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
-
-const parseNumberParam = (value: string | undefined) => {
-  if (value === undefined) return undefined;
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : undefined;
-};
 
 const coerceToMs = (value: any): number | null => {
   if (!value) return null;
@@ -167,8 +162,21 @@ const LessonResultScreen = ({
   const totalStages = stageCountParam !== undefined ? parseInt(stageCountParam, 10) : 1;
   const hasNextStage = currentStageIndex + 1 < totalStages;
 
-  const computedIsPractice =
-    mode === "practice" ? true : isPracticeFromProps ?? false;
+  const resolvedMode = mode ?? (isPracticeFromProps ? "practice" : "course");
+  const isPracticeHubMode = resolvedMode === "practice" || resolvedMode === "review";
+  const isCourseMode = resolvedMode === "course";
+  const isDoctorMode = resolvedMode === "doctor";
+  const isModuleReviewMode = resolvedMode === "module-review";
+  const computedIsPractice = isPracticeHubMode;
+  const resultKicker = isPracticeHubMode
+    ? "PRATICA CONCLUIDA"
+    : isDoctorMode
+    ? "MODO DOUTOR CONCLUIDO"
+    : isModuleReviewMode
+    ? "REVISAO CONCLUIDA"
+    : hasNextStage
+    ? "LICAO CONCLUIDA"
+    : "MODULO CONCLUIDO";
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const claimedRef = useRef(false);
@@ -355,13 +363,13 @@ const LessonResultScreen = ({
 
   const paddingTop = (safeAreaTop ?? insets.top) + 20;
   const paddingBottom = (safeAreaBottom ?? insets.bottom) + 20;
-  const exitTarget = computedIsPractice
+  const exitTarget = isPracticeHubMode
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";
 
   useEffect(() => {
     const loadNextModule = async () => {
-      if (computedIsPractice || !courseId || !moduleId) {
+      if (!isCourseMode || !courseId || !moduleId) {
         setNextModule(null);
         return;
       }
@@ -380,7 +388,7 @@ const LessonResultScreen = ({
       }
     };
     loadNextModule();
-  }, [computedIsPractice, courseId, moduleId]);
+  }, [isCourseMode, courseId, moduleId]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -396,7 +404,7 @@ const LessonResultScreen = ({
     fetchUserData();
   }, []);
 
-  const showNextButton = Boolean(onNext || (!computedIsPractice && (hasNextStage || nextModule)));
+  const showNextButton = Boolean(onNext || (isCourseMode && (hasNextStage || nextModule)));
 
   type UpdateXpResult = { newStreak: number; shouldCelebrateStreak: boolean };
 
@@ -498,6 +506,10 @@ const LessonResultScreen = ({
       if (doubleActive) payload.lastDoubleXpAppliedAt = now.toISOString();
 
       await setDoc(userDocRef, payload, { merge: true });
+      await addWeeklyXp(user.uid, rewardedXp, {
+        nome: typeof resolvedUserData.nome === "string" ? resolvedUserData.nome : undefined,
+        avatar: typeof resolvedUserData.avatar === "string" ? resolvedUserData.avatar : undefined,
+      }).catch(() => 0);
       claimedRef.current = true;
       lastComputedStreakRef.current = newStreak;
       return { newStreak, shouldCelebrateStreak };
@@ -522,7 +534,7 @@ const LessonResultScreen = ({
       return null;
     }
 
-    if (!computedIsPractice && courseId) {
+    if (isCourseMode && courseId) {
       // Se houver próxima etapa (lição) no mesmo módulo, prioriza ela
       if (hasNextStage && moduleId) {
         return {
@@ -578,9 +590,9 @@ const LessonResultScreen = ({
     }
 
     if (intent.params) {
-      router.replace({ pathname: intent.pathname, params: intent.params });
+      router.replace({ pathname: intent.pathname as any, params: intent.params } as any);
     } else {
-      router.replace(intent.pathname);
+      router.replace(intent.pathname as any);
     }
   };
 
@@ -588,8 +600,8 @@ const LessonResultScreen = ({
   const handleNextPress = () => handleExitAction("next");
 
   const primaryButtonLabel =
-    showNextButton && !computedIsPractice ? "RESGATAR XP E CONTINUAR" : "RESGATAR XP";
-  const secondaryButtonLabel = computedIsPractice ? "VOLTAR A PRATICAR" : "VOLTAR AO CURSO";
+    showNextButton && isCourseMode ? "RESGATAR XP E CONTINUAR" : "RESGATAR XP";
+  const secondaryButtonLabel = isPracticeHubMode ? "VOLTAR A PRATICAR" : "VOLTAR AO CURSO";
 
   return (
     <Animated.View
@@ -617,10 +629,7 @@ const LessonResultScreen = ({
           <CharacterImg size={230} />
         </View>
 
-        <Text style={styles.kicker}>
-          {computedIsPractice ? "PRÁTICA CONCLUÍDA" : "MÓDULO CONCLUÍDO"}
-          {computedIsPractice ? "PRÁTICA CONCLUÍDA" : hasNextStage ? "LIÇÃO CONCLUÍDA" : "MÓDULO CONCLUÍDO"}
-        </Text>
+        <Text style={styles.kicker}>{resultKicker}</Text>
         <Text style={styles.headline}>{performanceCopy.headline}</Text>
         <Text style={styles.subheadline}>{performanceCopy.sub}</Text>
 

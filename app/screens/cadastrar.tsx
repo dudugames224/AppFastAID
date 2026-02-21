@@ -17,6 +17,12 @@ export default function CadastrarScreen() {
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
   
   const { styles } = useTheme();
+  const normalizeText = (value: string) =>
+    value
+      .trim()
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
 
   const formatBirthDate = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 8);
@@ -89,17 +95,25 @@ export default function CadastrarScreen() {
         senha
       );
       const userDocRef = doc(db, "users", userCredential.user.uid);
+      const normalizedName = normalizeText(nome);
       await setDoc(userDocRef, {
         uid: userCredential.user.uid,
         nome: nome,
+        nomeNormalized: normalizedName,
+        username: nome,
+        usernameNormalized: normalizedName,
         dataNascimento: dataNascimento,
         turma: turma,
         sexo: sexo,
         email: email,
         aceiteDeTermos: aceiteDeTermos,
         xp: 0,
+        safiras: 0,
         safira: 0,
         ofensiva: 0,
+        lives: 5,
+        vidas: 5,
+        isPremium: false,
       });
       console.log("Usuário cadastrado:", userCredential.user.email);
       router.replace("../(tabs)/CourseScreen");
