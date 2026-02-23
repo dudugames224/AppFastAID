@@ -48,8 +48,8 @@ const TournamentScreen = () => {
                   uid: currentUserId,
                   name:
                     typeof currentUserData.nome === "string" && currentUserData.nome.trim()
-                      ? `${currentUserData.nome} (Voce)`
-                      : "Voce",
+                      ? `${currentUserData.nome} (Você)`
+                      : "Você",
                   avatar:
                     typeof currentUserData.avatar === "string" && currentUserData.avatar.trim()
                       ? currentUserData.avatar

@@ -28,7 +28,7 @@ type FriendProfile = {
   streakTogether: boolean;
 };
 
-const daysOfWeek = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+const daysOfWeek = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 const buildMonthGrid = (year: number, month: number) => {
   const firstDay = new Date(year, month, 1).getDay();
@@ -71,7 +71,7 @@ const StreakScreen = () => {
 
   const [streak, setStreak] = useState(0);
   const [lastLessonDate, setLastLessonDate] = useState<Date | null>(null);
-  const [userName, setUserName] = useState("Usuario");
+  const [userName, setUserName] = useState("Usuário");
   const [activeTab, setActiveTab] = useState<TabMode>("personal");
   const [friendNameInput, setFriendNameInput] = useState("");
   const [friends, setFriends] = useState<FriendProfile[]>([]);
@@ -86,7 +86,7 @@ const StreakScreen = () => {
       entries
         .filter((entry) => entry && typeof entry === "object" && typeof entry.uid === "string")
         .map(async (entry) => {
-          const fallbackName = safeString(entry.nome, "Usuario");
+          const fallbackName = safeString(entry.nome, "Usuário");
           const fallbackAvatar = safeString(entry.avatar, "🙂");
 
           try {
@@ -151,7 +151,7 @@ const StreakScreen = () => {
             : 0;
 
         setStreak(safeStreak(ofensiva));
-        setUserName(safeString((data as any)?.nome, "Usuario"));
+        setUserName(safeString((data as any)?.nome, "Usuário"));
 
         const last = (data as any)?.lastLessonDate ? new Date((data as any).lastLessonDate) : null;
         setLastLessonDate(last && !Number.isNaN(last.getTime()) ? last : null);
@@ -190,13 +190,13 @@ const StreakScreen = () => {
     if (friendActionLoading) return;
     const currentUid = auth.currentUser?.uid;
     if (!currentUid) {
-      Alert.alert("Erro", "Voce precisa estar logado para adicionar amigos.");
+      Alert.alert("Erro", "Você precisa estar logado para adicionar amigos.");
       return;
     }
 
     const typedName = friendNameInput.trim();
     if (!typedName) {
-      Alert.alert("Adicionar amigo", "Digite um nome de usuario.");
+      Alert.alert("Adicionar amigo", "Digite um nome de usuário.");
       return;
     }
 
@@ -204,17 +204,17 @@ const StreakScreen = () => {
     try {
       const matchedUser = (await findUserByName(typedName)) as any;
       if (!matchedUser) {
-        Alert.alert("Nao encontrado", "Nenhum usuario com esse nome foi encontrado.");
+        Alert.alert("Não encontrado", "Nenhum usuário com esse nome foi encontrado.");
         return;
       }
 
       if (matchedUser.id === currentUid) {
-        Alert.alert("Adicionar amigo", "Voce nao pode adicionar a si mesmo.");
+        Alert.alert("Adicionar amigo", "Você não pode adicionar a si mesmo.");
         return;
       }
 
       if (friends.some((friend) => friend.uid === matchedUser.id)) {
-        Alert.alert("Adicionar amigo", "Esse usuario ja esta na sua lista.");
+        Alert.alert("Adicionar amigo", "Esse usuário ja esta na sua lista.");
         return;
       }
 
@@ -232,7 +232,7 @@ const StreakScreen = () => {
       await persistFriends(nextFriends);
       Alert.alert("Sucesso", `${nextFriend.nome} foi adicionado(a).`);
     } catch {
-      Alert.alert("Erro", "Nao foi possivel adicionar amigo agora.");
+      Alert.alert("Erro", "Não foi possível adicionar amigo agora.");
     } finally {
       setFriendActionLoading(false);
     }
@@ -249,7 +249,7 @@ const StreakScreen = () => {
     try {
       await persistFriends(nextFriends);
     } catch {
-      Alert.alert("Erro", "Nao foi possivel atualizar ofensiva juntos.");
+      Alert.alert("Erro", "Não foi possível atualizar ofensiva juntos.");
     }
   };
 
@@ -257,12 +257,12 @@ const StreakScreen = () => {
     try {
       const canShare = await Sharing.isAvailableAsync();
       if (!canShare) {
-        Alert.alert("Compartilhar", "Compartilhamento nao disponivel neste dispositivo.");
+        Alert.alert("Compartilhar", "Compartilhamento não disponivel neste dispositivo.");
         return;
       }
 
       if (!shareCardRef.current) {
-        Alert.alert("Compartilhar", "Nao foi possivel gerar a imagem da ofensiva.");
+        Alert.alert("Compartilhar", "Não foi possível gerar a imagem da ofensiva.");
         return;
       }
 
@@ -288,7 +288,7 @@ const StreakScreen = () => {
         <TouchableOpacity onPress={() => router.back()} style={styles.headerBtn}>
           <Ionicons name="close" size={22} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Streak</Text>
+        <Text style={styles.headerTitle}>Ofensiva</Text>
         <TouchableOpacity style={styles.headerBtn} onPress={handleShareStreak}>
           <Ionicons name="share-social" size={20} color="#fff" />
         </TouchableOpacity>
@@ -297,17 +297,17 @@ const StreakScreen = () => {
       <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 40 }}>
         <View style={styles.tabRow}>
           <TouchableOpacity onPress={() => setActiveTab("personal")}>
-            <Text style={[styles.tab, activeTab === "personal" && styles.tabActive]}>PERSONAL</Text>
+            <Text style={[styles.tab, activeTab === "personal" && styles.tabActive]}>PESSOAL</Text>
           </TouchableOpacity>
           <TouchableOpacity onPress={() => setActiveTab("friends")}>
-            <Text style={[styles.tab, activeTab === "friends" && styles.tabActive]}>FRIENDS</Text>
+            <Text style={[styles.tab, activeTab === "friends" && styles.tabActive]}>AMIGOS</Text>
           </TouchableOpacity>
         </View>
 
         {activeTab === "personal" ? (
           <>
             <View style={styles.heroCard}>
-              <Text style={styles.heroTag}>STREAK</Text>
+              <Text style={styles.heroTag}>OFENSIVA</Text>
               <View style={styles.heroRow}>
                 <Text style={styles.heroNumber}>{streak}</Text>
                 <Image
@@ -320,18 +320,18 @@ const StreakScreen = () => {
 
             <View style={styles.banner}>
               <View style={styles.badge}>
-                <Text style={styles.badgeText}>🎉</Text>
+                <Text style={styles.badgeText}>🔥</Text>
               </View>
               <View style={{ flex: 1, paddingLeft: 12 }}>
                 <Text style={styles.bannerText}>
-                  Voce manteve sua ofensiva por {streak >= 14 ? "2 semanas +" : `${streak} dias`} seguidos!
+                  Você manteve sua ofensiva por {streak >= 14 ? "2 semanas +" : `${streak} dias`} seguidos!
                 </Text>
               </View>
             </View>
 
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>
-                {now.toLocaleString("default", { month: "long" })} {now.getFullYear()}
+                {now.toLocaleString("pt-BR", { month: "long" })} {now.getFullYear()}
               </Text>
               <View style={styles.sectionBadge}>
                 <Text style={styles.sectionBadgeText}>{practicedCount} dias</Text>
@@ -388,7 +388,7 @@ const StreakScreen = () => {
             <View style={styles.addRow}>
               <TextInput
                 style={styles.addInput}
-                placeholder="Nome de usuario"
+                placeholder="Nome de usuário"
                 placeholderTextColor="rgba(255,255,255,0.45)"
                 value={friendNameInput}
                 onChangeText={setFriendNameInput}
@@ -399,7 +399,7 @@ const StreakScreen = () => {
                 onPress={handleAddFriend}
                 disabled={friendActionLoading}
               >
-                <Text style={styles.addBtnText}>{friendActionLoading ? "..." : "ADD"}</Text>
+                <Text style={styles.addBtnText}>{friendActionLoading ? "..." : "ADICIONAR"}</Text>
               </TouchableOpacity>
             </View>
 
@@ -440,12 +440,12 @@ const StreakScreen = () => {
 
       <View style={styles.captureHost} pointerEvents="none">
         <View ref={shareCardRef} collapsable={false} style={styles.shareCard}>
-          <Text style={styles.shareCardTitle}>STREAK FASTAID</Text>
+          <Text style={styles.shareCardTitle}>OFENSIVA FASTAID</Text>
           <Text style={styles.shareCardName}>{userName}</Text>
           <Text style={styles.shareCardNumber}>{streak}</Text>
           <Text style={styles.shareCardSub}>dias de ofensiva</Text>
           <Text style={styles.shareCardFooter}>
-            {now.toLocaleDateString("pt-BR")} • {practicedCount} dias ativos no mes
+            {now.toLocaleDateString("pt-BR")} • {practicedCount} dias ativos no mês
           </Text>
         </View>
       </View>

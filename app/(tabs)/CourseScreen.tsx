@@ -22,6 +22,10 @@ import { FlaskIcon, HeartIcon, ThermometerIcon, ZapIcon } from "../components/Ic
 import { useTheme } from "../context/ThemeContext";
 import { auth, getUserData } from "../firebaseConfig";
 import {
+  getAdaptiveEventsForToday,
+  isAdaptiveCourseEnabled,
+} from "../services/adaptiveTrainingService";
+import {
   fetchCourseModules,
   fetchCoursesMeta,
   RemoteCourseMeta,
@@ -61,6 +65,13 @@ type ModuleEntry = {
   index: number;
 };
 
+type AdaptiveMode =
+  | "micro-session"
+  | "pressure"
+  | "daily-emergency"
+  | "weekly-challenge"
+  | "monthly-sim";
+
 const SPECIAL_MODULE_IDS = new Set([
   "course-intro",
   "review-cards",
@@ -97,6 +108,10 @@ const CourseScreen: React.FC = () => {
   const [courseModalVisible, setCourseModalVisible] = useState(false);
   const [streakLost, setStreakLost] = useState(false);
   const [expandedReplayModuleId, setExpandedReplayModuleId] = useState<string | null>(null);
+  const [bandOptionsVisible, setBandOptionsVisible] = useState(false);
+  const bandScale = React.useRef(new Animated.Value(1)).current;
+  const bandFloat = React.useRef(new Animated.Value(0)).current;
+  const bandOptionsProgress = React.useRef(new Animated.Value(0)).current;
 
   const { styles, colors, panicStyles } = useTheme();
 
@@ -127,6 +142,31 @@ const CourseScreen: React.FC = () => {
     });
     return sections;
   }, [moduleEntries]);
+  const adaptiveEventsToday = useMemo(() => getAdaptiveEventsForToday(), []);
+  const dailyEmergencyEvent = useMemo(
+    () => adaptiveEventsToday.find((event) => event.type === "daily-emergency"),
+    [adaptiveEventsToday]
+  );
+  const adaptiveEnabledForSelectedCourse = useMemo(
+    () => (selectedCourseId ? isAdaptiveCourseEnabled(selectedCourseId) : false),
+    [selectedCourseId]
+  );
+  const bandOptionsOpacity = bandOptionsProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 1],
+  });
+  const bandOptionsScale = bandOptionsProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0.96, 1],
+  });
+  const bandOptionsTranslateY = bandOptionsProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-16, 0],
+  });
+  const bandOptionsMaxHeight = bandOptionsProgress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [0, 360],
+  });
 
   useFocusEffect(
     useCallback(() => {
@@ -228,6 +268,37 @@ const CourseScreen: React.FC = () => {
     }, [selectedCourseId])
   );
 
+  useEffect(() => {
+    const floatLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bandFloat, {
+          toValue: -7,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+        Animated.timing(bandFloat, {
+          toValue: 0,
+          duration: 1400,
+          easing: Easing.inOut(Easing.sin),
+          useNativeDriver: true,
+        }),
+      ])
+    );
+    floatLoop.start();
+    return () => floatLoop.stop();
+  }, [bandFloat]);
+
+  useEffect(() => {
+    Animated.spring(bandOptionsProgress, {
+      toValue: bandOptionsVisible ? 1 : 0,
+      damping: 18,
+      stiffness: 170,
+      mass: 0.9,
+      useNativeDriver: false,
+    }).start();
+  }, [bandOptionsProgress, bandOptionsVisible]);
+
   const courseOptions = useMemo(() => courses, [courses]);
   const isFirstAidCourse = useMemo(
     () =>
@@ -241,6 +312,7 @@ const CourseScreen: React.FC = () => {
   function startModule(module: RemoteModule, index: number) {
     if (!selectedCourseId) return;
     setExpandedReplayModuleId(null);
+    setBandOptionsVisible(false);
     void AsyncStorage.setItem(LAST_COURSE_KEY, selectedCourseId).catch(() => {});
         if (isFirstAidCourse && /rcp|pcr/i.test(module.title)) {
       router.push({
@@ -264,6 +336,7 @@ const CourseScreen: React.FC = () => {
   }
 
   const handleCompletedModulePress = (entry: ModuleEntry) => {
+    setBandOptionsVisible(false);
     if (SPECIAL_MODULE_IDS.has(entry.module.id)) {
       startModule(entry.module, entry.index);
       return;
@@ -274,10 +347,11 @@ const CourseScreen: React.FC = () => {
   const startCompletedModuleMode = (mode: "module-review" | "doctor", module: RemoteModule) => {
     if (!selectedCourseId) return;
     if (mode === "doctor" && doctorProgress.includes(module.id)) {
-      Alert.alert("Modo Doutor concluido", "Neste modulo voce ja concluiu o modo Doutor. Agora ele fica apenas para revisao.");
+      Alert.alert("Modo Doutor concluído", "Neste módulo você já concluiu o modo Doutor. Agora ele fica apenas para revisão.");
       return;
     }
     setExpandedReplayModuleId(null);
+    setBandOptionsVisible(false);
     router.push({
       pathname: "/screens/LessonScreen",
       params: {
@@ -290,9 +364,82 @@ const CourseScreen: React.FC = () => {
     });
   };
 
+  const handleBandPress = (event?: any) => {
+    event?.stopPropagation?.();
+    setExpandedReplayModuleId(null);
+    setBandOptionsVisible((prev) => !prev);
+
+    Animated.sequence([
+      Animated.timing(bandScale, {
+        toValue: 0.93,
+        duration: 90,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bandScale, {
+        toValue: 1.08,
+        friction: 4,
+        tension: 170,
+        useNativeDriver: true,
+      }),
+      Animated.spring(bandScale, {
+        toValue: 1,
+        friction: 6,
+        tension: 130,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const startAdaptiveModeFromBand = (
+    mode: AdaptiveMode,
+    params?: { eventSeed?: number; trackId?: string }
+  ) => {
+    if (!selectedCourseId) {
+      Alert.alert("Escolha um curso", "Selecione um curso para iniciar a sessão.");
+      return;
+    }
+    if (!isAdaptiveCourseEnabled(selectedCourseId)) {
+      Alert.alert(
+        "Modo indisponível",
+        "Este curso ainda não recebeu modos adaptativos."
+      );
+      return;
+    }
+
+    setExpandedReplayModuleId(null);
+    setBandOptionsVisible(false);
+    router.push({
+      pathname: "/screens/LessonScreen",
+      params: {
+        courseId: selectedCourseId,
+        mode,
+        ...(typeof params?.eventSeed === "number"
+          ? { eventSeed: String(params.eventSeed) }
+          : {}),
+        ...(typeof params?.trackId === "string" ? { trackId: params.trackId } : {}),
+      },
+    });
+  };
+
+  const startDailyEmergency = () => {
+    if (!dailyEmergencyEvent) {
+      Alert.alert(
+        "Evento indisponível",
+        "Não foi possível carregar a emergência do dia."
+      );
+      return;
+    }
+
+    startAdaptiveModeFromBand("daily-emergency", {
+      eventSeed: dailyEmergencyEvent.seed,
+      trackId: dailyEmergencyEvent.trackId,
+    });
+  };
+
   const handleCourseSelect = (courseId: string) => {
     setSelectedCourseId(courseId);
     setExpandedReplayModuleId(null);
+    setBandOptionsVisible(false);
     void AsyncStorage.setItem(LAST_COURSE_KEY, courseId).catch(() => {});
     setCourseModalVisible(false);
   };
@@ -305,12 +452,139 @@ const CourseScreen: React.FC = () => {
       >
         <Pressable
           style={{ width: "100%", alignItems: "center" }}
-          onPress={() => setExpandedReplayModuleId(null)}
+          onPress={() => {
+            setExpandedReplayModuleId(null);
+            setBandOptionsVisible(false);
+          }}
         >
-        <Image
-          source={require("../../assets/images/band_incio.png")}
-          style={[styles.character, { marginTop: -10, marginBottom: 8, paddingEnd: 0, height: 250 }]}
-        />
+        <TouchableOpacity activeOpacity={0.95} onPress={handleBandPress}>
+          <Animated.View
+            style={{
+              transform: [{ scale: bandScale }, { translateY: bandFloat }],
+            }}
+          >
+            <Image
+              source={require("../../assets/images/band_incio.png")}
+              style={[styles.character, { marginTop: -10, marginBottom: 8, paddingEnd: 0, height: 250 }]}
+            />
+          </Animated.View>
+        </TouchableOpacity>
+
+        <Animated.View
+          pointerEvents={bandOptionsVisible ? "auto" : "none"}
+          style={{
+            width: "88%",
+            maxWidth: 340,
+            marginTop: 4,
+            marginBottom: bandOptionsVisible ? 14 : 0,
+            opacity: bandOptionsOpacity,
+            maxHeight: bandOptionsMaxHeight,
+            overflow: "hidden",
+            transform: [{ translateY: bandOptionsTranslateY }, { scale: bandOptionsScale }],
+          }}
+        >
+          <Pressable onPress={(event) => event.stopPropagation()} style={{ width: "100%" }}>
+            <View
+              style={{
+                alignSelf: "center",
+                width: 18,
+                height: 18,
+                backgroundColor: "#2E94FF",
+                transform: [{ rotate: "45deg" }],
+                marginBottom: -10,
+                borderTopLeftRadius: 4,
+              }}
+            />
+            <View
+              style={{
+                borderRadius: 20,
+                backgroundColor: "#2E94FF",
+                borderWidth: 2,
+                borderColor: "rgba(255,255,255,0.2)",
+                padding: 14,
+                gap: 8,
+                shadowColor: "#0A4A8C",
+                shadowOpacity: 0.25,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+                elevation: 6,
+              }}
+            >
+              <Text style={{ color: "#D7EEFF", fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
+                SESSÕES ADAPTATIVAS
+              </Text>
+              <Text style={{ color: "#FFFFFF", fontSize: 16, fontWeight: "900" }}>
+                {adaptiveEnabledForSelectedCourse
+                  ? "Escolha o treino rápido no Band"
+                  : "Modo adaptativo indisponível neste curso"}
+              </Text>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={!adaptiveEnabledForSelectedCourse}
+                onPress={() => startAdaptiveModeFromBand("micro-session")}
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: "#F4F6FA",
+                  paddingVertical: 11,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: adaptiveEnabledForSelectedCourse ? 1 : 0.45,
+                }}
+              >
+                <Text style={{ color: "#1E293B", fontSize: 15, fontWeight: "900", letterSpacing: 0.4 }}>
+                  SESSÃO DIÁRIA 3-5 MIN
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={!adaptiveEnabledForSelectedCourse}
+                onPress={() => startAdaptiveModeFromBand("pressure")}
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: "#0A66FF",
+                  paddingVertical: 11,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.32)",
+                  opacity: adaptiveEnabledForSelectedCourse ? 1 : 0.45,
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "900", letterSpacing: 0.4 }}>
+                  MODO PRESSÃO
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.9}
+                disabled={!adaptiveEnabledForSelectedCourse || !dailyEmergencyEvent}
+                onPress={startDailyEmergency}
+                style={{
+                  borderRadius: 12,
+                  backgroundColor: "#032f73",
+                  paddingVertical: 11,
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderWidth: 1,
+                  borderColor: "rgba(255,255,255,0.26)",
+                  opacity: adaptiveEnabledForSelectedCourse && dailyEmergencyEvent ? 1 : 0.45,
+                }}
+              >
+                <Text style={{ color: "#FFFFFF", fontSize: 15, fontWeight: "900", letterSpacing: 0.4 }}>
+                  EMERGÊNCIA DO DIA
+                </Text>
+              </TouchableOpacity>
+
+              {dailyEmergencyEvent && (
+                <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 12, fontWeight: "600" }}>
+                  {dailyEmergencyEvent.description} (+{dailyEmergencyEvent.rewardXp} XP base)
+                </Text>
+              )}
+            </View>
+          </Pressable>
+        </Animated.View>
 
         {streakLost && (
           <View style={styles.streakLossContainer}>
@@ -324,7 +598,10 @@ const CourseScreen: React.FC = () => {
         <TouchableOpacity
           style={styles.topicHeader}
           activeOpacity={0.85}
-          onPress={() => setCourseModalVisible(true)}
+          onPress={() => {
+            setBandOptionsVisible(false);
+            setCourseModalVisible(true);
+          }}
           disabled={coursesLoading}
         >
           {currentCourse ? (
@@ -590,13 +867,13 @@ const InlineReplayCard: React.FC<InlineReplayCardProps> = ({
         }}
       >
         <Text style={{ color: "#D7EEFF", fontSize: 11, fontWeight: "800", letterSpacing: 1 }}>
-          MODULO CONCLUIDO
+          MÓDULO CONCLUÍDO
         </Text>
         <Text style={{ color: "#FFFFFF", fontSize: 28, fontWeight: "900", marginTop: -6 }} numberOfLines={1}>
           {title}
         </Text>
         <Text style={{ color: "rgba(255,255,255,0.9)", fontSize: 13, fontWeight: "600", marginTop: -2 }}>
-          {doctorAvailable ? "Escolha como quer repetir." : "Revise este modulo novamente."}
+          {doctorAvailable ? "Escolha como quer repetir." : "Revise este módulo novamente."}
         </Text>
         <TouchableOpacity
           activeOpacity={0.9}

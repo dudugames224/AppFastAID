@@ -94,7 +94,7 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
         setStats({ lives: DEFAULT_LIVES, ofensiva: 0, isPremium: false, safiras: 0 });
       }
     } catch (error) {
-      console.warn("Nao foi possivel carregar os dados do usuario:", error);
+      console.warn("Não foi possível carregar os dados do usuário:", error);
     } finally {
       setLoading(false);
     }
@@ -111,12 +111,12 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
       return;
     }
     if (stats.isPremium) {
-      Alert.alert("Premium ativo", "Voce ja tem vidas infinitas.");
+      Alert.alert("Premium ativo", "Você ja tem vidas infinitas.");
       return;
     }
     const user = auth.currentUser;
     if (!user) {
-      Alert.alert("Conta necessaria", "Entre na sua conta para restaurar as vidas.");
+      Alert.alert("Conta necessária", "Entre na sua conta para restaurar as vidas.");
       return;
     }
     try {
@@ -130,8 +130,8 @@ const UserStatsBar: React.FC<UserStatsBarProps> = ({ containerStyle }) => {
       setStats((prev) => ({ ...prev, lives: DEFAULT_LIVES }));
       Alert.alert("Pronto!", "As 5 vidas foram restauradas.");
     } catch (error) {
-      console.warn("Nao foi possivel restaurar as vidas:", error);
-      Alert.alert("Ops", "Nao conseguimos restaurar as vidas. Tente novamente.");
+      console.warn("Não foi possível restaurar as vidas:", error);
+      Alert.alert("Ops", "Não conseguimos restaurar as vidas. Tente novamente.");
     } finally {
       setRestoringLives(false);
     }

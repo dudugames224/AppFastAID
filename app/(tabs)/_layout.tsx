@@ -78,7 +78,7 @@ export default function TabsLayout() {
             <View style={panicStyles.card}>
               <View style={panicStyles.cardHeader}>
                 <Ionicons name="warning" size={22} color="#fff" />
-                <Text style={panicStyles.cardTitle}>Modo Panico</Text>
+              <Text style={panicStyles.cardTitle}>Modo Pânico</Text>
                 <TouchableOpacity
                   onPress={() => setPanicVisible(false)}
                   style={panicStyles.cardClose}
@@ -98,7 +98,7 @@ export default function TabsLayout() {
                 <View style={panicStyles.optionIconCircle}>
                   <Ionicons name="medkit" size={20} color="#FF4B4B" />
                 </View>
-                <Text style={panicStyles.optionLabel}>RCP (Reanimacao)</Text>
+                <Text style={panicStyles.optionLabel}>RCP (Reanimação)</Text>
               </TouchableOpacity>
             </View>
           </View>

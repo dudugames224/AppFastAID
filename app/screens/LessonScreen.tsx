@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -24,12 +24,22 @@ import {
 } from "../services/lessonService";
 import { applyLifeRegeneration, startLifeCountdown } from "../services/lifeService";
 import {
+  getDueReviewCards,
   getDoctorCompletedModules,
   getReviewCards,
   markDoctorModuleCompleted,
   markModuleStage,
-  saveWrongReviewCard
+  recordReviewCardOutcome,
+  saveAdaptiveSessionOutcome,
 } from "../services/progressService";
+import {
+  AdaptiveLessonMode,
+  buildAdaptiveDeck,
+  getDeckConfigForMode,
+  getPressureHint,
+  inferSkillFromCard,
+  isAdaptiveCourseEnabled,
+} from "../services/adaptiveTrainingService";
 import { LessonCard } from "../types/lesson";
 
 const demoLesson: LessonCard[] = [
@@ -128,6 +138,18 @@ const getDoctorDeck = (
 
 const fallbackCourseId = "burns";
 const SPECIAL_MODULE_IDS = new Set(["course-intro", "review-cards", "reset-course-action"]);
+const ADAPTIVE_MODE_SET = new Set<AdaptiveLessonMode>([
+  "micro-session",
+  "pressure",
+  "daily-emergency",
+  "weekly-challenge",
+  "monthly-sim",
+]);
+const EVENT_MODE_SET = new Set<AdaptiveLessonMode>([
+  "daily-emergency",
+  "weekly-challenge",
+  "monthly-sim",
+]);
 
 const LessonScreen = () => {
     const {  lessonstyles, colors } = useTheme();
@@ -141,6 +163,8 @@ const LessonScreen = () => {
     introModuleId,
     stageCount: paramsStageCount,
     stageIndex: paramsStageIndex,
+    eventSeed: paramsEventSeed,
+    trackId: paramsTrackId,
   } = useLocalSearchParams<{
     courseId?: string;
     moduleId?: string;
@@ -148,6 +172,8 @@ const LessonScreen = () => {
     introModuleId?: string;
     stageCount?: string;
     stageIndex?: string;
+    eventSeed?: string;
+    trackId?: string;
   }>();
 
   const lessonMode = typeof mode === "string" ? mode : "course";
@@ -155,15 +181,35 @@ const LessonScreen = () => {
   const isReviewMode = lessonMode === "review";
   const isModuleReviewMode = lessonMode === "module-review";
   const isDoctorMode = lessonMode === "doctor";
+  const isAdaptiveMode = ADAPTIVE_MODE_SET.has(lessonMode as AdaptiveLessonMode);
+  const adaptiveMode = isAdaptiveMode ? (lessonMode as AdaptiveLessonMode) : null;
+  const isPressureMode = lessonMode === "pressure";
+  const isDailyEmergencyMode = lessonMode === "daily-emergency";
+  const isWeeklyChallengeMode = lessonMode === "weekly-challenge";
+  const isMonthlySimMode = lessonMode === "monthly-sim";
+  const isEventMode = EVENT_MODE_SET.has(lessonMode as AdaptiveLessonMode);
   const isTrainingMode =
-    isPracticeMode || isReviewMode || isModuleReviewMode || isDoctorMode;
-  const isPracticeHubMode = isPracticeMode || isReviewMode;
+    isPracticeMode ||
+    isReviewMode ||
+    isModuleReviewMode ||
+    isDoctorMode ||
+    isAdaptiveMode;
+  const isPracticeHubMode =
+    isPracticeMode || isReviewMode;
   const courseId = (paramsCourseId as string) || fallbackCourseId;
   const stageCountParam = paramsStageCount ? Number(paramsStageCount) : 1;
   const stageCount = Number.isFinite(stageCountParam) && stageCountParam > 0 ? stageCountParam : 1;
   
   const stageIndexParam = paramsStageIndex ? Number(paramsStageIndex) : 0;
   const currentStageIndex = Number.isFinite(stageIndexParam) && stageIndexParam >= 0 ? stageIndexParam : 0;
+  const eventSeedParam = paramsEventSeed ? Number(paramsEventSeed) : NaN;
+  const resolvedEventSeed = useMemo(
+    () => (Number.isFinite(eventSeedParam) ? eventSeedParam : Date.now()),
+    [eventSeedParam]
+  );
+  const fixedTrackId = typeof paramsTrackId === "string" && paramsTrackId.trim().length > 0
+    ? (paramsTrackId as any)
+    : undefined;
 
   const [isPremium, setIsPremium] = useState(false);
 
@@ -180,19 +226,128 @@ const LessonScreen = () => {
   const [selectedOption, setSelectedOption] = useState<number | null>(null);
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
+  const showFeedbackRef = useRef(false);
   const [isLoadingLessons, setIsLoadingLessons] = useState(true);
   const [lives, setLives] = useState(5);
   const [, setLastLifeUpdate] = useState<number | null>(null);
   const [isNavigating, setIsNavigating] = useState(false);
   const [sequenceSelection, setSequenceSelection] = useState<string[]>([]);
   const [revealCorrectOrder, setRevealCorrectOrder] = useState(false);
+  const [pressureTimerSeconds, setPressureTimerSeconds] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [pressureHint, setPressureHint] = useState<string | null>(null);
+  const [feedbackReason, setFeedbackReason] = useState<"timeout" | null>(null);
+  const adaptiveSkillXpRef = useRef<Record<string, number>>({});
+  const adaptiveTrackRef = useRef<Record<string, { attempts: number; success: number }>>({});
   
-  // Ref para armazenar o detalhamento das respostas (Pós-Teste)
+  // Ref para armazenar o detalhamento das respostas (Pos-Teste)
   const resultsLog = useRef<{ question: string; isCorrect: boolean }[]>([]);
 
   useEffect(() => {
     setIsNavigating(false);
   }, [currentStep]);
+
+  useEffect(() => {
+    showFeedbackRef.current = showFeedback;
+  }, [showFeedback]);
+
+  const resetSessionState = (deck: LessonCard[]) => {
+    correctCountRef.current = 0;
+    answeredCountRef.current = 0;
+    lessonStartTimeRef.current = Date.now();
+    resultsLog.current = [];
+    adaptiveSkillXpRef.current = {};
+    adaptiveTrackRef.current = {};
+    setCorrectCount(0);
+    setAnsweredCount(0);
+    setLessonStartTime(lessonStartTimeRef.current);
+    setQuestions(getShuffledLesson(deck));
+    setCurrentStep(0);
+    setSelectedOption(null);
+    setIsCorrect(null);
+    setShowFeedback(false);
+    showFeedbackRef.current = false;
+    setRevealCorrectOrder(false);
+    setSequenceSelection([]);
+    setFeedbackReason(null);
+    setTimeLeft(null);
+  };
+
+  const addAdaptiveSkillXp = (skillId: string, delta: number) => {
+    if (!skillId || delta <= 0) return;
+    const current = adaptiveSkillXpRef.current[skillId] || 0;
+    adaptiveSkillXpRef.current[skillId] = current + delta;
+  };
+
+  const addAdaptiveTrackProgress = (trackId: string | undefined, wasCorrect: boolean) => {
+    if (!trackId) return;
+    const previous = adaptiveTrackRef.current[trackId] || { attempts: 0, success: 0 };
+    adaptiveTrackRef.current[trackId] = {
+      attempts: previous.attempts + 1,
+      success: previous.success + (wasCorrect ? 1 : 0),
+    };
+  };
+
+  const decrementLive = useCallback(() => {
+    const user = auth.currentUser;
+    if (user && !isPremium) {
+      const newLives = Math.max(0, lives - 1);
+      setLives(newLives);
+      const userDocRef = doc(db, "users", user.uid);
+      void updateDoc(userDocRef, {
+        lives: newLives,
+        vidas: newLives,
+        lastLifeUpdate: startLifeCountdown(),
+      }).catch((error) => console.error("Failed to update lives:", error));
+      setLastLifeUpdate(Date.now());
+    }
+  }, [isPremium, lives]);
+
+  const registerCardOutcome = useCallback((card: LessonCard, wasCorrect: boolean, questionLabel?: string) => {
+    const questionText =
+      questionLabel && questionLabel.trim().length > 0
+        ? questionLabel
+        : card.type === "info"
+        ? `Informacao ${currentStep + 1}`
+        : typeof (card as any).question === "string" && (card as any).question.trim().length > 0
+        ? (card as any).question
+        : `Pergunta ${currentStep + 1}`;
+    resultsLog.current.push({ question: questionText, isCorrect: wasCorrect });
+
+    answeredCountRef.current += 1;
+    setAnsweredCount((value) => value + 1);
+    if (wasCorrect) {
+      correctCountRef.current += 1;
+      setCorrectCount((value) => value + 1);
+    } else {
+      void decrementLive();
+    }
+
+    if (card.type !== "info") {
+      const moduleIdForReview =
+        typeof paramsModuleId === "string" ? paramsModuleId : undefined;
+      void recordReviewCardOutcome(
+        courseId,
+        card as any,
+        wasCorrect,
+        moduleIdForReview
+      ).catch(() => {});
+    }
+
+    if (isAdaptiveMode && card.type !== "info") {
+      const adaptiveMeta = (card as any)?.adaptiveMeta || {};
+      const inferredSkill =
+        typeof adaptiveMeta.primarySkill === "string"
+          ? adaptiveMeta.primarySkill
+          : inferSkillFromCard(card, "decision");
+      const skillDelta = wasCorrect ? 12 : 4;
+      addAdaptiveSkillXp(inferredSkill, skillDelta);
+      addAdaptiveTrackProgress(
+        typeof adaptiveMeta.trackId === "string" ? adaptiveMeta.trackId : fixedTrackId,
+        wasCorrect
+      );
+    }
+  }, [courseId, currentStep, decrementLive, fixedTrackId, isAdaptiveMode, paramsModuleId]);
 
   useEffect(() => {
     const loadInitialData = async () => {
@@ -290,7 +445,9 @@ const LessonScreen = () => {
         }
 
         if (isReviewMode) {
-          const reviewDeck = await getReviewCards(courseId);
+          const dueReviewDeck = await getDueReviewCards(courseId, 60);
+          const reviewDeck =
+            dueReviewDeck.length > 0 ? dueReviewDeck : await getReviewCards(courseId);
           if (reviewDeck.length === 0) {
             Alert.alert(
               "Revisão indisponível",
@@ -300,24 +457,24 @@ const LessonScreen = () => {
             return;
           }
 
-          correctCountRef.current = 0;
-          answeredCountRef.current = 0;
-          lessonStartTimeRef.current = Date.now();
-          resultsLog.current = [];
-          setCorrectCount(0);
-          setAnsweredCount(0);
-          setLessonStartTime(lessonStartTimeRef.current);
-          setQuestions(getShuffledLesson(reviewDeck));
-          setCurrentStep(0);
-          setSelectedOption(null);
-          setIsCorrect(null);
-          setShowFeedback(false);
+          setPressureTimerSeconds(null);
+          setPressureHint(null);
+          resetSessionState(reviewDeck);
           return;
         }
 
         let effectiveModuleId = paramsModuleId as string | undefined;
+        let playableModulesCache: Awaited<ReturnType<typeof fetchCourseModules>> = [];
 
-        if (isPracticeMode || isModuleReviewMode || isDoctorMode) {
+        if (isPracticeMode || isModuleReviewMode || isDoctorMode || isAdaptiveMode) {
+          const allModules = await fetchCourseModules(courseId);
+          playableModulesCache = allModules.filter(
+            (m) =>
+              m.id !== "course-intro" &&
+              m.id !== "review-cards" &&
+              m.id !== "reset-course-action" &&
+              (m.stageCount ?? 1) > 0
+          );
           const hasProvidedModule = typeof effectiveModuleId === "string" && effectiveModuleId.trim().length > 0;
           const shouldAutoPick =
             !hasProvidedModule ||
@@ -326,16 +483,70 @@ const LessonScreen = () => {
             effectiveModuleId === "reset-course-action";
 
           if (shouldAutoPick) {
-            const modules = await fetchCourseModules(courseId);
-            const firstPlayableModule = modules.find(
-              (m) =>
-                m.id !== "course-intro" &&
-                m.id !== "review-cards" &&
-                m.id !== "reset-course-action" &&
-                (m.stageCount ?? 1) > 0
-            );
-            effectiveModuleId = firstPlayableModule?.id;
+            effectiveModuleId = playableModulesCache[0]?.id;
           }
+        }
+
+        if (isAdaptiveMode) {
+          if (!isAdaptiveCourseEnabled(courseId)) {
+            Alert.alert(
+              "Modo indisponível",
+              "Os modos adaptativos ainda não estão ativos para este curso."
+            );
+            router.replace("/(tabs)/CourseScreen");
+            return;
+          }
+
+          const resolvedAdaptiveMode = adaptiveMode || "micro-session";
+          const deckConfig = getDeckConfigForMode(resolvedAdaptiveMode);
+          const playableModules =
+            playableModulesCache.length > 0
+              ? playableModulesCache
+              : (await fetchCourseModules(courseId)).filter(
+                  (m) =>
+                    !SPECIAL_MODULE_IDS.has(m.id) && (m.stageCount ?? 1) > 0
+                );
+
+          const selectedModuleIds: string[] = [];
+          if (
+            effectiveModuleId &&
+            playableModules.some((module) => module.id === effectiveModuleId)
+          ) {
+            selectedModuleIds.push(effectiveModuleId);
+          } else {
+            const shuffledIds = shuffleArray(playableModules.map((module) => module.id));
+            const moduleTargetCount = isMonthlySimMode
+              ? Math.min(3, shuffledIds.length)
+              : isWeeklyChallengeMode
+              ? Math.min(2, shuffledIds.length)
+              : 1;
+            selectedModuleIds.push(...shuffledIds.slice(0, moduleTargetCount));
+          }
+
+          const moduleDeckList = await Promise.all(
+            selectedModuleIds.map((moduleId) =>
+              fetchModuleLessons(courseId, moduleId, 0)
+            )
+          );
+          const modulePool = moduleDeckList.flat();
+          const dueReviewCards = await getDueReviewCards(courseId, 80);
+          const adaptiveDeck = buildAdaptiveDeck({
+            courseId,
+            moduleCards: modulePool.length > 0 ? modulePool : demoLesson,
+            reviewCards: dueReviewCards,
+            mode: resolvedAdaptiveMode,
+            seed: resolvedEventSeed,
+            fixedTrackId,
+          });
+
+          setPressureTimerSeconds(deckConfig.timerSeconds);
+          setPressureHint(
+            deckConfig.forcePressure
+              ? getPressureHint(resolvedEventSeed + currentStageIndex)
+              : null
+          );
+          resetSessionState(adaptiveDeck.length > 0 ? adaptiveDeck : demoLesson);
+          return;
         }
 
         if (isDoctorMode) {
@@ -343,8 +554,8 @@ const LessonScreen = () => {
             const doctorCompleted = await getDoctorCompletedModules(courseId);
             if (doctorCompleted.includes(effectiveModuleId)) {
               Alert.alert(
-                "Modo Doutor concluido",
-                "Voce ja concluiu o modo Doutor neste modulo. Agora ele fica disponivel apenas para revisao."
+                "Modo Doutor concluído",
+                "Você já concluiu o modo Doutor neste módulo. Agora ele fica disponível apenas para revisão."
               );
               router.replace("/(tabs)/CourseScreen");
               return;
@@ -362,18 +573,9 @@ const LessonScreen = () => {
           const fallbackDoctorDeck = getDoctorDeck([], demoLesson, 15);
           const finalDoctorDeck = doctorDeck.length > 0 ? doctorDeck : fallbackDoctorDeck;
 
-          correctCountRef.current = 0;
-          answeredCountRef.current = 0;
-          lessonStartTimeRef.current = Date.now();
-          resultsLog.current = [];
-          setCorrectCount(0);
-          setAnsweredCount(0);
-          setLessonStartTime(lessonStartTimeRef.current);
-          setQuestions(getShuffledLesson(finalDoctorDeck));
-          setCurrentStep(0);
-          setSelectedOption(null);
-          setIsCorrect(null);
-          setShowFeedback(false);
+          setPressureTimerSeconds(null);
+          setPressureHint(null);
+          resetSessionState(finalDoctorDeck);
           return;
         }
 
@@ -383,22 +585,14 @@ const LessonScreen = () => {
             : [];
         const finalDeck = deck.length > 0 ? deck : demoLesson;
 
-        const randomizedDeck = finalDeck;
-        correctCountRef.current = 0;
-        answeredCountRef.current = 0;
-        lessonStartTimeRef.current = Date.now();
-        resultsLog.current = []; // Reseta o log
-        setCorrectCount(0);
-        setAnsweredCount(0);
-        setLessonStartTime(lessonStartTimeRef.current);
-        setQuestions(getShuffledLesson(randomizedDeck));
-        setCurrentStep(0);
-        setSelectedOption(null);
-        setIsCorrect(null);
-        setShowFeedback(false);
+        setPressureTimerSeconds(null);
+        setPressureHint(null);
+        resetSessionState(finalDeck);
       } catch (error) {
         console.warn("Erro ao carregar a lição:", error);
-        setQuestions(getShuffledLesson(demoLesson));
+        setPressureTimerSeconds(null);
+        setPressureHint(null);
+        resetSessionState(demoLesson);
       } finally {
         setIsLoadingLessons(false);
       }
@@ -408,13 +602,20 @@ const LessonScreen = () => {
   }, [
     courseId,
     paramsModuleId,
+    lessonMode,
     isPracticeMode,
     isReviewMode,
     isModuleReviewMode,
     isDoctorMode,
+    isAdaptiveMode,
+    adaptiveMode,
+    isWeeklyChallengeMode,
+    isMonthlySimMode,
     isTrainingMode,
     currentStageIndex,
     introModuleId,
+    resolvedEventSeed,
+    fixedTrackId,
     router,
   ]);
 
@@ -475,20 +676,62 @@ const LessonScreen = () => {
     }
   }, [showFeedback, currentStep, isInfoCard, feedbackAnim]);
 
-  const decrementLive = () => {
-    const user = auth.currentUser;
-    if (user && !isPremium) {
-      const newLives = Math.max(0, lives - 1);
-      setLives(newLives);
-      const userDocRef = doc(db, "users", user.uid);
-      void updateDoc(userDocRef, {
-        lives: newLives,
-        vidas: newLives,
-        lastLifeUpdate: startLifeCountdown(),
-      }).catch(error => console.error("Failed to update lives:", error));
-      setLastLifeUpdate(Date.now());
+  const isPressureSession = isAdaptiveMode && pressureTimerSeconds !== null;
+  const activePressureHint =
+    pressureHint ||
+    (typeof (currentCard as any)?.adaptiveMeta?.pressureHint === "string"
+      ? (currentCard as any).adaptiveMeta.pressureHint
+      : null);
+
+  const handleTimedOutQuestion = useCallback(() => {
+    if (showFeedbackRef.current || !currentCard || isInfoCard) return;
+    setFeedbackReason("timeout");
+    setIsCorrect(false);
+    setShowFeedback(true);
+    showFeedbackRef.current = true;
+
+    if (currentCard.type === "mcq") {
+      const wrongIndex = currentCard.options?.findIndex((_, idx) => idx !== currentCard.answer) ?? -1;
+      if (wrongIndex >= 0) {
+        setSelectedOption(wrongIndex);
+      }
+      registerCardOutcome(currentCard, false, currentCard.question);
+      return;
     }
-  };
+
+    if (currentCard.type === "sequence") {
+      setRevealCorrectOrder(false);
+      registerCardOutcome(currentCard, false, currentCard.question);
+    }
+  }, [currentCard, isInfoCard, registerCardOutcome]);
+
+  useEffect(() => {
+    if (!isPressureSession || !currentCard || isInfoCard || showFeedback || !pressureTimerSeconds) {
+      setTimeLeft(null);
+      return;
+    }
+
+    let remaining = pressureTimerSeconds;
+    setTimeLeft(remaining);
+    const interval = setInterval(() => {
+      remaining -= 1;
+      setTimeLeft(Math.max(0, remaining));
+      if (remaining <= 0) {
+        clearInterval(interval);
+        handleTimedOutQuestion();
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [
+    isPressureSession,
+    currentCard,
+    isInfoCard,
+    showFeedback,
+    pressureTimerSeconds,
+    currentStep,
+    handleTimedOutQuestion,
+  ]);
 
   const handleOptionSelect = (index: number) => {
     if (showFeedback || !currentCard)
@@ -504,22 +747,11 @@ const LessonScreen = () => {
       typeof cardData.question === "string" && cardData.question.trim().length > 0
         ? cardData.question
         : `Pergunta ${currentStep + 1}`;
-    resultsLog.current.push({ question: questionText, isCorrect: correct });
-
+    setFeedbackReason(null);
     setIsCorrect(correct);
     setShowFeedback(true);
-    
-
-    answeredCountRef.current += 1;
-    if (correct) correctCountRef.current += 1;
-    setAnsweredCount((value) => value + 1);
-    if (correct) setCorrectCount((value) => value + 1);
-    if (!correct) {
-      if (!isTrainingMode) {
-        void saveWrongReviewCard(courseId, currentCard, paramsModuleId as string).catch(() => {});
-      }
-      void decrementLive();
-    }
+    showFeedbackRef.current = true;
+    registerCardOutcome(currentCard, correct, questionText);
   };
 
   const normalizeIds = (list: any[] | undefined) =>
@@ -560,24 +792,11 @@ const LessonScreen = () => {
       (item, idx) => item === targetOrder[idx]
     );
 
-    // Log para Pós-Teste
-    if (currentCard.question) {
-      resultsLog.current.push({ question: currentCard.question, isCorrect: isSequenceCorrect });
-    }
-
     setIsCorrect(isSequenceCorrect);
+    setFeedbackReason(null);
     setShowFeedback(true);
-    answeredCountRef.current += 1;
-    setAnsweredCount((value) => value + 1);
-    if (isSequenceCorrect) {
-      correctCountRef.current += 1;
-      setCorrectCount((value) => value + 1);
-    } else {
-      if (!isTrainingMode) {
-        void saveWrongReviewCard(courseId, currentCard, paramsModuleId as string).catch(() => {});
-      }
-      void decrementLive();
-    }
+    showFeedbackRef.current = true;
+    registerCardOutcome(currentCard, isSequenceCorrect, currentCard.question || undefined);
     setRevealCorrectOrder(false);
   };
 
@@ -605,7 +824,19 @@ const LessonScreen = () => {
       finalAnswered > 0 ? Math.round((finalCorrect / finalAnswered) * 100) : 0;
 
     let calculatedXp = 10;
-    if (isModuleReviewMode) {
+    if (isAdaptiveMode) {
+      const adaptiveBaseXp = isMonthlySimMode
+        ? 70
+        : isWeeklyChallengeMode
+        ? 40
+        : isDailyEmergencyMode
+        ? 18
+        : isPressureMode
+        ? 24
+        : 16;
+      const adaptiveBonus = Math.round((accuracy / 100) * (isMonthlySimMode ? 18 : 12));
+      calculatedXp = adaptiveBaseXp + adaptiveBonus;
+    } else if (isModuleReviewMode) {
       calculatedXp = 5;
     } else if (isDoctorMode) {
       const bonus = Math.round((accuracy / 100) * 10);
@@ -635,6 +866,19 @@ const LessonScreen = () => {
       startTime !== null
         ? Math.max(0, Math.round((Date.now() - startTime) / 1000))
         : 0;
+
+    if (isAdaptiveMode) {
+      void saveAdaptiveSessionOutcome(courseId, {
+        mode: lessonMode,
+        eventType: isEventMode ? lessonMode : undefined,
+        trackAttempts: adaptiveTrackRef.current,
+        skillXpById: adaptiveSkillXpRef.current,
+        accuracy,
+        answered: finalAnswered,
+        durationSeconds,
+      }).catch(() => {});
+    }
+
     router.replace({
       pathname: targetPath,
       params: {
@@ -658,18 +902,24 @@ const LessonScreen = () => {
 
     if (currentStep >= questions.length - 1) {
       setShowFeedback(false);
+      showFeedbackRef.current = false;
       setSelectedOption(null);
       setIsCorrect(null);
       setRevealCorrectOrder(false);
       setSequenceSelection([]);
+      setFeedbackReason(null);
+      setTimeLeft(null);
       goToResults();
       return;
     }
     setShowFeedback(false);
+    showFeedbackRef.current = false;
     setSelectedOption(null);
     setIsCorrect(null);
     setRevealCorrectOrder(false);
     setSequenceSelection([]);
+    setFeedbackReason(null);
+    setTimeLeft(null);
     setCurrentStep((step) => step + 1);
   };
 
@@ -752,6 +1002,20 @@ const LessonScreen = () => {
             <HeartIcon />
             <Text style={lessonstyles.livesText}>{isPremium ? "∞" : lives}</Text>
           </View>
+          {isPressureSession && !isInfoCard && timeLeft !== null && !showFeedback && (
+            <View
+              style={{
+                backgroundColor: timeLeft <= 5 ? "#ef4444" : "#2563eb",
+                borderRadius: 10,
+                paddingHorizontal: 10,
+                paddingVertical: 6,
+              }}
+            >
+              <Text style={{ color: "#fff", fontWeight: "800", fontSize: 13 }}>
+                {timeLeft}s
+              </Text>
+            </View>
+          )}
         </View>
 
         <ScrollView contentContainerStyle={lessonstyles.contentContainer}>
@@ -769,6 +1033,30 @@ const LessonScreen = () => {
             />
           )}
           <View style={lessonstyles.card}>
+          {activePressureHint && !isInfoCard && (
+            <View
+              style={{
+                backgroundColor: "rgba(37,99,235,0.12)",
+                borderRadius: 10,
+                paddingHorizontal: 12,
+                paddingVertical: 8,
+                marginBottom: 14,
+                borderWidth: 1,
+                borderColor: "rgba(37,99,235,0.35)",
+              }}
+            >
+              <Text
+                style={{
+                  color: "#1d4ed8",
+                  fontWeight: "700",
+                  fontSize: 13,
+                  textTransform: "uppercase",
+                }}
+              >
+                Pressão: {activePressureHint}
+              </Text>
+            </View>
+          )}
           {isInfoCard ? (
             <View>
               {activeImage && (
@@ -1014,7 +1302,11 @@ const LessonScreen = () => {
                   { color: isCorrect ? "#58CC02" : "#FF4B4B" },
                 ]}
               >
-                {isCorrect ? "Excelente!" : "Resposta Incorreta"}
+                {isCorrect
+                  ? "Excelente!"
+                  : feedbackReason === "timeout"
+                  ? "Tempo esgotado"
+                  : "Resposta Incorreta"}
               </Text>
               {isCorrect && !!currentCard.correctFeedback && (
                 <Text style={lessonstyles.infoText}>

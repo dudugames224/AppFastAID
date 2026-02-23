@@ -125,7 +125,7 @@ const StoreScreen = () => {
         setLastLifeUpdate(Date.now());
       }
     } catch (error) {
-      console.warn("Nao foi possivel carregar a loja:", error);
+      console.warn("Não foi possível carregar a loja:", error);
     } finally {
       setLoading(false);
     }
@@ -145,7 +145,7 @@ const StoreScreen = () => {
     const user = auth.currentUser;
     if (!user) {
       Alert.alert(
-        "Conta necessaria",
+        "Conta necessária",
         "Entre ou crie sua conta para pegar vidas e ativar o premium."
       );
     }
@@ -155,13 +155,13 @@ const StoreScreen = () => {
   const handleRefillLives = async () => {
     if (processingLives) return;
     if (isPremium || globalInfiniteLives) {
-      Alert.alert("Premium ativo", "Vidas infinitas nao precisam de recarga.");
+      Alert.alert("Premium ativo", "Vidas infinitas não precisam de recarga.");
       return;
     }
     const user = requireUser();
     if (!user) return;
     if (safiras < REFILL_COST) {
-      Alert.alert("Safiras insuficientes", `Voce precisa de ${REFILL_COST} safiras para recarregar.`);
+      Alert.alert("Safiras insuficientes", `Você precisa de ${REFILL_COST} safiras para recarregar.`);
       return;
     }
     try {
@@ -177,10 +177,10 @@ const StoreScreen = () => {
       });
       setUserLives(fullLives);
       setSafiras(newSafiras);
-      Alert.alert("Vidas recarregadas", "Voltamos suas vidas para o maximo.");
+      Alert.alert("Vidas recarregadas", "Voltamos suas vidas para o máximo.");
     } catch (error) {
-      console.warn("Nao foi possivel recarregar vidas:", error);
-      Alert.alert("Ops", "Nao conseguimos recarregar agora. Tente novamente.");
+      console.warn("Não foi possível recarregar vidas:", error);
+      Alert.alert("Ops", "Não conseguimos recarregar agora. Tente novamente.");
     } finally {
       setProcessingLives(false);
     }
@@ -198,8 +198,8 @@ const StoreScreen = () => {
       setUserLives(DEFAULT_LIVES);
       Alert.alert("Premium ativo", "Vidas infinitas liberadas no FastAid!");
     } catch (error) {
-      console.warn("Nao foi possivel ativar o premium:", error);
-      Alert.alert("Ops", "Nao conseguimos ativar agora. Tente novamente.");
+      console.warn("Não foi possível ativar o premium:", error);
+      Alert.alert("Ops", "Não conseguimos ativar agora. Tente novamente.");
     } finally {
       setProcessingPremium(false);
     }
@@ -217,8 +217,8 @@ const StoreScreen = () => {
       setUserLives(DEFAULT_LIVES);
       Alert.alert("Premium desativado", "Vidas infinitas desligadas. Voltamos para 5 vidas.");
     } catch (error) {
-      console.warn("Nao foi possivel desativar o premium:", error);
-      Alert.alert("Ops", "Nao conseguimos desativar agora. Tente novamente.");
+      console.warn("Não foi possível desativar o premium:", error);
+      Alert.alert("Ops", "Não conseguimos desativar agora. Tente novamente.");
     } finally {
       setProcessingPremium(false);
     }
@@ -229,7 +229,7 @@ const StoreScreen = () => {
     const user = requireUser();
     if (!user) return;
     if (safiras < POTION_COST) {
-      Alert.alert("Safiras insuficientes", `Voce precisa de ${POTION_COST} safiras para usar uma pocao.`);
+      Alert.alert("Safiras insuficientes", `Você precisa de ${POTION_COST} safiras para usar uma poção.`);
       return;
     }
     try {
@@ -250,8 +250,8 @@ const StoreScreen = () => {
       setSafiras(newSafiras);
       Alert.alert("Pocao usada", `XP dobrado ativado por ${POTION_DOUBLE_XP_MINUTES} minutos.`);
     } catch (error) {
-      console.warn("Nao foi possivel usar a pocao:", error);
-      Alert.alert("Ops", "Nao conseguimos usar a pocao agora. Tente novamente.");
+      console.warn("Não foi possível usar a poção:", error);
+      Alert.alert("Ops", "Não conseguimos usar a poção agora. Tente novamente.");
     } finally {
       setProcessingPotion(false);
     }
@@ -273,7 +273,7 @@ const StoreScreen = () => {
           <Image source={require("../../assets/images/band_chorando.png")} style={{ width: 150, height: 150, marginBottom: 20 }} />
           <Text style={[storeStyles.heroTitle, { textAlign: 'center' }]}>Loja Fechada</Text>
           <Text style={[storeStyles.heroSubtitle, { textAlign: 'center', marginTop: 10 }]}>
-            A loja de itens estÃ¡ temporariamente indisponÃ­vel. Tente novamente mais tarde.
+            A loja de itens está temporariamente indisponível. Tente novamente mais tarde.
           </Text>
         </View>
       </SafeAreaView>
@@ -288,8 +288,8 @@ const StoreScreen = () => {
             <Text style={storeStyles.heroTitle}>Loja FastAid</Text>
             <Text style={storeStyles.heroSubtitle}>
               {isPremiumModeEnabled
-                ? "Use safiras para vidas e poÃ§oes, ou ative o modo Premium."
-                : "Use safiras para recarregar vidas e usar poÃ§oes de energia."}
+                ? "Use safiras para vidas e poções, ou ative o modo Premium."
+                : "Use safiras para recarregar vidas e usar poções de energia."}
             </Text>
             <View style={storeStyles.badgeRow}>
               {isPremiumModeEnabled && (
@@ -300,7 +300,7 @@ const StoreScreen = () => {
                 </View>
               )}
               <View style={storeStyles.badge}>
-                <Text style={storeStyles.badgeText}>Vidas: {isPremium || globalInfiniteLives ? "âˆž" : userLives}</Text>
+                <Text style={storeStyles.badgeText}>Vidas: {isPremium || globalInfiniteLives ? "∞" : userLives}</Text>
               </View>
               <View style={storeStyles.badge}>
                 <Text style={storeStyles.badgeText}>Safiras: {safiras}</Text>
@@ -324,7 +324,7 @@ const StoreScreen = () => {
           </View>
           <View style={storeStyles.bulletList}>
             <Text style={storeStyles.bullet}>- +5 vidas instantaneamente</Text>
-            <Text style={storeStyles.bullet}>- Sem esperar regeneracao</Text>
+            <Text style={storeStyles.bullet}>- Sem esperar regeneração</Text>
             <Text style={storeStyles.bullet}>- Ideal para manter a ofensiva</Text>
           </View>
           <TouchableOpacity
@@ -356,13 +356,13 @@ const StoreScreen = () => {
               </View>
               <View>
                 <Text style={storeStyles.cardTitle}>Modo Premium</Text>
-                <Text style={storeStyles.cardSubtitle}>Vidas infinitas e foco total nas licoes.</Text>
+                <Text style={storeStyles.cardSubtitle}>Vidas infinitas e foco total nas lições.</Text>
               </View>
             </View>
             <View style={storeStyles.bulletList}>
               <Text style={storeStyles.bullet}>- Vidas infinitas para estudar sem parar</Text>
-              <Text style={storeStyles.bullet}>- Mantem ofensiva sempre segura</Text>
-              <Text style={storeStyles.bullet}>- Ativacao imediata no seu perfil</Text>
+              <Text style={storeStyles.bullet}>- Mantém ofensiva sempre segura</Text>
+              <Text style={storeStyles.bullet}>- Ativação imediata no seu perfil</Text>
             </View>
             <TouchableOpacity
               style={[
@@ -415,7 +415,7 @@ const StoreScreen = () => {
             {processingPotion ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={storeStyles.primaryButtonText}>Usar pocao ({POTION_COST} safiras)</Text>
+              <Text style={storeStyles.primaryButtonText}>Usar poção ({POTION_COST} safiras)</Text>
             )}
           </TouchableOpacity>
         </View>

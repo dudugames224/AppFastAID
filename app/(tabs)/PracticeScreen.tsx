@@ -13,7 +13,10 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { fetchCoursesMeta, RemoteCourseMeta } from "../services/lessonService";
-import { getCompletedModules, getReviewCards } from "../services/progressService";
+import {
+  getCompletedModules,
+  getReviewCards,
+} from "../services/progressService";
 
 type ReviewStatus = {
   unlocked: boolean;
@@ -33,7 +36,9 @@ const PracticeScreen = () => {
   const [loading, setLoading] = useState(true);
   const [modeModalVisible, setModeModalVisible] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState<RemoteCourseMeta | null>(null);
-  const [reviewStatusByCourse, setReviewStatusByCourse] = useState<Record<string, ReviewStatus>>({});
+  const [reviewStatusByCourse, setReviewStatusByCourse] = useState<Record<string, ReviewStatus>>(
+    {}
+  );
 
   const openModePicker = (course: RemoteCourseMeta) => {
     setSelectedCourse(course);
@@ -45,25 +50,32 @@ const PracticeScreen = () => {
     setSelectedCourse(null);
   };
 
-  const startHardQuiz = () => {
+  const startLessonMode = (mode: string) => {
     if (!selectedCourse) return;
     const courseId = selectedCourse.id;
     closeModePicker();
     router.push({
       pathname: "/screens/LessonScreen",
-      params: { courseId, mode: "practice" },
+      params: { courseId, mode },
     });
+  };
+
+  const startHardQuiz = () => {
+    startLessonMode("practice");
   };
 
   const startReviewMode = () => {
     if (!selectedCourse) return;
     const courseId = selectedCourse.id;
-    const reviewStatus = reviewStatusByCourse[courseId] || { unlocked: false, mistakes: 0 };
+    const reviewStatus = reviewStatusByCourse[courseId] || {
+      unlocked: false,
+      mistakes: 0,
+    };
 
     if (!reviewStatus.unlocked) {
       Alert.alert(
-        "Revisao bloqueada",
-        "Conclua ao menos a primeira licao deste curso para liberar a revisao."
+        "Revisão bloqueada",
+        "Conclua ao menos a primeira lição deste curso para liberar a revisão."
       );
       return;
     }
@@ -71,16 +83,12 @@ const PracticeScreen = () => {
     if (reviewStatus.mistakes <= 0) {
       Alert.alert(
         "Sem erros para revisar",
-        "Voce ainda nao tem perguntas erradas neste curso."
+        "Você ainda não tem perguntas erradas neste curso."
       );
       return;
     }
 
-    closeModePicker();
-    router.push({
-      pathname: "/screens/LessonScreen",
-      params: { courseId, mode: "review" },
-    });
+    startLessonMode("review");
   };
 
   useFocusEffect(
@@ -92,14 +100,18 @@ const PracticeScreen = () => {
         try {
           const data = await fetchCoursesMeta();
           if (!mounted) return;
-
           setCourses(data);
 
           const statusEntries = await Promise.all(
             data.map(async (course) => {
-              const completedModules = await getCompletedModules(course.id);
-              const unlocked = completedModules.some((moduleId) => !SPECIAL_MODULE_IDS.has(moduleId));
-              const reviewCards = await getReviewCards(course.id);
+              const [completedModules, reviewCards] = await Promise.all([
+                getCompletedModules(course.id),
+                getReviewCards(course.id),
+              ]);
+
+              const unlocked = completedModules.some(
+                (moduleId) => !SPECIAL_MODULE_IDS.has(moduleId)
+              );
               return [
                 course.id,
                 {
@@ -129,7 +141,10 @@ const PracticeScreen = () => {
   );
 
   const selectedStatus = selectedCourse
-    ? reviewStatusByCourse[selectedCourse.id] || { unlocked: false, mistakes: 0 }
+    ? reviewStatusByCourse[selectedCourse.id] || {
+        unlocked: false,
+        mistakes: 0,
+      }
     : { unlocked: false, mistakes: 0 };
 
   return (
@@ -161,7 +176,6 @@ const PracticeScreen = () => {
               <View style={{ flex: 1 }}>
                 <Text style={styles.courseTitle}>{course.title}</Text>
               </View>
-              <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>
           ))}
       </ScrollView>
@@ -188,53 +202,59 @@ const PracticeScreen = () => {
               borderRadius: 16,
               padding: 20,
               gap: 12,
+              maxHeight: "90%",
             }}
           >
-            <Text
-              style={{
-                color: colors.primary,
-                fontWeight: "bold",
-                fontSize: 23,
-                textAlign: "center",
-                marginBottom: 6,
-              }}
-            >
-              {selectedCourse?.title || "PRATICA"}
-            </Text>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.card,
-                borderRadius: 12,
-                paddingVertical: 14,
-                paddingHorizontal: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-              }}
-              onPress={startHardQuiz}
-            >
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>
-                Quiz dificil
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontWeight: "bold",
+                  fontSize: 23,
+                  textAlign: "center",
+                  marginBottom: 6,
+                }}
+              >
+                {selectedCourse?.title || "PRATICA"}
               </Text>
-            </TouchableOpacity>
 
-            <TouchableOpacity
-              style={{
-                backgroundColor: colors.card,
-                borderRadius: 12,
-                paddingVertical: 14,
-                paddingHorizontal: 16,
-                borderWidth: 1,
-                borderColor: colors.border,
-                opacity: selectedStatus.unlocked ? 1 : 0.5,
-              }}
-              onPress={startReviewMode}
-              disabled={!selectedStatus.unlocked}
-            >
-              <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>
-                Revisar conteudo ({selectedStatus.mistakes})
-              </Text>
-            </TouchableOpacity>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.card,
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  marginBottom: 10,
+                }}
+                onPress={startHardQuiz}
+              >
+                <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>
+                  Quiz difícil
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: colors.card,
+                  borderRadius: 12,
+                  paddingVertical: 14,
+                  paddingHorizontal: 16,
+                  borderWidth: 1,
+                  borderColor: colors.border,
+                  opacity: selectedStatus.unlocked ? 1 : 0.5,
+                  marginBottom: 8,
+                }}
+                onPress={startReviewMode}
+                disabled={!selectedStatus.unlocked}
+              >
+                <Text style={{ color: colors.text, fontWeight: "700", fontSize: 16 }}>
+                  Revisar conteúdo ({selectedStatus.mistakes})
+                </Text>
+              </TouchableOpacity>
+
+            </ScrollView>
           </View>
         </TouchableOpacity>
       </Modal>

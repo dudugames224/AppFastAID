@@ -49,7 +49,7 @@ export const GlobalHeader = () => {
             });
           }
         } catch (error) {
-          console.warn("Nao foi possivel carregar header:", error);
+          console.warn("Não foi possível carregar header:", error);
         }
       };
       fetchData();

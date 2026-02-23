@@ -349,7 +349,7 @@ const StreakCelebrationScreen = () => {
               textAlign: "center",
             }}
           >
-            Primeira lição do dia concluida. Você manteve a sua ofensiva viva!
+            Primeira lição do dia concluída. Você manteve a sua ofensiva viva!
           </Text>
         </View>
 
