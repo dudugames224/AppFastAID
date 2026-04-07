@@ -1,11 +1,25 @@
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import React, { useState } from "react";
-import { Image, KeyboardAvoidingView, Platform, ScrollView, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Checkbox from "../components/Checkbox";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, setDoc } from "../firebaseConfig.js";
+
+const PASSWORD_REQUIREMENTS = [
+  "No minimo 8 caracteres",
+  "Pelo menos uma letra maiuscula",
+  "Pelo menos um numero",
+  "Pelo menos um caractere especial (ex.: ! # @ $ % & *)",
+];
+
+const getPasswordValidation = (value: string) => ({
+  minLength: value.length >= 8,
+  hasUppercase: /[A-Z]/.test(value),
+  hasNumber: /\d/.test(value),
+  hasSpecial: /[^A-Za-z0-9]/.test(value),
+});
 
 export default function CadastrarScreen() {
   const [email, setEmail] = useState("");
@@ -16,7 +30,7 @@ export default function CadastrarScreen() {
   const [sexo, setSexo] = useState("");
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
   
-  const { styles } = useTheme();
+  const { styles, colors, currentTheme } = useTheme();
   const normalizeText = (value: string) =>
     value
       .trim()
@@ -83,9 +97,12 @@ export default function CadastrarScreen() {
         return;
       }
 
-      const temCaractereEspecial = /[^A-Za-z0-9]/.test(senha);
-      if (!temCaractereEspecial) {
-        alert("Insira um caracter especial!");
+      const passwordValidation = getPasswordValidation(senha);
+      const isPasswordValid = Object.values(passwordValidation).every(Boolean);
+      if (!isPasswordValid) {
+        alert(
+          "A senha deve ter no minimo 8 caracteres, uma letra maiuscula, um numero e um caractere especial."
+        );
         return;
       }
 
@@ -205,6 +222,42 @@ export default function CadastrarScreen() {
               autoCapitalize="none"
               placeholderTextColor="#aaa"
             />
+            <View
+              style={[
+                localStyles.passwordGuideCard,
+                {
+                  backgroundColor: colors.card,
+                  borderColor: colors.border,
+                },
+              ]}
+            >
+              <View
+                style={[
+                  localStyles.passwordAlertBox,
+                  { backgroundColor: colors.backgroundError },
+                ]}
+              >
+                <Text
+                  style={[
+                    localStyles.passwordAlertText,
+                    { color: currentTheme === "dark" ? "#FFD5D5" : "#B33939" },
+                  ]}
+                >
+                  Sua senha precisa atender aos requisitos abaixo para criar a conta.
+                </Text>
+              </View>
+              <Text style={[localStyles.passwordGuideTitle, { color: colors.text }]}>
+                Use uma senha com:
+              </Text>
+              {PASSWORD_REQUIREMENTS.map((requirement) => (
+                <View key={requirement} style={localStyles.passwordRequirementRow}>
+                  <Text style={[localStyles.passwordBullet, { color: colors.text }]}>-</Text>
+                  <Text style={[localStyles.passwordRequirementText, { color: colors.text }]}>
+                    {requirement}
+                  </Text>
+                </View>
+              ))}
+            </View>
             <TextInput
               style={styles.caixaInsercao}
               placeholder="Senha"
@@ -233,3 +286,43 @@ export default function CadastrarScreen() {
     </SafeAreaView>
   );
 }
+
+const localStyles = StyleSheet.create({
+  passwordGuideCard: {
+    width: "100%",
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: 14,
+    gap: 10,
+  },
+  passwordAlertBox: {
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  passwordAlertText: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: "700",
+  },
+  passwordGuideTitle: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "600",
+  },
+  passwordRequirementRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+  },
+  passwordBullet: {
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: "700",
+  },
+  passwordRequirementText: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 20,
+  },
+});

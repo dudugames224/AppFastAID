@@ -49,6 +49,7 @@ const ChestRewardScreen = () => {
   const [tapCount, setTapCount] = useState(0);
   const [arrowGone, setArrowGone] = useState<[boolean, boolean, boolean]>([false, false, false]);
   const [chestFrame, setChestFrame] = useState<ChestFrame>("closed");
+  const [hintBubbleVisible, setHintBubbleVisible] = useState(true);
 
   const chestScale = useRef(new Animated.Value(1)).current;
   const chestRotate = useRef(new Animated.Value(0)).current;
@@ -80,6 +81,10 @@ const ChestRewardScreen = () => {
   const continueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const arrowAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
   const burstAnims = useRef(BURST_VECTORS.map(() => new Animated.Value(0))).current;
+  const hintBubbleOpacity = useRef(new Animated.Value(0)).current;
+  const hintBubbleScale = useRef(new Animated.Value(0.86)).current;
+  const hintBubbleTranslateY = useRef(new Animated.Value(22)).current;
+  const hintBubbleLoop = useRef<Animated.CompositeAnimation | null>(null);
 
   const rarityLabel: Record<Rarity, string> = {
     normal: "NORMAL",
@@ -123,17 +128,14 @@ const ChestRewardScreen = () => {
       alignItems: "center",
       justifyContent: "center",
       padding: 18,
-      borderRadius: 18,
-      borderWidth: 1,
       gap: 12,
-      backgroundColor: "rgba(255,255,255,0.08)",
-      borderColor: "rgba(255,255,255,0.18)",
     },
     chestTouchable: {
       width: 220,
-      height: 200,
+      height: 234,
       alignItems: "center",
-      justifyContent: "center",
+      justifyContent: "flex-end",
+      paddingBottom: 4,
     },
     chestGlow: {
       position: "absolute",
@@ -155,13 +157,18 @@ const ChestRewardScreen = () => {
       shadowOffset: { width: 0, height: 0 },
     },
     rewardText: { fontSize: 16, fontWeight: "700", textAlign: "center" },
-    continueButton: {
+    continueButtonContainer: {
       width: "100%",
-      maxWidth: 360,
+      alignItems: "center",
+    },
+    continueButton: {
       marginTop: 26,
       paddingVertical: 16,
+      paddingHorizontal: 34,
+      minWidth: 220,
       borderRadius: 18,
       alignItems: "center",
+      justifyContent: "center",
       backgroundColor: "#fff",
       shadowColor: "#000",
       shadowOpacity: 0.15,
@@ -217,7 +224,52 @@ const ChestRewardScreen = () => {
       fontWeight: "800",
       letterSpacing: 0.5,
     },
+    hintBubbleWrap: {
+      position: "absolute",
+      top: 6,
+      left: 0,
+      right: 0,
+      alignItems: "center",
+      zIndex: 5,
+    },
+    hintBubble: {
+      backgroundColor: "#FFF4CC",
+      borderRadius: 18,
+      borderWidth: 1,
+      borderColor: "rgba(255,255,255,0.72)",
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      shadowColor: "#000",
+      shadowOpacity: 0.18,
+      shadowRadius: 8,
+      shadowOffset: { width: 0, height: 4 },
+      elevation: 4,
+    },
+    hintBubbleText: {
+      color: "#6A4A00",
+      fontSize: 13,
+      fontWeight: "800",
+      letterSpacing: 0.4,
+    },
+    hintBubbleTail: {
+      width: 0,
+      height: 0,
+      marginTop: -1,
+      borderLeftWidth: 10,
+      borderRightWidth: 10,
+      borderTopWidth: 14,
+      borderLeftColor: "transparent",
+      borderRightColor: "transparent",
+      borderTopColor: "#FFF4CC",
+    },
   });
+
+  const stopHintBubbleLoop = useCallback(() => {
+    if (hintBubbleLoop.current) {
+      hintBubbleLoop.current.stop();
+      hintBubbleLoop.current = null;
+    }
+  }, []);
 
   const clearTimers = () => {
     if (frameSwapTimer.current) {
@@ -236,6 +288,7 @@ const ChestRewardScreen = () => {
       framePulseTimers.current.forEach((timer) => clearTimeout(timer));
       framePulseTimers.current = [];
     }
+    stopHintBubbleLoop();
   };
 
   useEffect(() => () => clearTimers(), []);
@@ -359,6 +412,82 @@ const ChestRewardScreen = () => {
         ? require("../../assets/images/bau3.png")
         : require("../../assets/images/bau1.png");
 
+  const showHintBubble = useCallback(() => {
+    setHintBubbleVisible(true);
+    stopHintBubbleLoop();
+    hintBubbleOpacity.setValue(0);
+    hintBubbleScale.setValue(0.86);
+    hintBubbleTranslateY.setValue(22);
+    Animated.parallel([
+      Animated.timing(hintBubbleOpacity, {
+        toValue: 1,
+        duration: 260,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: true,
+      }),
+      Animated.spring(hintBubbleScale, {
+        toValue: 1,
+        speed: 14,
+        bounciness: 8,
+        useNativeDriver: true,
+      }),
+      Animated.timing(hintBubbleTranslateY, {
+        toValue: -8,
+        duration: 340,
+        easing: Easing.out(Easing.back(1.1)),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (!finished) return;
+      hintBubbleLoop.current = Animated.loop(
+        Animated.sequence([
+          Animated.timing(hintBubbleTranslateY, {
+            toValue: -14,
+            duration: 900,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+          Animated.timing(hintBubbleTranslateY, {
+            toValue: -8,
+            duration: 900,
+            easing: Easing.inOut(Easing.sin),
+            useNativeDriver: true,
+          }),
+        ])
+      );
+      hintBubbleLoop.current.start();
+    });
+  }, [hintBubbleOpacity, hintBubbleScale, hintBubbleTranslateY, stopHintBubbleLoop]);
+
+  const hideHintBubble = useCallback(() => {
+    if (!hintBubbleVisible) return;
+    stopHintBubbleLoop();
+    Animated.parallel([
+      Animated.timing(hintBubbleOpacity, {
+        toValue: 0,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(hintBubbleScale, {
+        toValue: 0.94,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(hintBubbleTranslateY, {
+        toValue: -22,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setHintBubbleVisible(false);
+      }
+    });
+  }, [hintBubbleOpacity, hintBubbleScale, hintBubbleTranslateY, hintBubbleVisible, stopHintBubbleLoop]);
+
   const runTapAnimation = (intensity: number) => {
     if (chestIdleLoop.current) {
       chestIdleLoop.current.stop();
@@ -407,6 +536,7 @@ const ChestRewardScreen = () => {
       chestIdleLoop.current.stop();
       chestIdleLoop.current = null;
     }
+    hideHintBubble();
     setIsAnimatingChest(true);
     setChestOpened(true);
     void grantSafirasIfNeeded();
@@ -497,13 +627,21 @@ const ChestRewardScreen = () => {
     const anim = arrowAnims[index];
     if (!anim || arrowGone[index]) return;
     anim.setValue(0);
-    Animated.timing(anim, {
-      toValue: 1,
-      duration: 500,
-      useNativeDriver: true,
-      easing: Easing.out(Easing.quad),
-    }).start(() => {
-      anim.setValue(0);
+    Animated.sequence([
+      Animated.timing(anim, {
+        toValue: 0.36,
+        duration: 140,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.quad),
+      }),
+      Animated.timing(anim, {
+        toValue: 1,
+        duration: 560,
+        useNativeDriver: true,
+        easing: Easing.out(Easing.cubic),
+      }),
+    ]).start(({ finished }) => {
+      if (!finished) return;
       setArrowGone((prev) => {
         const next = [...prev] as [boolean, boolean, boolean];
         next[index] = true;
@@ -514,6 +652,7 @@ const ChestRewardScreen = () => {
 
   const handleChestPress = () => {
     if (isAnimatingChest || chestOpened) return;
+    hideHintBubble();
     setTapCount((prev) => {
       const next = Math.min(prev + 1, 3);
       animateArrow(next - 1);
@@ -596,6 +735,18 @@ const ChestRewardScreen = () => {
     };
   }, [startIdleAnimation]);
 
+  useEffect(() => {
+    showHintBubble();
+    return () => {
+      stopHintBubbleLoop();
+    };
+  }, [showHintBubble, stopHintBubbleLoop]);
+
+  const hintBubbleAnimatedStyle = {
+    opacity: hintBubbleOpacity,
+    transform: [{ translateY: hintBubbleTranslateY }, { scale: hintBubbleScale }],
+  };
+
   return (
     <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <Text style={styles.header}>{rarityLabel[rarity]}</Text>
@@ -607,6 +758,14 @@ const ChestRewardScreen = () => {
           onPress={handleChestPress}
           disabled={chestOpened || isAnimatingChest}
         >
+          {!chestOpened && hintBubbleVisible && (
+            <Animated.View pointerEvents="none" style={[styles.hintBubbleWrap, hintBubbleAnimatedStyle]}>
+              <View style={styles.hintBubble}>
+                <Text style={styles.hintBubbleText}>CLIQUE AQUI!</Text>
+              </View>
+              <View style={styles.hintBubbleTail} />
+            </Animated.View>
+          )}
           <Animated.View pointerEvents="none" style={[styles.chestGlow, chestGlowStyle]} />
           {burstAnims.map((anim, idx) => {
             const vector = BURST_VECTORS[idx];
@@ -687,12 +846,13 @@ const ChestRewardScreen = () => {
             {[0, 1, 2].map((idx) => {
               const active = tapCount > idx;
               const anim = arrowAnims[idx];
-              const translateY = anim.interpolate({ inputRange: [0, 1], outputRange: [0, -30] });
-              const opacity = anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [1, 1, 0] });
+              const translateY = anim.interpolate({ inputRange: [0, 0.36, 1], outputRange: [0, -12, -42] });
+              const opacity = anim.interpolate({ inputRange: [0, 0.2, 0.8, 1], outputRange: [1, 1, 0.7, 0] });
+              const scale = anim.interpolate({ inputRange: [0, 0.36, 0.72, 1], outputRange: [1, 1.08, 1.02, 0.86] });
               return (
                 <View key={`dot-${idx}`} style={[styles.tapDot, active && styles.tapDotActive]}>
                   {!arrowGone[idx] && (
-                    <Animated.View style={{ transform: [{ translateY }], opacity }}>
+                    <Animated.View style={{ transform: [{ translateY }, { scale }], opacity }}>
                       <Svg width={22} height={22} viewBox="0 0 24 24">
                         <Path
                           d="M12 5l6 8h-4v6h-4v-6H6z"
@@ -705,12 +865,17 @@ const ChestRewardScreen = () => {
               );
             })}
           </View>
-          <Text style={styles.tapHint}>Tap! Tap!</Text>
+          <Text style={styles.tapHint}>TOQUE 3 VEZES PARA ABRIR</Text>
         </>
       )}
 
       {chestOpened && (
-        <Animated.View style={{ opacity: continueOpacity, transform: [{ translateY: continueLift }] }}>
+        <Animated.View
+          style={[
+            styles.continueButtonContainer,
+            { opacity: continueOpacity, transform: [{ translateY: continueLift }] },
+          ]}
+        >
           <TouchableOpacity style={styles.continueButton} activeOpacity={0.9} onPress={handleContinue}>
             <Text style={styles.continueButtonText}>CONTINUAR</Text>
           </TouchableOpacity>

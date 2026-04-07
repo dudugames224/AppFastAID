@@ -238,6 +238,8 @@ const ProfileScreen = () => {
       ? Math.max(0, Math.floor(doubleXpChargesNumber))
       : 0;
   const doubleActive = doubleTimeActive || doubleXpCharges > 0;
+  const themeToggleLabel =
+    currentTheme === "light" ? "TROCAR TEMA PARA ESCURO" : "TROCAR TEMA PARA CLARO";
 
   const doubleMultiplier = doubleActive ? doubleMultiplierFromDoc : 1;
   const potionMultiplier = doubleMultiplier * (tripleActive ? tripleMultiplier : 1);
@@ -382,7 +384,7 @@ const ProfileScreen = () => {
                   style={styles.caixaPerfil}
                   onPress={() => setCurrentTheme(currentTheme === "light" ? "dark" : "light")}
                 >
-                  <Text style={[styles.textoBotao, { color: colors.text }]}>TROCAR DE TEMA</Text>
+                  <Text style={[styles.textoBotao, { color: colors.text }]}>{themeToggleLabel}</Text>
                 </TouchableOpacity>
               </View>
         </ScrollView>

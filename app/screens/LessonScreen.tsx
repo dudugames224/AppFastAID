@@ -67,13 +67,29 @@ const shuffleArray = <T,>(array: T[]): T[] => {
   return arr;
 };
 
+const shuffleMcqCardOptions = (card: LessonCard): LessonCard => {
+  if (card.type !== "mcq" || !Array.isArray(card.options)) {
+    return card;
+  }
+
+  const indexedOptions = card.options.map((option, index) => ({
+    option,
+    isCorrect: index === card.answer,
+  }));
+  const shuffledOptions = shuffleArray(indexedOptions);
+  const newAnswerIndex = shuffledOptions.findIndex((item) => item.isCorrect);
+
+  return {
+    ...card,
+    options: shuffledOptions.map((item) => item.option),
+    answer: newAnswerIndex >= 0 ? newAnswerIndex : card.answer,
+  };
+};
+
 const getShuffledLesson = (data: LessonCard[]): LessonCard[] => {
   return data.map((card) => {
-    if (card.type === "mcq" && card.options && card.answer !== undefined) {
-      const correctAnswerString = card.options[card.answer];
-      const shuffledOptions = [...card.options].sort(() => 0.5 - Math.random());
-      const newAnswerIndex = shuffledOptions.indexOf(correctAnswerString);
-      return { ...card, options: shuffledOptions, answer: newAnswerIndex };
+    if (card.type === "mcq") {
+      return shuffleMcqCardOptions(card);
     }
     if (card.type === "sequence" && card.orderOptions) {
       return { ...card, orderOptions: shuffleArray(card.orderOptions) };

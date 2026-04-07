@@ -57,6 +57,10 @@ export const ensureNotificationPermissions = async (): Promise<boolean> => {
     return true;
   }
 
+  if (currentSettings.canAskAgain === false) {
+    return false;
+  }
+
   const requestResult = await requestPermissionsAsync();
   const granted =
     requestResult.granted ||

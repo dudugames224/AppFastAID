@@ -5,6 +5,10 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/adaptive-icon.png",
+    "notification": {
+      "icon": "./assets/images/adaptive-icon.png",
+      "color": "#FF4B4B"
+    },
     "scheme": "appfastaid",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -16,10 +20,6 @@
       "adaptiveIcon": {
         "backgroundColor": "#FFFFFF",
         "foregroundImage": "./assets/images/adaptive-icon.png"
-      },
-      "notification": {
-        "icon": "./assets/images/adaptive-icon.png",
-        "color": "#FF4B4B"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -43,7 +43,9 @@
           }
         }
       ],
-      "expo-web-browser"
+      "expo-notifications",
+      "expo-web-browser",
+      "expo-video"
     ],
     "experiments": {
       "typedRoutes": true,
