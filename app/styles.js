@@ -24,11 +24,11 @@ const lightColors = {
 
 const darkColors = {
   background: "#121212",
-  textClaro: "#F0F2F5",
+  textClaro: "#FFFFFF",
   text: "#FFFFFF",
   primary: "#238bccff",
-  card: "#1f1e1eff",
-  inputBackground: "#272626ff",
+  card: "#333131",
+  inputBackground: "#3F4457",
   inputTextColor: "#FFFFFF",
   sosButton: "#FF4B4B",
   sosCard: "#FF4B4B",
