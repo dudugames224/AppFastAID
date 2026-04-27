@@ -7,19 +7,19 @@ const lightColors = {
   textClaro: "#F0F2F5",
   primary: "rgba(35, 139, 204, 1.00)",
   card: "#FFFFFF",
-  inputBackground: "#E8E8E8",
+  inputBackground: "#dedadaff",
   inputTextColor: "#000000",
-  sosButton: "#D93F3F",
+  sosButton: "#FF4B4B",
   sosCard: "#FF4B4B",
-  sosOption: "#FFD5D5",
+  sosOption: "#FFC9BA",
   ofensivaPerdida:"#f80202ff",
-  circle:"#dbdbdbff",
-  border:"#cecdcdff",
-  cardsLesson:"#dededeff",
+  circle:"#BABABA",
+  border:"#BABABA",
+  cardsLesson:"#dedadaff",
   textLesson:"#5f5f5fff",
   bar:"#dedadaff",
   backgroundCorrect: "#d2fbd8ff",
-  backgroundError:"#ffbcbcff"
+  backgroundError:"#FFC9BA"
 };
 
 const darkColors = {
@@ -27,8 +27,8 @@ const darkColors = {
   textClaro: "#FFFFFF",
   text: "#FFFFFF",
   primary: "#238bccff",
-  card: "#333131",
-  inputBackground: "#3F4457",
+  card: "#2D2D2D",
+  inputBackground: "#49494A",
   inputTextColor: "#FFFFFF",
   sosButton: "#FF4B4B",
   sosCard: "#FF4B4B",
@@ -37,10 +37,10 @@ const darkColors = {
   circle:"#4A4A4A",
   border:"#2D2D2D",
   cardsLesson:"#1E1E1E",
-  textLesson:"#EAEAEA",
-  bar:"#333",
+  textLesson:"#FFFFFF",
+  bar:"#2D2D2D",
   backgroundCorrect: "#1A331C",
-  backgroundError:"#392323"
+  backgroundError:"#5A2323"
 };
 const getThemedStyles = (theme = 'light') => {
   const colors = theme === 'dark' ? darkColors : lightColors;

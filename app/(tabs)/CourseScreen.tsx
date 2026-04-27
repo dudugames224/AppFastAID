@@ -4,8 +4,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
-  Alert,
   ActivityIndicator,
+  Alert,
   Animated,
   Easing,
   Image,
@@ -1092,7 +1092,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
               cx={ringSize / 2}
               cy={ringSize / 2}
               r={radius}
-              stroke={doctorCompleted ? "rgba(111, 230, 255, 0.42)" : "rgba(255,255,255,0.25)"}
+              stroke={doctorCompleted ? "rgba(111, 230, 255, 0.42)" : "rgba(170, 168, 168, 0.22)"}
               strokeWidth={strokeWidth}
               fill="none"
             />

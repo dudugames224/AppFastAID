@@ -1,7 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { addDoc, collection, deleteDoc, doc, getDoc, getDocs, increment, setDoc } from "firebase/firestore";
 import { ImageSourcePropType } from "react-native";
-import { offlineCourseModules } from "../data/offlineModules";
 import { db } from "../firebaseConfig.js";
 import { LessonCard, SequenceOption } from "../types/lesson";
 
@@ -515,52 +514,6 @@ export const fetchCourseModules = async (
   } catch (error) {
     console.error(`Error fetching modules for course ${courseId}:`, error);
     
-    // FALLBACK: Tenta carregar dados offline se o Firebase falhar (permissão ou rede)
-    let offlineModules: RemoteModule[] = offlineCourseModules[normalizedCourseId] || offlineCourseModules[collectionName] || [];
-
-    // Alias: Se for suporteBasico e não achou, usa primeirosSocorros
-    if (offlineModules.length === 0 && (normalizedCourseId === 'suportebasico' || collectionName === 'suporteBasico')) {
-      offlineModules = offlineCourseModules['primeirosSocorros'] || [];
-    }
-
-    if (offlineModules.length > 0) {
-      console.log(`[FastAID] Usando módulos offline para: ${courseId}`);
-      const processedModules = [...offlineModules];
-
-      // Adiciona itens de UI padrão (Intro, Revisão, Reset)
-      processedModules.unshift({
-        id: "course-intro",
-        title: "INTRODUÇÃO",
-        color: "#FFC107",
-        icon: "star",
-        order: -1,
-        stageCount: 1,
-        topic: "BOAS-VINDAS",
-      });
-
-      processedModules.push({
-        id: "review-cards",
-        title: "REVISÃO",
-        color: "#8b5cf6",
-        icon: "book",
-        order: 99998,
-        stageCount: 1,
-        topic: "EXTRA",
-      });
-
-      processedModules.push({
-        id: "reset-course-action",
-        title: "REINICIAR CURSO",
-        color: "#64748b",
-        icon: "refresh",
-        order: 99999,
-        stageCount: 0,
-        topic: "GERENCIAR",
-      });
-
-      return processedModules;
-    }
-
     return [];
   }
 };
@@ -796,7 +749,7 @@ export const fetchModuleLessons = async (
   } catch (error) {
     if (isMissingPermissionError(error)) {
       console.log(
-        `[FastAID] Sem permissao para modulo ${moduleId} (effective: ${effectiveModuleId}). Usando fallback local.`
+        `[FastAID] Sem permissao para modulo ${moduleId} (effective: ${effectiveModuleId}).`
       );
     } else {
       console.warn(
@@ -805,22 +758,6 @@ export const fetchModuleLessons = async (
       );
     }
     
-    // FALLBACK: Tenta carregar lição offline
-    let offlineModules = offlineCourseModules[normalizedCourseId] || offlineCourseModules[collectionName];
-
-    // Alias: Se for suporteBasico e não achou, usa primeirosSocorros
-    if (!offlineModules && (normalizedCourseId === 'suportebasico' || collectionName === 'suporteBasico')) {
-      offlineModules = offlineCourseModules['primeirosSocorros'];
-    }
-
-    if (offlineModules) {
-      const mod = offlineModules.find(m => m.id === effectiveModuleId);
-      if (mod && mod.lessons) {
-        console.log(`[FastAID] Carregando lição offline: ${effectiveModuleId}`);
-        return normalizeLessonPayload(mod.lessons, "mcq");
-      }
-    }
-
     return [];
   }
 };
