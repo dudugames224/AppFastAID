@@ -51,6 +51,7 @@ const ChestRewardScreen = () => {
   const [chestFrame, setChestFrame] = useState<ChestFrame>("closed");
   const [hintBubbleVisible, setHintBubbleVisible] = useState(true);
 
+  // ANIMACAO: valores que movem, giram, escalam e iluminam o bau e a recompensa.
   const chestScale = useRef(new Animated.Value(1)).current;
   const chestRotate = useRef(new Animated.Value(0)).current;
   const chestLift = useRef(new Animated.Value(0)).current;
@@ -79,6 +80,7 @@ const ChestRewardScreen = () => {
   const framePulseTimers = useRef<ReturnType<typeof setTimeout>[]>([]);
   const chestIdleLoop = useRef<Animated.CompositeAnimation | null>(null);
   const continueTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // ANIMACAO: valores das setas, explosao de estrelas e balao "clique aqui".
   const arrowAnims = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
   const burstAnims = useRef(BURST_VECTORS.map(() => new Animated.Value(0))).current;
   const hintBubbleOpacity = useRef(new Animated.Value(0)).current;
@@ -327,6 +329,7 @@ const ChestRewardScreen = () => {
   }, []);
 
   useEffect(() => {
+    // ANIMACAO: loop que faz as estrelas de fundo piscarem ao redor do bau.
     starAnims.forEach((value, index) => {
       const delay = 120 * index;
       Animated.loop(
@@ -391,6 +394,7 @@ const ChestRewardScreen = () => {
     outputRange: ["-25deg", "25deg"],
   });
 
+  // ANIMACAO: estilo que aplica levantar, escalar e girar o bau.
   const chestAnimatedStyle = {
     transform: [{ translateY: chestLift }, { scale: chestScale }, { rotate: chestRotation }],
     shadowColor: "#000",
@@ -400,6 +404,7 @@ const ChestRewardScreen = () => {
     elevation: 10,
   };
 
+  // ANIMACAO: estilo que controla o brilho atras do bau.
   const chestGlowStyle = {
     opacity: glowOpacity,
     transform: [{ scale: glowScale }],
@@ -418,6 +423,7 @@ const ChestRewardScreen = () => {
     hintBubbleOpacity.setValue(0);
     hintBubbleScale.setValue(0.86);
     hintBubbleTranslateY.setValue(22);
+    // ANIMACAO: mostra o balao "clique aqui" e inicia uma flutuacao leve.
     Animated.parallel([
       Animated.timing(hintBubbleOpacity, {
         toValue: 1,
@@ -462,6 +468,7 @@ const ChestRewardScreen = () => {
   const hideHintBubble = useCallback(() => {
     if (!hintBubbleVisible) return;
     stopHintBubbleLoop();
+    // ANIMACAO: esconde o balao antes de interagir com o bau.
     Animated.parallel([
       Animated.timing(hintBubbleOpacity, {
         toValue: 0,
@@ -494,6 +501,7 @@ const ChestRewardScreen = () => {
       chestIdleLoop.current = null;
     }
     setIsAnimatingChest(true);
+    // ANIMACAO: resposta visual a cada toque no bau antes de abrir.
     Animated.parallel([
       Animated.sequence([
         Animated.timing(chestScale, {
@@ -557,6 +565,7 @@ const ChestRewardScreen = () => {
       setTimeout(() => setChestFrame("open"), 280)
     );
     burstAnims.forEach((anim, index) => {
+      // ANIMACAO: particulas que explodem quando o bau abre.
       Animated.timing(anim, {
         toValue: 1,
         duration: 440 + index * 30,
@@ -565,6 +574,7 @@ const ChestRewardScreen = () => {
       }).start(() => anim.setValue(0));
     });
 
+    // ANIMACAO: sequencia principal de abertura do bau, brilho e flash da tela.
     Animated.sequence([
       Animated.parallel([
         Animated.timing(chestScale, { toValue: 0.92, duration: 90, useNativeDriver: true }),
@@ -603,6 +613,7 @@ const ChestRewardScreen = () => {
     ]).start(() => {
       setIsAnimatingChest(false);
       startIdleAnimation("open");
+      // ANIMACAO: faz a recompensa e o botao continuar aparecerem depois da abertura.
       Animated.parallel([
         Animated.timing(rewardOpacity, {
           toValue: 1,
@@ -627,6 +638,7 @@ const ChestRewardScreen = () => {
     const anim = arrowAnims[index];
     if (!anim || arrowGone[index]) return;
     anim.setValue(0);
+    // ANIMACAO: seta do indicador sobe e desaparece a cada toque registrado.
     Animated.sequence([
       Animated.timing(anim, {
         toValue: 0.36,
@@ -704,6 +716,7 @@ const ChestRewardScreen = () => {
     const duration = isOpen ? 900 : 820;
     const tilt = isOpen ? 1.4 : 0.9;
 
+    // ANIMACAO: loop de repouso que deixa o bau respirando/flutuando.
     chestIdleLoop.current = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -742,6 +755,7 @@ const ChestRewardScreen = () => {
     };
   }, [showHintBubble, stopHintBubbleLoop]);
 
+  // ANIMACAO: estilo do balao "clique aqui" enquanto ele aparece e flutua.
   const hintBubbleAnimatedStyle = {
     opacity: hintBubbleOpacity,
     transform: [{ translateY: hintBubbleTranslateY }, { scale: hintBubbleScale }],
@@ -759,6 +773,7 @@ const ChestRewardScreen = () => {
           disabled={chestOpened || isAnimatingChest}
         >
           {!chestOpened && hintBubbleVisible && (
+            // ANIMACAO: balao animado indicando onde tocar.
             <Animated.View pointerEvents="none" style={[styles.hintBubbleWrap, hintBubbleAnimatedStyle]}>
               <View style={styles.hintBubble}>
                 <Text style={styles.hintBubbleText}>CLIQUE AQUI!</Text>
@@ -766,6 +781,7 @@ const ChestRewardScreen = () => {
               <View style={styles.hintBubbleTail} />
             </Animated.View>
           )}
+          {/* ANIMACAO: brilho animado atras do bau. */}
           <Animated.View pointerEvents="none" style={[styles.chestGlow, chestGlowStyle]} />
           {burstAnims.map((anim, idx) => {
             const vector = BURST_VECTORS[idx];
@@ -774,6 +790,7 @@ const ChestRewardScreen = () => {
             const scale = anim.interpolate({ inputRange: [0, 0.4, 1], outputRange: [0.4, 1.05, 0.6] });
             const opacity = anim.interpolate({ inputRange: [0, 0.2, 1], outputRange: [0, 1, 0] });
             return (
+              // ANIMACAO: estrela de explosao saindo do bau.
               <Animated.View
                 key={`burst-${idx}`}
                 style={[
@@ -806,6 +823,7 @@ const ChestRewardScreen = () => {
               outputRange: [0, 0.7, 1, 0],
             });
             return (
+              // ANIMACAO: estrela decorativa piscando ao redor do bau.
               <Animated.View
                 key={`star-${idx}`}
                 style={[
@@ -819,6 +837,7 @@ const ChestRewardScreen = () => {
               />
             );
           })}
+          {/* ANIMACAO: imagem do bau recebe escala, rotacao e deslocamento. */}
           <Animated.Image
             source={chestImageSource}
             style={[styles.chestImage, chestAnimatedStyle]}
@@ -827,6 +846,7 @@ const ChestRewardScreen = () => {
         </TouchableOpacity>
 
         {rewardGranted && (
+          // ANIMACAO: recompensa aparece com fade e escala.
           <Animated.View style={{ opacity: rewardOpacity, transform: [{ scale: rewardScale }] }}>
             <Text style={[styles.rewardText, { color: "#fff" }]}>
               Safiras adicionadas: +{safiraReward}
@@ -852,6 +872,7 @@ const ChestRewardScreen = () => {
               return (
                 <View key={`dot-${idx}`} style={[styles.tapDot, active && styles.tapDotActive]}>
                   {!arrowGone[idx] && (
+                    // ANIMACAO: seta do indicador sobe quando o toque e contado.
                     <Animated.View style={{ transform: [{ translateY }, { scale }], opacity }}>
                       <Svg width={22} height={22} viewBox="0 0 24 24">
                         <Path
@@ -870,6 +891,7 @@ const ChestRewardScreen = () => {
       )}
 
       {chestOpened && (
+        // ANIMACAO: botao continuar aparece subindo com fade apos abrir o bau.
         <Animated.View
           style={[
             styles.continueButtonContainer,
@@ -882,6 +904,7 @@ const ChestRewardScreen = () => {
         </Animated.View>
       )}
 
+      {/* ANIMACAO: flash branco rapido durante a abertura do bau. */}
       <Animated.View style={[styles.flashOverlay, { opacity: screenFlashOpacity }]} />
     </View>
   );

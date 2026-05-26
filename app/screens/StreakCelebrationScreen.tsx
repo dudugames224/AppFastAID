@@ -14,6 +14,7 @@ type CelebrationParams = {
 
 const AnimatedSvg = Animated.createAnimatedComponent(Svg);
 
+// ANIMACAO: permite aplicar Animated diretamente no SVG da chama.
 const BlueFlame = ({
   entrance,
   pulse,
@@ -23,6 +24,7 @@ const BlueFlame = ({
   pulse: Animated.Value;
   glowOpacity: Animated.Value | Animated.AnimatedInterpolation<number>;
 }) => {
+  // ANIMACAO: interpolacoes que fazem a chama entrar, pulsar e inclinar.
   const scaleEntrance = entrance.interpolate({
     inputRange: [0, 1],
     outputRange: [0.7, 1],
@@ -41,6 +43,7 @@ const BlueFlame = ({
   const combinedScale = Animated.multiply(scaleEntrance, scalePulse);
 
   return (
+    // ANIMACAO: wrapper da chama recebe escala combinada e rotacao.
     <Animated.View
       style={{
         width: 180,
@@ -50,6 +53,7 @@ const BlueFlame = ({
         transform: [{ scale: combinedScale }, { rotate: tilt }],
       }}
     >
+      {/* ANIMACAO: brilho azul atras da chama. */}
       <Animated.View
         style={{
           position: "absolute",
@@ -61,6 +65,7 @@ const BlueFlame = ({
           transform: [{ scale: 1.1 }],
         }}
       />
+      {/* ANIMACAO: SVG animado junto com a chama. */}
       <AnimatedSvg width={150} height={210} viewBox="0 0 180 220">
         <Defs>
           <LinearGradient id="outer" x1="0%" y1="0%" x2="0%" y2="100%">
@@ -105,6 +110,7 @@ const StreakCelebrationScreen = () => {
       ? targetPathParam
       : "/(tabs)/CourseScreen";
 
+  // ANIMACAO: valores da entrada/saida da tela e do pulso da chama.
   const containerOpacity = useRef(new Animated.Value(0)).current;
   const containerTranslate = useRef(new Animated.Value(30)).current;
   const flameEntrance = useRef(new Animated.Value(0)).current;
@@ -113,6 +119,7 @@ const StreakCelebrationScreen = () => {
   const [exiting, setExiting] = useState(false);
 
   useEffect(() => {
+    // ANIMACAO: entrada da tela de celebracao com fade, subida e mola na chama.
     Animated.parallel([
       Animated.timing(containerOpacity, {
         toValue: 1,
@@ -134,6 +141,7 @@ const StreakCelebrationScreen = () => {
       }),
     ]).start();
 
+    // ANIMACAO: loop continuo que pulsa a chama e o brilho.
     const loop = Animated.loop(
       Animated.sequence([
         Animated.parallel([
@@ -175,6 +183,7 @@ const StreakCelebrationScreen = () => {
     if (exiting) return;
     setExiting(true);
 
+    // ANIMACAO: saida da tela antes de navegar para o proximo destino.
     Animated.parallel([
       Animated.timing(containerOpacity, {
         toValue: 0,
@@ -217,6 +226,7 @@ const StreakCelebrationScreen = () => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#050F1E" }}>
       <StatusBar barStyle="light-content" />
+      {/* ANIMACAO: container inteiro aparece/desaparece e desloca verticalmente. */}
       <Animated.View
         style={{
           flex: 1,

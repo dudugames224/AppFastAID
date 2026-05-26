@@ -109,6 +109,7 @@ const CourseScreen: React.FC = () => {
   const [streakLost, setStreakLost] = useState(false);
   const [expandedReplayModuleId, setExpandedReplayModuleId] = useState<string | null>(null);
   const [bandOptionsVisible, setBandOptionsVisible] = useState(false);
+  // ANIMACAO: valores que fazem o personagem Band pulsar, flutuar e abrir o menu.
   const bandScale = React.useRef(new Animated.Value(1)).current;
   const bandFloat = React.useRef(new Animated.Value(0)).current;
   const bandOptionsProgress = React.useRef(new Animated.Value(0)).current;
@@ -151,6 +152,7 @@ const CourseScreen: React.FC = () => {
     () => (selectedCourseId ? isAdaptiveCourseEnabled(selectedCourseId) : false),
     [selectedCourseId]
   );
+  // ANIMACAO: estilos derivados do progresso de abertura do menu do Band.
   const bandOptionsOpacity = bandOptionsProgress.interpolate({
     inputRange: [0, 1],
     outputRange: [0, 1],
@@ -269,6 +271,7 @@ const CourseScreen: React.FC = () => {
   );
 
   useEffect(() => {
+    // ANIMACAO: loop que deixa o personagem Band flutuando suavemente.
     const floatLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(bandFloat, {
@@ -290,6 +293,7 @@ const CourseScreen: React.FC = () => {
   }, [bandFloat]);
 
   useEffect(() => {
+    // ANIMACAO: abre/fecha o menu do Band com mola.
     Animated.spring(bandOptionsProgress, {
       toValue: bandOptionsVisible ? 1 : 0,
       damping: 18,
@@ -369,6 +373,7 @@ const CourseScreen: React.FC = () => {
     setExpandedReplayModuleId(null);
     setBandOptionsVisible((prev) => !prev);
 
+    // ANIMACAO: efeito de clique no Band, dando um pequeno "pop" de escala.
     Animated.sequence([
       Animated.timing(bandScale, {
         toValue: 0.93,
@@ -458,6 +463,7 @@ const CourseScreen: React.FC = () => {
           }}
         >
         <TouchableOpacity activeOpacity={0.95} onPress={handleBandPress}>
+          {/* ANIMACAO: aplica escala de clique e flutuacao no Band. */}
           <Animated.View
             style={{
               transform: [{ scale: bandScale }, { translateY: bandFloat }],
@@ -470,6 +476,7 @@ const CourseScreen: React.FC = () => {
           </Animated.View>
         </TouchableOpacity>
 
+        {/* ANIMACAO: menu do Band aparece com opacidade, altura, escala e deslocamento. */}
         <Animated.View
           pointerEvents={bandOptionsVisible ? "auto" : "none"}
           style={{
@@ -725,6 +732,7 @@ const CourseScreen: React.FC = () => {
       </View>
       <Modal
         visible={panicVisible}
+        // ANIMACAO: fade nativo do Modal ao abrir/fechar o modo panico.
         animationType="fade"
         transparent
         onRequestClose={() => setPanicVisible(false)}
@@ -760,6 +768,7 @@ const CourseScreen: React.FC = () => {
       </Modal>
       <Modal
         visible={courseModalVisible}
+        // ANIMACAO: fade nativo do Modal ao abrir/fechar o seletor de cursos.
         animationType="fade"
         transparent
         onRequestClose={() => setCourseModalVisible(false)}
@@ -949,6 +958,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
   onPress,
   backgroundColor,
 }) => {
+  // ANIMACAO: valores usados no modulo para pulsar o botao e destacar o modo Doutor.
   const pulse = React.useRef(new Animated.Value(1)).current;
   const doctorGlow = React.useRef(new Animated.Value(0.35)).current;
   const doctorSparkleA = React.useRef(new Animated.Value(0.2)).current;
@@ -972,6 +982,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
       pulse.setValue(1);
       return;
     }
+    // ANIMACAO: pulso continuo no modulo disponivel/selecionado.
     const loop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1.08, duration: 900, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -990,6 +1001,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
       doctorSparkleC.setValue(0.6);
       return;
     }
+    // ANIMACAO: brilho e faíscas quando o modulo Doutor concluido esta em destaque.
     const glowLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(doctorGlow, { toValue: 0.85, duration: 760, easing: Easing.inOut(Easing.sin), useNativeDriver: true }),
@@ -1027,6 +1039,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
       disabled={locked}
       onPress={onPress}
     >
+      {/* ANIMACAO: aplica o pulso no item do modulo. */}
       <Animated.View style={{ transform: [{ scale: pulse }] }}>
         <View
           style={{
@@ -1038,6 +1051,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
           <View style={{ width: ringSize, height: ringSize, alignItems: "center", justifyContent: "center" }}>
           {doctorCompleted && !locked && doctorAnimate && (
             <>
+              {/* ANIMACAO: brilho atras do medalhao Doutor. */}
               <Animated.View
                 style={{
                   position: "absolute",
@@ -1049,6 +1063,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                   transform: [{ scale: 1.02 }],
                 }}
               />
+              {/* ANIMACAO: faísca do destaque Doutor. */}
               <Animated.View
                 style={{
                   position: "absolute",
@@ -1061,6 +1076,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                   opacity: doctorSparkleA,
                 }}
               />
+              {/* ANIMACAO: faísca do destaque Doutor. */}
               <Animated.View
                 style={{
                   position: "absolute",
@@ -1073,6 +1089,7 @@ const ModuleItem: React.FC<ModuleItemProps> = ({
                   opacity: doctorSparkleB,
                 }}
               />
+              {/* ANIMACAO: faísca do destaque Doutor. */}
               <Animated.View
                 style={{
                   position: "absolute",

@@ -182,6 +182,7 @@ const PracticeScreen = () => {
 
       <Modal
         visible={modeModalVisible}
+        // ANIMACAO: fade nativo do Modal ao abrir/fechar a escolha de pratica.
         animationType="fade"
         transparent
         onRequestClose={closeModePicker}

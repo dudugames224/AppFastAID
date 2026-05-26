@@ -70,6 +70,7 @@ export default function TabsLayout() {
 
         <Modal
           visible={panicVisible}
+          // ANIMACAO: fade nativo do Modal ao abrir/fechar o modo panico offline.
           animationType="fade"
           transparent
           onRequestClose={() => setPanicVisible(false)}

@@ -177,6 +177,7 @@ const LessonResultScreen = ({
     : hasNextStage
     ? "LICAO CONCLUIDA"
     : "MODULO CONCLUIDO";
+  // ANIMACAO: valores usados para a tela aparecer com fade e leve zoom.
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.8)).current;
   const claimedRef = useRef(false);
@@ -347,6 +348,7 @@ const LessonResultScreen = ({
   });
 
   useEffect(() => {
+    // ANIMACAO: entrada da tela de resultado, combinando opacidade e escala.
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -604,6 +606,7 @@ const LessonResultScreen = ({
   const secondaryButtonLabel = isPracticeHubMode ? "VOLTAR A PRATICAR" : "VOLTAR AO CURSO";
 
   return (
+    // ANIMACAO: container que recebe o fade e o zoom configurados acima.
     <Animated.View
       style={[
         styles.container,

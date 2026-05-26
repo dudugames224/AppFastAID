@@ -639,6 +639,7 @@ const LessonScreen = () => {
     ? "/(tabs)/PracticeScreen"
     : "/(tabs)/CourseScreen";
 
+  // ANIMACAO: controla a entrada/saida do painel de feedback da resposta.
   const feedbackAnim = useRef(new Animated.Value(200)).current;
   const currentCard = questions[currentStep];
 
@@ -679,11 +680,13 @@ const LessonScreen = () => {
 
   useEffect(() => {
     if (showFeedback || isInfoCard) {
+      // ANIMACAO: faz o feedback subir para dentro da tela.
       Animated.spring(feedbackAnim, {
         toValue: 0,
         useNativeDriver: true,
       }).start();
     } else {
+      // ANIMACAO: esconde o feedback empurrando o painel para baixo.
       Animated.timing(feedbackAnim, {
         toValue: 200,
         duration: 150,
@@ -1287,6 +1290,7 @@ const LessonScreen = () => {
           </View>
         </ScrollView>
 
+        {/* ANIMACAO: painel de feedback movido pelo translateY. */}
         <Animated.View
           style={[
             lessonstyles.feedbackContainer,

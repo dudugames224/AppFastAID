@@ -49,6 +49,7 @@ const RCPIntroScreen = () => {
   const { colors } = useTheme();
 
   const [index, setIndex] = useState(0);
+  // ANIMACAO: deslocamento horizontal do card e flutuacao leve em repouso.
   const cardAnim = useRef(new Animated.Value(0)).current;
   const idleAnim = useRef(new Animated.Value(0)).current;
 
@@ -56,6 +57,7 @@ const RCPIntroScreen = () => {
   const currentImage = useMemo(() => cardSources[index], [index]);
 
   useEffect(() => {
+    // ANIMACAO: loop suave que faz o card respirar/flutuar enquanto parado.
     Animated.loop(
       Animated.sequence([
         Animated.timing(idleAnim, {
@@ -74,11 +76,13 @@ const RCPIntroScreen = () => {
     ).start();
   }, [idleAnim]);
 
+  // ANIMACAO: controla o fade do card durante a troca de cartas.
   const cardOpacity = useRef(new Animated.Value(1)).current;
 
   const goNext = () => {
     if (index >= total - 1) return;
     const targetIndex = index + 1;
+    // ANIMACAO: card atual sai para a esquerda e some.
     Animated.parallel([
       Animated.timing(cardAnim, { toValue: -20, duration: 180, useNativeDriver: true }),
       Animated.timing(cardOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
@@ -86,6 +90,7 @@ const RCPIntroScreen = () => {
       setIndex(targetIndex);
       cardAnim.setValue(20);
       cardOpacity.setValue(0);
+      // ANIMACAO: proximo card entra da direita com mola e fade.
       Animated.parallel([
         Animated.spring(cardAnim, {
           toValue: 0,
@@ -104,6 +109,7 @@ const RCPIntroScreen = () => {
       return;
     }
     const targetIndex = index - 1;
+    // ANIMACAO: card atual sai para a direita e some.
     Animated.parallel([
       Animated.timing(cardAnim, { toValue: 20, duration: 180, useNativeDriver: true }),
       Animated.timing(cardOpacity, { toValue: 0, duration: 180, useNativeDriver: true }),
@@ -111,6 +117,7 @@ const RCPIntroScreen = () => {
       setIndex(targetIndex);
       cardAnim.setValue(-20);
       cardOpacity.setValue(0);
+      // ANIMACAO: card anterior entra da esquerda com mola e fade.
       Animated.parallel([
         Animated.spring(cardAnim, {
           toValue: 0,
@@ -144,6 +151,7 @@ const RCPIntroScreen = () => {
     inputRange: [0, 1],
     outputRange: [0, -4],
   });
+  // ANIMACAO: valores interpolados que transformam o loop de repouso em movimento visual.
   const idleScale = idleAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.01],
@@ -157,6 +165,7 @@ const RCPIntroScreen = () => {
       </View>
 
       <View style={styles.cardWrapper}>
+        {/* ANIMACAO: aplica transicao lateral, flutuacao e fade na carta. */}
         <Animated.View
           style={{
             transform: [{ translateX: cardAnim }, { translateY: idleTranslateY }, { scale: idleScale }],

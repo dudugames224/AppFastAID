@@ -12,7 +12,7 @@ import { auth, db } from '../firebaseConfig';
 import { AppSettings, RemoteCourseMeta, fetchAppSettings, fetchCoursesMeta, toggleCourseVisibility, updateAppSetting } from '../services/lessonService';
 import { GlobalReport, LeaderboardEntry, fetchClassPerformanceReport, fetchLeaderboard, resetAllUsersXP, wipeAllAssessmentData } from '../services/reportingService';
 
-// Habilita animações de layout no Android
+// ANIMACAO: habilita animacoes de layout no Android.
 if (Platform.OS === 'android') {
   if (UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -134,6 +134,7 @@ export default function DailyReportScreen() {
   };
 
   const toggleSection = (section: 'visibility' | 'gamification' | 'report' | 'settings') => {
+    // ANIMACAO: suaviza abrir/fechar as secoes colapsaveis do relatorio.
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     if (section === 'visibility') setExpandVisibility(!expandVisibility);
     if (section === 'gamification') setExpandGamification(!expandGamification);
@@ -685,6 +686,7 @@ export default function DailyReportScreen() {
 
     {/* Modal de Confirmação de Limpeza */}
     <Modal
+      // ANIMACAO: fade nativo do Modal de confirmacao.
       animationType="fade"
       transparent={true}
       visible={wipeModalVisible}
@@ -723,6 +725,7 @@ export default function DailyReportScreen() {
 
     {/* Modal de Ranking */}
     <Modal
+      // ANIMACAO: slide nativo do Modal de ranking.
       animationType="slide"
       transparent={true}
       visible={rankingModalVisible}
@@ -782,6 +785,7 @@ export default function DailyReportScreen() {
 
     {/* Modal de Reset XP */}
     <Modal
+      // ANIMACAO: fade nativo do Modal de reset de XP.
       animationType="fade"
       transparent={true}
       visible={resetXPModalVisible}

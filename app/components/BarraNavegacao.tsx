@@ -25,12 +25,14 @@ interface TabItemProps {
 }
 
 const TabItem = ({ item, isActive, onNavigate, styles }: TabItemProps) => {
+  // ANIMACAO: controla o zoom do icone ativo na barra de navegacao.
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
   const Icon = item.icon;
 
   useEffect(() => {
 
+    // ANIMACAO: aumenta o icone quando a aba fica ativa e volta ao normal quando sai.
     Animated.spring(scaleAnim, {
       toValue: isActive ? 1.2 : 1,
 
@@ -45,6 +47,7 @@ const TabItem = ({ item, isActive, onNavigate, styles }: TabItemProps) => {
       onPress={() => onNavigate(item.key)}
       style={styles.tabItem}
     >
+      {/* ANIMACAO: aplica a escala animada no icone da aba. */}
       <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
         <Icon color={isActive ? "#5D9CFB" : "#A9A9A9"} />
       </Animated.View>

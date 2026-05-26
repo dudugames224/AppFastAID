@@ -36,6 +36,7 @@ const emergenciaStepsModal = ({
 
   return (
     <Modal
+      // ANIMACAO: slide nativo do Modal, fazendo a ficha subir pela tela.
       animationType="slide"
       transparent={true}
       visible={visible}

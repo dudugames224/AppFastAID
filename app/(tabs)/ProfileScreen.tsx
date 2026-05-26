@@ -391,6 +391,7 @@ const ProfileScreen = () => {
 
             <Modal
               visible={avatarModalVisible}
+              // ANIMACAO: fade nativo do Modal ao abrir/fechar a escolha de avatar.
               animationType="fade"
               transparent
               onRequestClose={() => setAvatarModalVisible(false)}

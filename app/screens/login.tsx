@@ -76,6 +76,7 @@ export default function LoginScreen() {
           <Ionicons name="warning" size={30} color="#fff" />
         </TouchableOpacity>
       </View>
+    {/* ANIMACAO: fade nativo do Modal ao abrir/fechar o modo panico. */}
     <Modal visible={panicVisible} animationType="fade" transparent onRequestClose={() => setPanicVisible(false)}>
         <View style={panicStyles.centerBackdrop}>
           <View style={panicStyles.card}>
