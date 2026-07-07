@@ -351,6 +351,8 @@ export interface AppSettings {
   isStoreEnabled: boolean;
   globalInfiniteLives: boolean;
   isPremiumModeEnabled: boolean;
+  isClassCodeRequired: boolean;
+  classRegistrationCode: string;
 }
 
 export const fetchAppSettings = async (): Promise<AppSettings> => {
@@ -358,6 +360,8 @@ export const fetchAppSettings = async (): Promise<AppSettings> => {
     isStoreEnabled: true,
     globalInfiniteLives: false,
     isPremiumModeEnabled: true,
+    isClassCodeRequired: true,
+    classRegistrationCode: "McQueen",
   };
   try {
     const docRef = doc(db, "AppSettings", "global");
@@ -375,7 +379,7 @@ export const fetchAppSettings = async (): Promise<AppSettings> => {
   }
 };
 
-export const updateAppSetting = async (key: keyof AppSettings, value: boolean) => {
+export const updateAppSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
   try {
     const docRef = doc(db, "AppSettings", "global");
     await setDoc(docRef, { [key]: value }, { merge: true });

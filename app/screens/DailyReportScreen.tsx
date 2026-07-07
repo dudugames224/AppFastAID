@@ -39,6 +39,8 @@ export default function DailyReportScreen() {
     isStoreEnabled: true,
     globalInfiniteLives: false,
     isPremiumModeEnabled: true,
+    isClassCodeRequired: true,
+    classRegistrationCode: "McQueen",
   });
 
   // Estados para controle das seções colapsáveis
@@ -457,6 +459,26 @@ export default function DailyReportScreen() {
     }
   };
 
+  const handleChangeClassCode = (value: string) => {
+    setAppSettings(prev => ({ ...prev, classRegistrationCode: value }));
+  };
+
+  const handleSaveClassCode = async () => {
+    const trimmedCode = appSettings.classRegistrationCode.trim();
+    if (!trimmedCode) {
+      Alert.alert("Codigo obrigatorio", "Informe um codigo de turma para salvar.");
+      return;
+    }
+
+    setAppSettings(prev => ({ ...prev, classRegistrationCode: trimmedCode }));
+    const success = await updateAppSetting('classRegistrationCode', trimmedCode);
+    if (!success) {
+      Alert.alert("Erro", "Falha ao atualizar codigo de turma.");
+    } else {
+      Alert.alert("Sucesso", "Codigo de turma atualizado.");
+    }
+  };
+
   const handleOpenRanking = async () => {
     setRankingModalVisible(true);
     setRankingLoading(true);
@@ -581,6 +603,33 @@ export default function DailyReportScreen() {
               trackColor={{ false: "#767577", true: "#3b82f6" }}
             />
           </View>
+          <View style={styles.toggleRow}>
+            <Text style={[styles.toggleLabel, { color: colors.text }]}>Exigir Codigo de Turma</Text>
+            <Switch
+              value={appSettings.isClassCodeRequired === true}
+              onValueChange={(val) => handleToggleSetting('isClassCodeRequired', val)}
+              trackColor={{ false: "#767577", true: "#3b82f6" }}
+            />
+          </View>
+          {appSettings.isClassCodeRequired === true && (
+            <View style={styles.settingInputGroup}>
+              <Text style={[styles.settingInputLabel, { color: colors.text }]}>Codigo aceito no cadastro</Text>
+              <View style={styles.settingInputRow}>
+                <TextInput
+                  style={styles.settingInput}
+                  value={appSettings.classRegistrationCode}
+                  onChangeText={handleChangeClassCode}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="Ex.: McQueen"
+                  placeholderTextColor="#999"
+                />
+                <TouchableOpacity style={styles.saveSmallButton} onPress={handleSaveClassCode}>
+                  <Text style={styles.saveSmallButtonText}>Salvar</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
         </View>
       )}
 
@@ -887,6 +936,39 @@ const createStyles = (colors: any) => StyleSheet.create({
     borderBottomColor: colors.border || '#eee',
   },
   toggleLabel: { fontSize: 16, fontWeight: '600' },
+  settingInputGroup: {
+    paddingTop: 12,
+    gap: 8,
+  },
+  settingInputLabel: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  settingInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  settingInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border || '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  saveSmallButton: {
+    backgroundColor: '#2563eb',
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+  },
+  saveSmallButtonText: {
+    color: 'white',
+    fontWeight: 'bold',
+  },
 
   // Estilos de Filtro
   filterChip: {

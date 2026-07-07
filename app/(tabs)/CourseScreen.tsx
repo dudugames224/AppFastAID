@@ -450,7 +450,7 @@ const CourseScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["left", "right"]}>
       <ScrollView
         style={[styles.container, { paddingTop: 2, paddingBottom: 20 }]}
         contentContainerStyle={{ alignItems: "center" }}

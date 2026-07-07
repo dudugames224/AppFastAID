@@ -3,15 +3,22 @@ import { useRouter } from 'expo-router';
 import { onAuthStateChanged } from 'firebase/auth';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
-import { auth } from './firebaseConfig';
+import { auth, db, doc, getDoc, Sair } from './firebaseConfig';
 
 export default function IndexScreen() {
   const router = useRouter();
   
   useEffect(() => {
 
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (!userDoc.exists()) {
+          Sair();
+          router.replace('/screens/login');
+          return;
+        }
+
         biometria();
       } else {
         router.replace('/screens/login');

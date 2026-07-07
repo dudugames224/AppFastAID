@@ -1,11 +1,12 @@
 import { router } from "expo-router";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Image, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Checkbox from "../components/Checkbox";
 import { useTheme } from "../context/ThemeContext";
 import { auth, db, doc, setDoc } from "../firebaseConfig.js";
+import { fetchAppSettings } from "../services/lessonService";
 
 const PASSWORD_REQUIREMENTS = [
   "No minimo 8 caracteres",
@@ -13,6 +14,8 @@ const PASSWORD_REQUIREMENTS = [
   "Pelo menos um numero",
   "Pelo menos um caractere especial (ex.: ! # @ $ % & *)",
 ];
+
+const CODIGO_TURMA = "McQueen";
 
 const getPasswordValidation = (value: string) => ({
   minLength: value.length >= 8,
@@ -27,6 +30,9 @@ export default function CadastrarScreen() {
   const [nome, setNome] = useState("");
   const [dataNascimento, setDataNascimento] = useState("");
   const [turma, setTurma] = useState("");
+  const [codigoTurma, setCodigoTurma] = useState("");
+  const [codigoTurmaObrigatorio, setCodigoTurmaObrigatorio] = useState(true);
+  const [codigoTurmaAceito, setCodigoTurmaAceito] = useState(CODIGO_TURMA);
   const [sexo, setSexo] = useState("");
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
   
@@ -81,6 +87,24 @@ export default function CadastrarScreen() {
     return age >= 0 && age <= 120;
   };
 
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadClassCodeSettings = async () => {
+      const settings = await fetchAppSettings();
+      if (!isMounted) return;
+
+      setCodigoTurmaObrigatorio(settings.isClassCodeRequired === true);
+      setCodigoTurmaAceito(settings.classRegistrationCode || CODIGO_TURMA);
+    };
+
+    loadClassCodeSettings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const cadastrar = async () => {
     try {
       if (!aceiteDeTermos) {
@@ -92,8 +116,18 @@ export default function CadastrarScreen() {
         return;
       }
 
+      if (codigoTurmaObrigatorio && !codigoTurma) {
+        alert("Por favor, preencha todos os campos.");
+        return;
+      }
+
       if (!isValidBirthDate(dataNascimento)) {
         alert("Informe uma data de nascimento valida no formato DD/MM/AAAA.");
+        return;
+      }
+
+      if (codigoTurmaObrigatorio && codigoTurma !== codigoTurmaAceito) {
+        alert("Codigo de turma invalido.");
         return;
       }
 
@@ -177,6 +211,17 @@ export default function CadastrarScreen() {
               onChangeText={setTurma}
               placeholderTextColor="#aaa"
             />
+            {codigoTurmaObrigatorio && (
+              <TextInput
+                style={styles.caixaInsercao}
+                placeholder="Codigo da turma"
+                value={codigoTurma}
+                onChangeText={setCodigoTurma}
+                autoCapitalize="none"
+                autoCorrect={false}
+                placeholderTextColor="#aaa"
+              />
+            )}
             <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
               <TouchableOpacity
                 style={[
