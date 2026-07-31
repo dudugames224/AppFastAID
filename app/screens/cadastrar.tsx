@@ -15,8 +15,6 @@ const PASSWORD_REQUIREMENTS = [
   "Pelo menos um caractere especial (ex.: ! # @ $ % & *)",
 ];
 
-const CODIGO_TURMA = "McQueen";
-
 const getPasswordValidation = (value: string) => ({
   minLength: value.length >= 8,
   hasUppercase: /[A-Z]/.test(value),
@@ -32,7 +30,7 @@ export default function CadastrarScreen() {
   const [turma, setTurma] = useState("");
   const [codigoTurma, setCodigoTurma] = useState("");
   const [codigoTurmaObrigatorio, setCodigoTurmaObrigatorio] = useState(true);
-  const [codigoTurmaAceito, setCodigoTurmaAceito] = useState(CODIGO_TURMA);
+  const [codigoTurmaAceito, setCodigoTurmaAceito] = useState("");
   const [sexo, setSexo] = useState("");
   const [aceiteDeTermos, setAceiteDeTermos] = useState(false);
   
@@ -95,7 +93,7 @@ export default function CadastrarScreen() {
       if (!isMounted) return;
 
       setCodigoTurmaObrigatorio(settings.isClassCodeRequired === true);
-      setCodigoTurmaAceito(settings.classRegistrationCode || CODIGO_TURMA);
+      setCodigoTurmaAceito(settings.classRegistrationCode || "");
     };
 
     loadClassCodeSettings();

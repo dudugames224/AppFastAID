@@ -351,8 +351,8 @@ export interface AppSettings {
   isStoreEnabled: boolean;
   globalInfiniteLives: boolean;
   isPremiumModeEnabled: boolean;
-  isClassCodeRequired: boolean;
-  classRegistrationCode: string;
+  isClassCodeRequired?: boolean;
+  classRegistrationCode?: string;
 }
 
 export const fetchAppSettings = async (): Promise<AppSettings> => {
@@ -379,7 +379,7 @@ export const fetchAppSettings = async (): Promise<AppSettings> => {
   }
 };
 
-export const updateAppSetting = async <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => {
+export const updateAppSetting = async (key: keyof AppSettings, value: boolean) => {
   try {
     const docRef = doc(db, "AppSettings", "global");
     await setDoc(docRef, { [key]: value }, { merge: true });
