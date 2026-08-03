@@ -268,7 +268,7 @@ const StoreScreen = () => {
 
   if (!isStoreEnabled) {
     return (
-      <SafeAreaView style={globalStyles.safe}>
+      <SafeAreaView style={globalStyles.safe} edges={["left", "right"]}>
         <View style={[storeStyles.container, { flex: 1, justifyContent: 'center', alignItems: 'center' }]}>
           <Image source={require("../../assets/images/band_chorando.png")} style={{ width: 150, height: 150, marginBottom: 20 }} />
           <Text style={[storeStyles.heroTitle, { textAlign: 'center' }]}>Loja Fechada</Text>
@@ -281,7 +281,7 @@ const StoreScreen = () => {
   }
 
   return (
-    <SafeAreaView style={globalStyles.safe}>
+    <SafeAreaView style={globalStyles.safe} edges={["left", "right"]}>
       <ScrollView contentContainerStyle={storeStyles.container}>
         <View style={storeStyles.heroCard}>
           <View style={storeStyles.heroTextArea}>

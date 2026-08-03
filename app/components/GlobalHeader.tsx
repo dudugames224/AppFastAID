@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import { Image, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTheme } from "../context/ThemeContext";
 import { getUserData } from "../firebaseConfig";
 import { applyLifeRegeneration } from "../services/lifeService";
@@ -11,6 +12,7 @@ const safiraIcon = require("../../assets/images/torneios.png");
 export const GlobalHeader = () => {
   const router = useRouter();
   const { colors, styles } = useTheme();
+  const insets = useSafeAreaInsets();
   const [userData, setUserData] = useState({
     ofensiva: 0,
     lives: 5,
@@ -63,7 +65,7 @@ export const GlobalHeader = () => {
         justifyContent: "space-around",
         alignItems: "center",
         backgroundColor: colors.background,
-        paddingTop: 30,
+        paddingTop: Math.max(insets.top + 8, 30),
         paddingBottom: 10,
         borderBottomWidth: 1,
         borderBottomColor: colors.border,

@@ -148,7 +148,7 @@ const PracticeScreen = () => {
     : { unlocked: false, mistakes: 0 };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["left", "right"]}>
       <ScrollView style={styles.tabContainer} contentContainerStyle={{ paddingBottom: 30 }}>
         <Image
           source={require("../../assets/images/band_halter.png")}

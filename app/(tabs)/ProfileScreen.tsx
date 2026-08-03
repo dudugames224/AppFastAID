@@ -268,7 +268,7 @@ const ProfileScreen = () => {
   const statLabelFontSize = Math.min(12, Math.max(10, Math.floor(width * 0.03)));
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <SafeAreaView style={styles.safe} edges={["left", "right"]}>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: '3%', paddingTop: 10 }}>
         <View style={{width: 24}} />
         <Text style={styles.titulo}>PERFIL</Text>
