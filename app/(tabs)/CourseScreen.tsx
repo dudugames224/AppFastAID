@@ -128,17 +128,12 @@ const CourseScreen: React.FC = () => {
     const sections: { title?: string; entries: ModuleEntry[] }[] = [];
     moduleEntries.forEach((entry) => {
       const title = getModuleTopicTitle(entry.module);
-      const current = sections[sections.length - 1];
-      if (title) {
-        if (!current || current.title !== title) {
-          sections.push({ title, entries: [entry] });
-        } else {
-          current.entries.push(entry);
-        }
-      } else if (!current || current.title) {
-        sections.push({ title: undefined, entries: [entry] });
+      const lastSection = sections.length > 0 ? sections[sections.length - 1] : null;
+
+      if (lastSection && lastSection.title === title) {
+        lastSection.entries.push(entry);
       } else {
-        current.entries.push(entry);
+        sections.push({ title, entries: [entry] });
       }
     });
     return sections;
