@@ -373,24 +373,33 @@ export default function DailyReportScreen() {
         });
         htmlContent += `</table>`;
 
+        const escapeHtml = (val: string | number): string =>
+          String(val)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
         // Demografia
-        const generateDemoTable = (title: string, data: Record<string, number>, total: number) => {
+        const appendDemoTable = (title: string, data: Record<string, number>, total: number) => {
           let rows = '';
           Object.entries(data).forEach(([k, v]) => {
-            rows += `<tr><td class="left">${k}</td><td>${v}</td><td>${((v/total)*100).toFixed(1)}%</td></tr>`;
+            const pct = total > 0 ? ((v / total) * 100).toFixed(1) : "0.0";
+            rows += `<tr><td class="left">${escapeHtml(k)}</td><td>${escapeHtml(v)}</td><td>${escapeHtml(pct)}%</td></tr>`;
           });
-          return `
+          htmlContent += `
             <div class="stat-box">
-              <h3>${title}</h3>
+              <h3>${escapeHtml(title)}</h3>
               <table><tr><th class="left">Tipo</th><th>Qtd</th><th>%</th></tr>${rows}</table>
             </div>
           `;
         };
 
         htmlContent += `<div style="margin-top: 20px;">`;
-        htmlContent += generateDemoTable("Sexo", item.demographics.sex, item.demographics.totalStudents);
-        htmlContent += generateDemoTable("Idade", item.demographics.age, item.demographics.totalStudents);
-        htmlContent += generateDemoTable("Turma", item.demographics.class, item.demographics.totalStudents);
+        appendDemoTable("Sexo", item.demographics.sex, item.demographics.totalStudents);
+        appendDemoTable("Idade", item.demographics.age, item.demographics.totalStudents);
+        appendDemoTable("Turma", item.demographics.class, item.demographics.totalStudents);
         htmlContent += `</div>`;
       });
 
@@ -464,7 +473,7 @@ export default function DailyReportScreen() {
   };
 
   const handleSaveClassCode = async () => {
-    const trimmedCode = appSettings.classRegistrationCode.trim();
+    const trimmedCode = appSettings.classRegistrationCode?.trim() || "";
     if (!trimmedCode) {
       Alert.alert("Codigo obrigatorio", "Informe um codigo de turma para salvar.");
       return;

@@ -79,18 +79,23 @@ async function flushBatch(db, batchState) {
 }
 
 async function deleteCollectionTree(db, collectionRef, batchState) {
-  while (true) {
-    const snapshot = await collectionRef.limit(100).get();
+  try {
+    while (true) {
+      const snapshot = await collectionRef.limit(100).get();
 
-    if (snapshot.empty) {
-      return;
+      if (snapshot.empty) {
+        return;
+      }
+
+      for (const doc of snapshot.docs) {
+        await deleteDocumentTree(db, doc.ref, batchState);
+      }
+
+      await flushBatch(db, batchState);
     }
-
-    for (const doc of snapshot.docs) {
-      await deleteDocumentTree(db, doc.ref, batchState);
-    }
-
-    await flushBatch(db, batchState);
+  } catch (error) {
+    console.error("Erro ao deletar árvore de coleção:", error);
+    throw error;
   }
 }
 

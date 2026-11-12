@@ -196,16 +196,19 @@ export const fetchClassPerformanceReport = async (classFilter?: string | null): 
       const userId = pathSegments[1];
       const courseId = pathSegments[3];
       
-      if (!dataMap.has(courseId)) {
-        dataMap.set(courseId, new Map());
+      let userMap = dataMap.get(courseId);
+      if (!userMap) {
+        userMap = new Map();
+        dataMap.set(courseId, userMap);
       }
-      const userMap = dataMap.get(courseId)!;
       
-      if (!userMap.has(userId)) {
-        userMap.set(userId, []);
+      let userAttempts = userMap.get(userId);
+      if (!userAttempts) {
+        userAttempts = [];
+        userMap.set(userId, userAttempts);
       }
-      // Adiciona a tentativa na lista do usuário
-      userMap.get(userId)!.push({ ...data, id: docSnap.id });
+      // Adiciona a tentativa na lista do usuário de forma segura
+      userAttempts.push({ ...data, id: docSnap.id });
     }
   });
 
@@ -275,10 +278,12 @@ export const fetchClassPerformanceReport = async (classFilter?: string | null): 
         if (att.details && Array.isArray(att.details)) {
           att.details.forEach(d => {
             const qText = d.question.trim();
-            if (!userQuestionHistory.has(qText)) {
-              userQuestionHistory.set(qText, []);
+            let qHistory = userQuestionHistory.get(qText);
+            if (!qHistory) {
+              qHistory = [];
+              userQuestionHistory.set(qText, qHistory);
             }
-            userQuestionHistory.get(qText)!.push(d.isCorrect);
+            qHistory.push(d.isCorrect);
           });
         }
       });
