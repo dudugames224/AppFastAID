@@ -12,7 +12,8 @@ function initAdmin() {
 
   if (serviceAccountPath) {
     const resolvedPath = path.resolve(serviceAccountPath);
-    const serviceAccount = require(resolvedPath);
+    const fileContent = fs.readFileSync(resolvedPath, "utf-8");
+    const serviceAccount = JSON.parse(fileContent);
     initializeApp({
       credential: cert(serviceAccount),
       projectId: PROJECT_ID,
